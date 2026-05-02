@@ -1,0 +1,296 @@
+package com.coffeelab.coffeenotes.ui.screen
+
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.coffeelab.coffeenotes.data.entity.CoffeeBean
+import com.coffeelab.coffeenotes.ui.navigation.Screen
+import com.coffeelab.coffeenotes.util.BitmapLoader
+import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
+import kotlinx.coroutines.launch
+import java.io.File
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BeanEditScreen(
+    navController: NavController,
+    beanId: Long,
+    viewModel: BeanViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var roaster by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var origin by remember { mutableStateOf("") }
+    var estate by remember { mutableStateOf("") }
+    var variety by remember { mutableStateOf("") }
+    var process by remember { mutableStateOf("") }
+    var roastLevel by remember { mutableStateOf("") }
+    var roastDate by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var imageUri by remember { mutableStateOf("") }
+    var tagInput by remember { mutableStateOf("") }
+    val tags = remember { mutableStateListOf<String>() }
+
+    val isEditing = beanId > 0
+    val recResult by viewModel.recognitionResult.collectAsState(initial = null)
+    val recProcessing by viewModel.recognitionProcessing.collectAsState(initial = false)
+
+    // Gallery picker - keyword mode
+    val keywordGalleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            scope.launch {
+                val bitmap = BitmapLoader.loadFromUri(context, it)
+                if (bitmap != null) {
+                    viewModel.runKeywordRecognition(bitmap)
+                }
+            }
+        }
+    }
+
+    // Gallery picker - AI mode
+    val aiGalleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            scope.launch {
+                val bitmap = BitmapLoader.loadFromUri(context, it)
+                if (bitmap != null) {
+                    viewModel.runAiRecognition(bitmap)
+                }
+            }
+        }
+    }
+
+    // Apply recognition result with user feedback
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(recResult) {
+        recResult?.let { result ->
+            if (!result.success) {
+                statusMessage = "${result.engineName}: ${result.rawResponse.take(80)}"
+            } else {
+                val filled = mutableListOf<String>()
+                if (result.roaster.isNotEmpty()) { roaster = result.roaster; filled.add("烘焙商") }
+                if (result.name.isNotEmpty()) { name = result.name; filled.add("豆名") }
+                if (result.origin.isNotEmpty()) { origin = result.origin; filled.add("产地") }
+                if (result.estate.isNotEmpty()) { estate = result.estate; filled.add("庄园") }
+                if (result.variety.isNotEmpty()) { variety = result.variety; filled.add("品种") }
+                if (result.process.isNotEmpty()) { process = result.process; filled.add("处理法") }
+                if (result.roastLevel.isNotEmpty()) { roastLevel = result.roastLevel; filled.add("烘焙度") }
+                if (result.roastDate.isNotEmpty()) { roastDate = result.roastDate; filled.add("烘焙日期") }
+                result.flavors.forEach { f ->
+                    if (!tags.contains(f)) { tags.add(f); filled.add("风味:$f") }
+                }
+                statusMessage = if (filled.isEmpty()) {
+                    "识别完成，但未提取到信息"
+                } else {
+                    "${result.engineName} 已填入: ${filled.joinToString("、")}"
+                }
+            }
+        }
+    }
+
+    // Load existing bean
+    LaunchedEffect(beanId) {
+        if (isEditing) {
+            viewModel.loadBean(beanId)
+            viewModel.loadTags(beanId)
+        }
+    }
+
+    val bean by viewModel.selectedBean.collectAsState(initial = null)
+    val existingTags by viewModel.tags.collectAsState(initial = emptyList())
+    LaunchedEffect(bean, existingTags) {
+        if (isEditing && bean != null) {
+            val b = bean!!
+            roaster = b.roaster
+            name = b.name
+            origin = b.origin
+            estate = b.estate
+            variety = b.variety
+            process = b.process
+            roastLevel = b.roastLevel
+            roastDate = if (b.roastDate != null) b.roastDate.toString() else ""
+            notes = b.notes
+            imageUri = b.imageUri
+            if (tags.isEmpty() && existingTags.isNotEmpty()) {
+                tags.clear()
+                tags.addAll(existingTags)
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(if (isEditing) "编辑豆子" else "添加豆子") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Recognition Section
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("拍照识别", style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = 8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = {
+                                navController.navigate(Screen.Camera.createRoute(beanId, "keyword"))
+                            }, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("拍照", style = MaterialTheme.typography.labelMedium)
+                            }
+                            OutlinedButton(onClick = {
+                                keywordGalleryLauncher.launch("image/*")
+                            }, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("相册", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = {
+                                navController.navigate(Screen.Camera.createRoute(beanId, "ai"))
+                            }, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("AI 拍照", style = MaterialTheme.typography.labelMedium)
+                            }
+                            OutlinedButton(onClick = {
+                                aiGalleryLauncher.launch("image/*")
+                            }, modifier = Modifier.weight(1f)) {
+                                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("AI 相册", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
+                    if (recProcessing) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                        Text("正在识别...", style = MaterialTheme.typography.bodySmall)
+                    }
+                    statusMessage?.let { msg ->
+                        val isError = msg.contains("识别失败") || msg.contains("出错")
+                        Text(msg, style = MaterialTheme.typography.bodySmall,
+                            color = if (isError) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+            }
+
+            // Bean Image preview
+            if (imageUri.isNotEmpty()) {
+                AsyncImage(
+                    model = File(imageUri),
+                    contentDescription = "豆袋照片",
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            // Form Fields
+            OutlinedTextField(value = roaster, onValueChange = { roaster = it },
+                label = { Text("烘焙商") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(value = name, onValueChange = { name = it },
+                label = { Text("豆名 *") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(value = origin, onValueChange = { origin = it },
+                    label = { Text("产地") }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(value = variety, onValueChange = { variety = it },
+                    label = { Text("品种") }, modifier = Modifier.weight(1f), singleLine = true)
+            }
+            OutlinedTextField(value = estate, onValueChange = { estate = it },
+                label = { Text("庄园") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(value = process, onValueChange = { process = it },
+                    label = { Text("处理法") }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(value = roastLevel, onValueChange = { roastLevel = it },
+                    label = { Text("烘焙度") }, modifier = Modifier.weight(1f), singleLine = true)
+            }
+            OutlinedTextField(value = roastDate, onValueChange = { roastDate = it },
+                label = { Text("烘焙日期") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+
+            // Flavor Tags
+            Text("风味标签", style = MaterialTheme.typography.titleMedium)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = tagInput, onValueChange = { tagInput = it },
+                    label = { Text("输入风味词") }, modifier = Modifier.weight(1f), singleLine = true)
+                IconButton(onClick = {
+                    if (tagInput.isNotBlank() && !tags.contains(tagInput.trim())) {
+                        tags.add(tagInput.trim()); tagInput = ""
+                    }
+                }, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Default.Add, contentDescription = "添加标签")
+                }
+            }
+            if (tags.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    tags.forEach { tag ->
+                        InputChip(selected = false, onClick = { tags.remove(tag) },
+                            label = { Text(tag) }, trailingIcon = { Icon(Icons.Default.Close, "删除") })
+                    }
+                }
+            }
+
+            OutlinedTextField(value = notes, onValueChange = { notes = it },
+                label = { Text("备注") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+
+            Button(onClick = {
+                scope.launch {
+                    val bean = CoffeeBean(
+                        id = if (isEditing) beanId else 0,
+                        roaster = roaster, name = name, origin = origin, estate = estate,
+                        variety = variety, process = process, roastLevel = roastLevel,
+                        roastDate = roastDate.toLongOrNull(), notes = notes, imageUri = imageUri,
+                        createdAt = if (isEditing) (bean?.createdAt ?: System.currentTimeMillis())
+                        else System.currentTimeMillis(), updatedAt = System.currentTimeMillis()
+                    )
+                    if (isEditing) viewModel.updateBeanSync(bean, tags.toList())
+                    else viewModel.saveBeanSync(bean, tags.toList())
+                    navController.popBackStack()
+                }
+            }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("保存") }
+        }
+    }
+}

@@ -1,0 +1,66 @@
+package com.coffeelab.coffeenotes.data.repository
+
+import com.coffeelab.coffeenotes.data.AppDatabase
+import com.coffeelab.coffeenotes.data.entity.*
+import kotlinx.coroutines.flow.Flow
+
+class CoffeeRepository(private val db: AppDatabase) {
+
+    // ===== Coffee Beans =====
+    val allBeans: Flow<List<CoffeeBean>> = db.coffeeBeanDao().getAllBeans()
+
+    suspend fun getBean(id: Long) = db.coffeeBeanDao().getBeanById(id)
+    fun getBeanFlow(id: Long) = db.coffeeBeanDao().getBeanFlow(id)
+    fun searchBeans(query: String) = db.coffeeBeanDao().searchBeans(query)
+
+    suspend fun insertBean(bean: CoffeeBean): Long = db.coffeeBeanDao().insert(bean)
+    suspend fun updateBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean)
+    suspend fun deleteBean(bean: CoffeeBean) = db.coffeeBeanDao().delete(bean)
+
+    // ===== Flavor Tags =====
+    fun getTagsForBean(beanId: Long) = db.flavorTagDao().getTagsForBean(beanId)
+    suspend fun getTagsForBeanOnce(beanId: Long) = db.flavorTagDao().getTagsForBeanOnce(beanId)
+
+    suspend fun saveTagsForBean(beanId: Long, tags: List<String>) {
+        db.flavorTagDao().deleteAllForBean(beanId)
+        val entities = tags.map { FlavorTag(beanId = beanId, name = it) }
+        if (entities.isNotEmpty()) {
+            db.flavorTagDao().insertAll(entities)
+        }
+    }
+
+    suspend fun addTag(tag: FlavorTag) = db.flavorTagDao().insert(tag)
+    suspend fun deleteTag(tag: FlavorTag) = db.flavorTagDao().delete(tag)
+
+    // ===== Brew Records =====
+    val allRecords: Flow<List<BrewRecord>> = db.brewRecordDao().getAllRecords()
+
+    suspend fun getRecord(id: Long) = db.brewRecordDao().getRecordById(id)
+    fun getRecordsForBean(beanId: Long) = db.brewRecordDao().getRecordsForBean(beanId)
+    fun getRecordsByEquipment(equipment: String) = db.brewRecordDao().getRecordsByEquipment(equipment)
+    fun getBrewCountForBean(beanId: Long) = db.brewRecordDao().getBrewCountForBean(beanId)
+    suspend fun getBestRecordForBean(beanId: Long) = db.brewRecordDao().getBestRecordForBean(beanId)
+
+    suspend fun insertRecord(record: BrewRecord): Long = db.brewRecordDao().insert(record)
+    suspend fun updateRecord(record: BrewRecord) = db.brewRecordDao().update(record)
+    suspend fun deleteRecord(record: BrewRecord) = db.brewRecordDao().delete(record)
+
+    // ===== Brew Recipes =====
+    val allRecipes: Flow<List<BrewRecipe>> = db.brewRecipeDao().getAllRecipes()
+
+    suspend fun getRecipe(id: Long) = db.brewRecipeDao().getRecipeById(id)
+    fun getRecipesByEquipment(equipment: String) = db.brewRecipeDao().getRecipesByEquipment(equipment)
+
+    suspend fun insertRecipe(recipe: BrewRecipe): Long = db.brewRecipeDao().insert(recipe)
+    suspend fun updateRecipe(recipe: BrewRecipe) = db.brewRecipeDao().update(recipe)
+    suspend fun deleteRecipe(recipe: BrewRecipe) = db.brewRecipeDao().delete(recipe)
+
+    // ===== Equipment =====
+    val allEquipment: Flow<List<Equipment>> = db.equipmentDao().getAll()
+    suspend fun getAllEquipmentOnce() = db.equipmentDao().getAllOnce()
+
+    suspend fun saveEquipmentOrder(items: List<Equipment>) {
+        db.equipmentDao().deleteAll()
+        db.equipmentDao().insertAll(items)
+    }
+}
