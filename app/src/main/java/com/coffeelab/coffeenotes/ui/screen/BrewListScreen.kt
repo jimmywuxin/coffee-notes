@@ -3,16 +3,22 @@ package com.coffeelab.coffeenotes.ui.screen
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
@@ -32,6 +38,10 @@ fun BrewListScreen(
         brewViewModel.allRecords.collectAsState(initial = emptyList())
     }
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
+
+    val scope = rememberCoroutineScope()
+    var recordToDelete by remember { mutableStateOf<BrewRecord?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -77,17 +87,67 @@ fun BrewListScreen(
                     val beanName = beans.find { it.id == record.beanId }?.let {
                         "${it.roaster} - ${it.name}"
                     } ?: "未知豆子"
-                    RecordCard(
-                        record = record,
-                        beanName = beanName,
-                        onClick = {
-                            navController.navigate(
-                                Screen.BrewEdit.createRoute(record.id, record.beanId)
-                            )
-                        }
-                    )
+
+                    SwipeToDismissBox(
+                        state = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { dismissValue ->
+                                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                                    recordToDelete = record
+                                    showDeleteDialog = true
+                                }
+                                false
+                            }
+                        ),
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.error)
+                                    .padding(horizontal = 20.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "删除",
+                                    tint = Color.White
+                                )
+                            }
+                        },
+                        enableDismissFromStartToEnd = false
+                    ) {
+                        RecordCard(
+                            record = record,
+                            beanName = beanName,
+                            onClick = {
+                                navController.navigate(
+                                    Screen.BrewEdit.createRoute(record.id, record.beanId)
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }
+    }
+
+    // Delete Confirmation Dialog
+    if (showDeleteDialog && recordToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false; recordToDelete = null },
+            title = { Text("确认删除") },
+            text = { Text("确定要删除这条冲煮记录吗？删除后无法恢复。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        recordToDelete?.let { brewViewModel.deleteRecord(it) }
+                        showDeleteDialog = false
+                        recordToDelete = null
+                    }
+                ) { Text("删除", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false; recordToDelete = null }) { Text("取消") }
+            }
+        )
     }
 }

@@ -59,6 +59,11 @@ class CoffeeRepository(private val db: AppDatabase) {
     val allEquipment: Flow<List<Equipment>> = db.equipmentDao().getAll()
     suspend fun getAllEquipmentOnce() = db.equipmentDao().getAllOnce()
 
+    suspend fun insertEquipment(equipment: Equipment): Long = db.equipmentDao().insert(equipment)
+    suspend fun updateEquipment(equipment: Equipment) = db.equipmentDao().update(equipment)
+    suspend fun deleteEquipment(equipment: Equipment) = db.equipmentDao().delete(equipment)
+    suspend fun getMaxSortOrder() = db.equipmentDao().getMaxSortOrder()
+
     suspend fun saveEquipmentOrder(items: List<Equipment>) {
         db.equipmentDao().deleteAll()
         db.equipmentDao().insertAll(items)
