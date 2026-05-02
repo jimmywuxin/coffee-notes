@@ -110,9 +110,9 @@ fun HomeScreen(
                         )
                         NavCard(
                             modifier = Modifier.weight(1f),
-                            emoji = "💾",
-                            label = "备份",
-                            onClick = { navController.navigate(Screen.Backup.route) }
+                            emoji = "📥",
+                            label = "导入",
+                            onClick = { navController.navigate(Screen.Import.route) }
                         )
                     }
                 }

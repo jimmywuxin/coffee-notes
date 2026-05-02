@@ -28,4 +28,5 @@ sealed class Screen(val route: String) {
         fun createRoute(beanId: Long = -1L) = "stats/$beanId"
     }
     object Backup : Screen("backup")
+    object Import : Screen("import")
 }
