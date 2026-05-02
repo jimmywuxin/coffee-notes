@@ -114,6 +114,12 @@ fun HomeScreen(
                             label = "导入",
                             onClick = { navController.navigate(Screen.Import.route) }
                         )
+                        NavCard(
+                            modifier = Modifier.weight(1f),
+                            emoji = "💾",
+                            label = "备份",
+                            onClick = { navController.navigate(Screen.Backup.route) }
+                        )
                     }
                 }
             }
