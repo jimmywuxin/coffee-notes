@@ -1,0 +1,202 @@
+package com.coffeelab.coffeenotes.viewmodel
+
+import android.app.Application
+import android.content.Context
+import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.coffeelab.coffeenotes.data.AppDatabase
+import com.coffeelab.coffeenotes.data.entity.*
+import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.text.SimpleDateFormat
+import java.util.*
+
+class BackupViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository = CoffeeRepository(AppDatabase.getInstance(application))
+    private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
+
+    sealed class BackupState {
+        object Idle : BackupState()
+        object Loading : BackupState()
+        data class Success(val message: String) : BackupState()
+        data class Error(val message: String) : BackupState()
+    }
+
+    private val _backupState = MutableStateFlow<BackupState>(BackupState.Idle)
+    val backupState: StateFlow<BackupState> = _backupState.asStateFlow()
+
+    fun resetState() {
+        _backupState.value = BackupState.Idle
+    }
+
+    suspend fun exportBackup(context: Context, uri: Uri) {
+        _backupState.value = BackupState.Loading
+
+        try {
+            withContext(Dispatchers.IO) {
+                val beans = repository.allBeans.first()
+                val records = repository.allRecords.first()
+                val recipes = repository.allRecipes.first()
+
+                // Collect tags for each bean
+                val beansWithTags = beans.map { bean ->
+                    val tags = repository.getTagsForBeanOnce(bean.id)
+                    mapOf(
+                        "bean" to bean,
+                        "tags" to tags.map { it.name }
+                    )
+                }
+
+                val backup = mapOf(
+                    "exportDate" to SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.getDefault()).format(Date()),
+                    "appVersion" to "1.0.0",
+                    "data" to mapOf(
+                        "beans" to beansWithTags,
+                        "records" to records,
+                        "recipes" to recipes
+                    )
+                )
+
+                val json = gson.toJson(backup)
+
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    OutputStreamWriter(outputStream).use { writer ->
+                        writer.write(json)
+                    }
+                }
+
+                _backupState.value = BackupState.Success(
+                    "备份成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n配方: ${recipes.size} 个"
+                )
+            }
+        } catch (e: Exception) {
+            _backupState.value = BackupState.Error("备份失败: ${e.message}")
+        }
+    }
+
+    suspend fun importBackup(context: Context, uri: Uri) {
+        _backupState.value = BackupState.Loading
+
+        try {
+            withContext(Dispatchers.IO) {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val reader = BufferedReader(InputStreamReader(inputStream))
+                val json = reader.readText()
+                reader.close()
+
+                val backup = gson.fromJson(json, Map::class.java)
+                val data = backup["data"] as Map<*, *>
+
+                // Import beans
+                val beans = data["beans"] as List<*>
+                val beanIdMap = mutableMapOf<Long, Long>()
+
+                for (beanEntry in beans) {
+                    val entry = beanEntry as Map<*, *>
+                    val beanMap = entry["bean"] as Map<*, *>
+                    val tags = entry["tags"] as List<*>
+
+                    val oldId = (beanMap["id"] as Double).toLong()
+                    val newBean = CoffeeBean(
+                        roaster = beanMap["roaster"] as String,
+                        name = beanMap["name"] as String,
+                        origin = beanMap["origin"] as String,
+                        estate = beanMap["estate"] as String,
+                        variety = beanMap["variety"] as String,
+                        process = beanMap["process"] as String,
+                        roastLevel = beanMap["roastLevel"] as String,
+                        roastDate = (beanMap["roastDate"] as? Double)?.toLong(),
+                        notes = beanMap["notes"] as String,
+                        imageUri = beanMap["imageUri"] as String,
+                        createdAt = (beanMap["createdAt"] as Double).toLong(),
+                        updatedAt = (beanMap["updatedAt"] as Double).toLong()
+                    )
+
+                    val newId = repository.insertBean(newBean)
+                    beanIdMap[oldId] = newId
+
+                    // Import tags
+                    val tagList = tags.map { it as String }
+                    if (tagList.isNotEmpty()) {
+                        repository.saveTagsForBean(newId, tagList)
+                    }
+                }
+
+                // Import records
+                val records = data["records"] as List<*>
+                for (recordMap in records) {
+                    val r = recordMap as Map<*, *>
+                    val oldBeanId = (r["beanId"] as Double).toLong()
+                    val newBeanId = beanIdMap[oldBeanId] ?: continue
+
+                    val record = BrewRecord(
+                        beanId = newBeanId,
+                        recipeId = (r["recipeId"] as? Double)?.toLong(),
+                        dateTime = (r["dateTime"] as Double).toLong(),
+                        equipment = r["equipment"] as String,
+                        coffeeWeight = r["coffeeWeight"] as Double,
+                        waterWeight = r["waterWeight"] as Double,
+                        waterTemp = r["waterTemp"] as Double,
+                        grindSize = r["grindSize"] as String,
+                        extractionTime = (r["extractionTime"] as Double).toInt(),
+                        bloomTime = (r["bloomTime"] as Double).toInt(),
+                        pourCount = (r["pourCount"] as Double).toInt(),
+                        totalTime = (r["totalTime"] as Double).toInt(),
+                        acidity = (r["acidity"] as Double).toInt(),
+                        sweetness = (r["sweetness"] as Double).toInt(),
+                        bitterness = (r["bitterness"] as Double).toInt(),
+                        mouthfeel = (r["mouthfeel"] as Double).toInt(),
+                        aftertaste = (r["aftertaste"] as Double).toInt(),
+                        overallRating = (r["overallRating"] as Double).toInt(),
+                        flavorNotes = r["flavorNotes"] as String,
+                        imageUri = r["imageUri"] as String,
+                        createdAt = (r["createdAt"] as Double).toLong(),
+                        updatedAt = (r["updatedAt"] as Double).toLong()
+                    )
+                    repository.insertRecord(record)
+                }
+
+                // Import recipes
+                val recipes = data["recipes"] as List<*>
+                for (recipeMap in recipes) {
+                    val rec = recipeMap as Map<*, *>
+                    val recipe = BrewRecipe(
+                        name = rec["name"] as String,
+                        beanId = (rec["beanId"] as? Double)?.toLong(),
+                        equipment = rec["equipment"] as String,
+                        coffeeWeight = rec["coffeeWeight"] as Double,
+                        waterWeight = rec["waterWeight"] as Double,
+                        waterTemp = rec["waterTemp"] as Double,
+                        grindSize = rec["grindSize"] as String,
+                        bloomTime = (rec["bloomTime"] as Double).toInt(),
+                        pourCount = (rec["pourCount"] as Double).toInt(),
+                        totalTime = (rec["totalTime"] as Double).toInt(),
+                        notes = rec["notes"] as String,
+                        createdAt = (rec["createdAt"] as Double).toLong(),
+                        updatedAt = (rec["updatedAt"] as Double).toLong()
+                    )
+                    repository.insertRecipe(recipe)
+                }
+
+                _backupState.value = BackupState.Success(
+                    "恢复成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n配方: ${recipes.size} 个"
+                )
+            }
+        } catch (e: Exception) {
+            _backupState.value = BackupState.Error("恢复失败: ${e.message}")
+        }
+    }
+}
