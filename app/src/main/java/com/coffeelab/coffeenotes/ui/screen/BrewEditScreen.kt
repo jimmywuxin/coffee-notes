@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
@@ -21,6 +22,7 @@ import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import com.coffeelab.coffeenotes.data.entity.Equipment
 import com.coffeelab.coffeenotes.viewmodel.RecipeViewModel
+import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -31,13 +33,15 @@ fun BrewEditScreen(
     beanId: Long,
     brewViewModel: BrewViewModel = viewModel(),
     beanViewModel: BeanViewModel = viewModel(),
-    recipeViewModel: RecipeViewModel = viewModel()
+    recipeViewModel: RecipeViewModel = viewModel(),
+    equipmentViewModel: EquipmentViewModel = viewModel()
 ) {
     val scope = rememberCoroutineScope()
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
     val recipes by recipeViewModel.allRecipes.collectAsState(initial = emptyList())
 
     val isEditing = recordId > 0
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     // State
     var selectedBeanId by remember { mutableStateOf(beanId) }
@@ -62,7 +66,12 @@ fun BrewEditScreen(
     var overall by remember { mutableIntStateOf(0) }
 
     // Equipment list
-    val equipmentItems = Equipment.DEFAULT_EQUIPMENT
+    val equipmentList by equipmentViewModel.allEquipment.collectAsState(initial = emptyList())
+    val equipmentItems = if (equipmentList.isNotEmpty()) {
+        equipmentList.map { it.name }
+    } else {
+        Equipment.DEFAULT_EQUIPMENT
+    }
 
     // Load existing record
     LaunchedEffect(recordId) {
@@ -112,10 +121,18 @@ fun BrewEditScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
                 },
+                actions = {
+                    if (isEditing) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "删除")
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -189,7 +206,18 @@ fun BrewEditScreen(
             }
 
             // Equipment
-            Text("器具", style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("器具", style = MaterialTheme.typography.titleMedium)
+                TextButton(
+                    onClick = { navController.navigate(Screen.EquipmentManagement.route) }
+                ) {
+                    Text("管理器具")
+                }
+            }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 equipmentItems.forEach { item ->
                     FilterChip(
@@ -326,6 +354,30 @@ fun BrewEditScreen(
                 Text("保存记录")
             }
         }
+    }
+
+    // Delete Confirmation Dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("确认删除") },
+            text = { Text("确定要删除这条冲煮记录吗？删除后无法恢复。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            val record = brewViewModel.getRecord(recordId)
+                            record?.let { brewViewModel.deleteRecord(it) }
+                            showDeleteDialog = false
+                            navController.popBackStack()
+                        }
+                    }
+                ) { Text("删除", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+            }
+        )
     }
 }
 
