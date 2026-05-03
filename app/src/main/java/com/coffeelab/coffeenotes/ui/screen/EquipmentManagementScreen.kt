@@ -45,23 +45,20 @@ fun EquipmentManagementScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
                 },
+                actions = {
+                    IconButton(onClick = {
+                        newEquipmentName = ""
+                        showAddDialog = true
+                    }) {
+                        Icon(Icons.Default.Add, contentDescription = "添加器具", tint = MaterialTheme.colorScheme.onPrimary)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    newEquipmentName = ""
-                    showAddDialog = true
-                },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "添加器具")
-            }
         }
     ) { padding ->
         if (equipmentList.isEmpty()) {

@@ -27,31 +27,104 @@ object OCRProcessor {
 
     private val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
 
-    // Flavor keyword dictionary - grouped by category for better matching
+    // Flavor keyword dictionary - comprehensive list grouped by category
+    // Multi-word entries MUST come before their sub-components (e.g., "dark chocolate" before "chocolate")
     private val flavorKeywords = listOf(
-        // 花香/果香
-        "花香", "花香味", "floral", "flower",
-        "莓果", "浆果", "berry", "berries",
-        "柑橘", "柠檬", "橙子", "citrus", "lemon", "orange", "tangerine",
+        // 花香/茶香（多词优先）
+        "伯爵茶", "伯爵红茶", "Earl Grey",
+        "茉莉花茶", "茉莉绿茶", "Jasmine",
+        "乌龙茶", "oolong",
+        "红茶", "black tea",
+        "绿茶", "green tea",
+        "花草", "floral", "flower", "花香", "花香味",
+        "玫瑰", "白玫瑰", "洛神玫瑰", "rose",
+        "薰衣草", "lavender",
+        "洋甘菊", "chamomile",
+        "佛手柑", "bergamot",
+        "茉莉花", "jasmine flower",
+        "接骨木花", "elderflower",
+        "香柠", "fragrant lemon", "香水柠檬",
+
+        // 果香（多词优先）
         "热带水果", "tropical fruit", "passion fruit", "百香果",
-        "葡萄", "grape", "wine", "葡萄酒",
-        "荔枝", "lychee",
-        "桃子", "peach", "苹果", "apple", "芒果", "mango",
-        "草莓", "strawberry", "樱桃", "cherry", "banana",
-        // 甜感
-        "焦糖", "caramel", "蜂蜜", "honey", "红糖", "brown sugar",
-        "奶油", "butter", "creamy", "牛奶巧克力", "牛奶巧",
-        "黑巧克力", "黑巧", "巧克力", "chocolate", "cocoa",
-        // 坚果/烘焙
-        "坚果", "杏仁", "榛子", "nut", "almond", "hazelnut", "peanut", "花生",
-        "可可", "榛果",
-        // 特殊风味
-        "香料", "spice", "肉桂", "cinnamon",
-        "烟草", "tobacco", "木质", "wood", " cedar", "檀木",
-        "茶", "茶感", "tea", "红茶", "伯爵",
-        "威士忌", "whiskey", "朗姆", "rum",
-        // 其他
-        "芝麻", "sesame", "麝香", "muscat"
+        "深色水果", "dark fruit", "dark berry",
+        "莓果类", "berries", "mixed berries", "综合莓果",
+        "蓝莓", "blueberry", "黑莓", "blackberry", "覆盆子", "raspberry",
+        "草莓", "strawberry",
+        "甜橙", "sweet orange", "血橙", "blood orange",
+        "青柚", "green grapefruit", "蜜柚", "grapefruit",
+        "柑橘", "citrus", "tangerine",
+        "柠檬", "lemon", "lime", "青柠",
+        "橙子", "orange", "柚子", "pomelo",
+        "葡萄", "grape", "葡萄汁", "葡萄柚", "wine", "葡萄酒", "winey",
+        "苹果", "apple", "梨", "pear",
+        "桃子", "peach", "油桃", "nectarine", "杏子", "apricot",
+        "蜜瓜", "honeydew", "哈密瓜", "cantaloupe",
+        "芒果", "mango", "菠萝", "pineapple", "荔枝", "lychee",
+        "樱桃", "cherry", "卡西斯", "blackcurrant", "黑醋栗",
+        "香蕉", "banana", "番石榴", "guava",
+        "车厘子", "cherry", "树莓", "raspberry",
+        "杏桃", "黄杏", "apricot",
+        "水蜜桃", "juicy peach", "脆心苹果", "crisp apple", "糖心苹果", "苹果",
+
+        // 甜感/焦糖（多词优先）
+        "焦糖布丁", "caramel pudding",
+        "太妃糖", "toffee", "奶油糖", "butterscotch",
+        "焦糖", "caramel", "黄糖", "brown sugar", "黑糖", "muscovado",
+        "枫糖", "maple syrup", "maple", "枫糖浆",
+        "蜂蜜", "honey", "蜜糖", "honeyed",
+        "糖蜜", "molasses",
+        "奶油", "butter", "buttery", "creamy", "cream",
+        "牛奶巧克力", "milk chocolate", "牛奶巧",
+        "白巧克力", "white chocolate",
+        "黑巧克力", "dark chocolate", "黑巧",
+        "巧克力", "chocolate", "可可", "cocoa",
+
+        // 坚果/可可（多词优先）
+        "榛果巧克力", "hazelnut chocolate",
+        "杏仁巧克力", "almond chocolate",
+        "坚果", "坚果类", "nuts", "mixed nuts",
+        "杏仁", "almond", "榛子", "hazelnut", "花生", "peanut", "walnut", "核桃",
+        "开心果", "pistachio", "腰果", "cashew",
+        "可可粉", "cocoa powder", "可可碎", "cocoa nibs",
+
+        // 香料/草本（多词优先）
+        "肉桂卷", "cinnamon roll",
+        "香料", "spice", "spices",
+        "肉桂", "cinnamon", "桂皮",
+        "丁香", "clove", "多香果", "allspice",
+        "香草", "vanilla", "香草荚", "vanilla bean",
+        "茴香", "fennel", "八角", "star anise",
+        "薄荷", "mint", "桉树", "eucalyptus",
+
+        // 烘焙/谷物（多词优先）
+        "烤吐司", "toast", "烤面包", "bread crust",
+        "烤坚果", "roasted nuts", "烘烤", "roasted",
+        "麦芽", "malt", "谷物", "cereal", "grain",
+        "饼干", "biscuit", "曲奇", "cookie",
+        "燕麦", "oat", "燕麦片",
+
+        // 木质/烟熏（多词优先）
+        "木质", "木香", "wood", "木本",
+        "雪松", "cedar", "檀木", "sandalwood", "沉香", "agarwood",
+        "橡木", "oak", "橡木桶", "barrel",
+        "烟草", "tobacco", "烟熏", "smoky", "smoke",
+        "皮革", "leather", "麝香", "musk", "muscat",
+
+        // 发酵/酒香（多词优先）
+        "威士忌", "whiskey", "whisky",
+        "朗姆", "rum", "白兰地", "brandy",
+        "香槟", "champagne", "气泡", "bubbly",
+        "葡萄酒", "wine", "红酒", "red wine", "热红酒", "mulled wine",
+        "酵母", "yeast", "发酵", "ferment",
+
+        // 其他（多词优先）
+        "芝麻", "sesame", "杏仁饼", "marzipan",
+        "杏脯", "dried apricot", "葡萄干", "raisin",
+        "无花果", "fig", "枣子", "date",
+        "腐植土", "earthy", "土壤", "soil",
+        "动物", "animal", "野味", "game",
+        "麝香", "muscat", "猫尿", "cat urine" // 有些特殊处理法风味
     )
 
     // Roast level keywords (order matters - longer/more specific first)
@@ -314,37 +387,40 @@ object OCRProcessor {
         )
     }
 
-    // 从行中提取风味词
+    // 从文本中提取所有匹配的风味词（贪婪最长匹配，不重叠）
     private fun extractFlavorFromLine(text: String, flavors: MutableList<String>) {
-        // 先找风味标签后的内容
-        val flavorText = text
-            .replace(Regex("风味[：:]\\s*", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("flavor[：:]?\\s*", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("tasting notes?[：:]?\\s*", RegexOption.IGNORE_CASE), "")
+        // 1. 找出所有匹配的关键词及其位置
+        val sortedKeywords = flavorKeywords.sortedByDescending { it.length }
+        val matches = mutableListOf<Triple<Int, Int, String>>() // (start, end, keyword)
 
-        // 用分隔符拆分
-        val parts = flavorText.split(Regex("[,，、｜|\\s]+"))
-        for (part in parts) {
-            val word = part.trim().take(10)
-            if (word.isNotEmpty()) {
-                // 检查是否匹配已知风味词
-                val matched = flavorKeywords.find { word.contains(it, ignoreCase = true) }
-                if (matched != null && !flavors.contains(matched)) {
-                    flavors.add(matched)
-                } else if (matched == null && word.length >= 2 && word.all { it.isLetterOrDigit() || it in " '" }) {
-                    // 没有精确匹配，但词看起来像风味词（英文/中文）
-                    if (!flavors.contains(word)) {
-                        flavors.add(word)
-                    }
-                }
+        for (kw in sortedKeywords) {
+            if (kw.length < 2) continue
+            var searchStart = 0
+            while (true) {
+                val idx = text.indexOf(kw, searchStart, ignoreCase = true)
+                if (idx < 0) break
+                matches.add(Triple(idx, idx + kw.length, kw))
+                searchStart = idx + 1
             }
         }
 
-        // 额外：全文扫描英文风味词（有些包装直接写英文）
-        for (kw in flavorKeywords) {
-            if (kw.length < 3) continue
-            if (text.contains(kw, ignoreCase = true) && !flavors.any { text.contains(it, ignoreCase = true) }) {
-                // 防止重复
+        // 2. 按长度降序，贪婪选取不重叠的最佳匹配
+        val selected = mutableListOf<Triple<Int, Int, String>>()
+        for (match in matches.sortedByDescending { it.second - it.first }) {
+            val start = match.first
+            val end = match.second
+            // 检查是否与已选中的区间重叠
+            val overlaps = selected.any { existing -> start < existing.second && end > existing.first }
+            if (!overlaps) {
+                selected.add(match)
+            }
+        }
+
+        // 3. 加入结果（按原文顺序排列）
+        for (match in selected.sortedBy { it.first }) {
+            val kw = match.third
+            if (!flavors.contains(kw)) {
+                flavors.add(kw)
             }
         }
     }
