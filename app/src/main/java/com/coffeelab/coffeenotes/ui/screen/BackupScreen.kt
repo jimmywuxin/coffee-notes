@@ -73,7 +73,7 @@ fun BackupScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Export section
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Surface(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("导出备份", style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -97,7 +97,7 @@ fun BackupScreen(
             }
 
             // Import section
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Surface(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("恢复备份", style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -124,10 +124,8 @@ fun BackupScreen(
                     Text("处理中...", style = MaterialTheme.typography.bodySmall)
                 }
                 is BackupViewModel.BackupState.Success -> {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
                             state.message,
@@ -137,10 +135,8 @@ fun BackupScreen(
                     }
                 }
                 is BackupViewModel.BackupState.Error -> {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer
                     ) {
                         Text(
                             state.message,

@@ -30,5 +30,6 @@ sealed class Screen(val route: String) {
     object Backup : Screen("backup")
     object Import : Screen("import")
     object EquipmentManagement : Screen("equipment_management")
+    object GrinderManagement : Screen("grinder_management")
     object Settings : Screen("settings")
 }

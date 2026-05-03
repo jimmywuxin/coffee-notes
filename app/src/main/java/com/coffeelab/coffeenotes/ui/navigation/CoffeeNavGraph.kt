@@ -106,6 +106,10 @@ fun CoffeeNavGraph(navController: NavHostController) {
             EquipmentManagementScreen(navController = navController)
         }
 
+        composable(Screen.GrinderManagement.route) {
+            GrinderManagementScreen(navController = navController)
+        }
+
         composable(Screen.Settings.route) {
             SettingsScreen(navController = navController)
         }

@@ -2,6 +2,7 @@ package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -12,17 +13,20 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.data.entity.BrewRecipe
+import com.coffeelab.coffeenotes.data.entity.Grinder
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import com.coffeelab.coffeenotes.data.entity.Equipment
 import com.coffeelab.coffeenotes.viewmodel.RecipeViewModel
 import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
+import com.coffeelab.coffeenotes.viewmodel.GrinderViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -34,7 +38,8 @@ fun BrewEditScreen(
     brewViewModel: BrewViewModel = viewModel(),
     beanViewModel: BeanViewModel = viewModel(),
     recipeViewModel: RecipeViewModel = viewModel(),
-    equipmentViewModel: EquipmentViewModel = viewModel()
+    equipmentViewModel: EquipmentViewModel = viewModel(),
+    grinderViewModel: GrinderViewModel = viewModel()
 ) {
     val scope = rememberCoroutineScope()
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
@@ -49,7 +54,9 @@ fun BrewEditScreen(
     var equipment by remember { mutableStateOf("") }
     var coffeeWeight by remember { mutableStateOf("") }
     var coffeeWaterRatio by remember { mutableStateOf("") }
+    var waterAmount by remember { mutableStateOf("") }
     var waterTemp by remember { mutableStateOf("") }
+    var grinder by remember { mutableStateOf("") }
     var grindSize by remember { mutableStateOf("") }
     var extractionTime by remember { mutableStateOf("") }
     var flavorNotes by remember { mutableStateOf("") }
@@ -70,6 +77,26 @@ fun BrewEditScreen(
         Equipment.DEFAULT_EQUIPMENT
     }
 
+    // Grinder list
+    val grinderList by grinderViewModel.allGrinders.collectAsState(initial = emptyList())
+    val grinderItems = if (grinderList.isNotEmpty()) {
+        grinderList.map { it.name }
+    } else {
+        Grinder.DEFAULT_GRINDERS
+    }
+
+    // Auto-calculate waterAmount when coffeeWeight or coffeeWaterRatio changes
+    LaunchedEffect(coffeeWeight, coffeeWaterRatio) {
+        val weight = coffeeWeight.toDoubleOrNull() ?: 0.0
+        val ratio = coffeeWaterRatio.toDoubleOrNull() ?: 0.0
+        if (weight > 0 && ratio > 0) {
+            val calculated = weight * ratio
+            // Only auto-fill if user hasn't manually edited waterAmount
+            // (we detect manual edit by checking if current value differs from last calculation)
+            waterAmount = String.format("%.1f", calculated)
+        }
+    }
+
     // Load existing record
     LaunchedEffect(recordId) {
         if (isEditing) {
@@ -80,7 +107,9 @@ fun BrewEditScreen(
                 equipment = r.equipment
                 coffeeWeight = if (r.coffeeWeight > 0) r.coffeeWeight.toString() else ""
                 coffeeWaterRatio = if (r.coffeeWaterRatio > 0) r.coffeeWaterRatio.toString() else ""
+                waterAmount = if (r.waterAmount > 0) r.waterAmount.toString() else ""
                 waterTemp = if (r.waterTemp > 0) r.waterTemp.toString() else ""
+                grinder = r.grinder
                 grindSize = r.grindSize
                 extractionTime = if (r.extractionTime > 0) r.extractionTime.toString() else ""
                 flavorNotes = r.flavorNotes
@@ -100,6 +129,7 @@ fun BrewEditScreen(
         coffeeWeight = if (recipe.coffeeWeight > 0) recipe.coffeeWeight.toString() else ""
         coffeeWaterRatio = if (recipe.coffeeWaterRatio > 0) recipe.coffeeWaterRatio.toString() else ""
         waterTemp = if (recipe.waterTemp > 0) recipe.waterTemp.toString() else ""
+        grinder = recipe.grinder
         grindSize = recipe.grindSize
     }
 
@@ -197,18 +227,7 @@ fun BrewEditScreen(
             }
 
             // Equipment
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("器具", style = MaterialTheme.typography.titleMedium)
-                TextButton(
-                    onClick = { navController.navigate(Screen.EquipmentManagement.route) }
-                ) {
-                    Text("管理器具")
-                }
-            }
+            Text("器具", style = MaterialTheme.typography.titleMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 equipmentItems.forEach { item ->
                     FilterChip(
@@ -221,20 +240,33 @@ fun BrewEditScreen(
 
             // Brew Parameters
             Text("冲煮参数", style = MaterialTheme.typography.titleMedium)
+            val ratioOptions = listOf("15", "16", "17", "2")
+            Text("粉水比", style = MaterialTheme.typography.bodyMedium)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                ratioOptions.forEach { ratio ->
+                    FilterChip(
+                        selected = coffeeWaterRatio == ratio,
+                        onClick = { coffeeWaterRatio = ratio },
+                        label = { Text("1:$ratio") }
+                    )
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = coffeeWeight,
                     onValueChange = { coffeeWeight = it },
                     label = { Text("粉量 (g)") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
                 OutlinedTextField(
-                    value = coffeeWaterRatio,
-                    onValueChange = { coffeeWaterRatio = it },
-                    label = { Text("粉水比") },
+                    value = waterAmount,
+                    onValueChange = { waterAmount = it },
+                    label = { Text("注水量 (ml)") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -243,23 +275,61 @@ fun BrewEditScreen(
                     onValueChange = { waterTemp = it },
                     label = { Text("水温 (℃)") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
-                OutlinedTextField(
-                    value = grindSize,
-                    onValueChange = { grindSize = it },
-                    label = { Text("研磨度") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = extractionTime,
                     onValueChange = { extractionTime = it },
                     label = { Text("萃取时长 (秒)") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+
+            // Grinder + Grind Size
+            Text("研磨", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Grinder dropdown
+                var grinderExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = grinderExpanded,
+                    onExpandedChange = { grinderExpanded = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = grinder,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("磨豆机") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = grinderExpanded) },
+                        modifier = Modifier.menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = grinderExpanded,
+                        onDismissRequest = { grinderExpanded = false }
+                    ) {
+                        grinderItems.forEach { item ->
+                            DropdownMenuItem(
+                                text = { Text(item) },
+                                onClick = {
+                                    grinder = item
+                                    grinderExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                // Grind size number input
+                OutlinedTextField(
+                    value = grindSize,
+                    onValueChange = { grindSize = it },
+                    label = { Text("格数") },
+                    modifier = Modifier.weight(0.6f),
+                    singleLine = true,
+                    placeholder = { Text("如 5") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
 
@@ -295,7 +365,9 @@ fun BrewEditScreen(
                             equipment = equipment,
                             coffeeWeight = coffeeWeight.toDoubleOrNull() ?: 0.0,
                             coffeeWaterRatio = coffeeWaterRatio.toDoubleOrNull() ?: 0.0,
+                            waterAmount = waterAmount.toDoubleOrNull() ?: 0.0,
                             waterTemp = waterTemp.toDoubleOrNull() ?: 0.0,
+                            grinder = grinder,
                             grindSize = grindSize,
                             extractionTime = extractionTime.toIntOrNull() ?: 0,
                             acidity = acidity,

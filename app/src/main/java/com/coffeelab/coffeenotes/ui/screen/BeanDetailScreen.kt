@@ -97,7 +97,7 @@ fun BeanDetailScreen(
 
                 // Bean Info
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Surface(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             InfoRow("烘焙商", b.roaster)
                             InfoRow("豆名", b.name)

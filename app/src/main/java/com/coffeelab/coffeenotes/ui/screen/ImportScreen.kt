@@ -99,6 +99,13 @@ fun ImportScreen(
                     Text("豆子: ${state.beanCount} 个")
                     Text("冲煮记录: ${state.recordCount} 条")
                     Text("风味标签: ${state.tagCount} 个")
+                    if (state.skippedRecordCount > 0) {
+                        Text(
+                            "（跳过了 ${state.skippedRecordCount} 条无关联记录）",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
                         onClick = { navController.popBackStack() }
@@ -116,7 +123,8 @@ fun ImportScreen(
                     Text(state.message)
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
-                        onClick = { viewModel.resetState() }
+                        onClick = { viewModel.resetState() },
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Text("重试")
                     }
