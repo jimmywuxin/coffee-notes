@@ -41,23 +41,20 @@ fun GrinderManagementScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
                 },
+                actions = {
+                    IconButton(onClick = {
+                        newGrinderName = ""
+                        showAddDialog = true
+                    }) {
+                        Icon(Icons.Default.Add, contentDescription = "添加磨豆机", tint = MaterialTheme.colorScheme.onPrimary)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    newGrinderName = ""
-                    showAddDialog = true
-                },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "添加磨豆机")
-            }
         }
     ) { padding ->
         if (grinderList.isEmpty()) {
