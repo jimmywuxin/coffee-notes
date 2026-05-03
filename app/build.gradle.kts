@@ -101,6 +101,9 @@ dependencies {
     // Gson (JSON utility)
     implementation("com.google.code.gson:gson:2.10.1")
 
+    // Vico Charts (v1.x compatible with compileSdk 34)
+    implementation("com.patrykandpatryk.vico:compose-m3:1.13.1")
+
     // Coroutines for ML Kit await
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 

@@ -23,4 +23,10 @@ interface FlavorTagDao {
 
     @Query("DELETE FROM flavor_tags WHERE beanId = :beanId")
     suspend fun deleteAllForBean(beanId: Long)
+
+    /** 统计所有豆子中，出现频率最高的口味标签 Top N */
+    @Query("SELECT name, COUNT(*) as cnt FROM flavor_tags GROUP BY name ORDER BY cnt DESC LIMIT :limit")
+    fun getTopFlavorTags(limit: Int): Flow<List<FlavorTagCount>>
 }
+
+data class FlavorTagCount(val name: String, val cnt: Int)
