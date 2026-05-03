@@ -40,6 +40,8 @@ fun BeanDetailScreen(
     val tags by beanViewModel.tags.collectAsState(initial = emptyList())
     val records by brewViewModel.recordsForBean.collectAsState(initial = emptyList())
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -55,6 +57,9 @@ fun BeanDetailScreen(
                             navController.navigate(Screen.BeanEdit.createRoute(beanId))
                         }) {
                             Icon(Icons.Default.Edit, contentDescription = "编辑")
+                        }
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "删除")
                         }
                     }
                 },
@@ -196,6 +201,29 @@ fun BeanDetailScreen(
                 }
             }
         }
+    }
+
+    // Delete Confirmation Dialog
+    if (showDeleteDialog && bean != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("确认删除") },
+            text = { Text("确定要删除「${bean?.name}」吗？\n该豆子的所有冲煮记录也会被删除，且无法恢复。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        bean?.let {
+                            beanViewModel.deleteBean(it)
+                            showDeleteDialog = false
+                            navController.popBackStack()
+                        }
+                    }
+                ) { Text("删除", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+            }
+        )
     }
 }
 
