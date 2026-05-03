@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
         BrewRecipe::class,
         Equipment::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -40,6 +40,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "coffee_notes.db"
                 )
+                    .fallbackToDestructiveMigrationFrom(1)
                     .fallbackToDestructiveMigration()
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {

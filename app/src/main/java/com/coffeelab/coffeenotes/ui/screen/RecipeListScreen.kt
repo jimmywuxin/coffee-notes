@@ -79,7 +79,7 @@ fun RecipeListScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(recipe.name, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "${recipe.equipment} · ${recipe.coffeeWeight}g / ${recipe.waterWeight}ml · ${recipe.waterTemp}℃",
+                                "${recipe.equipment} · ${recipe.coffeeWeight}g · 1:${String.format("%.1f", recipe.coffeeWaterRatio)} · ${recipe.waterTemp}℃",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

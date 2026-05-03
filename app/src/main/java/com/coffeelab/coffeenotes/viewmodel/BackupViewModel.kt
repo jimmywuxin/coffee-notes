@@ -142,27 +142,32 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     val oldBeanId = (r["beanId"] as Double).toLong()
                     val newBeanId = beanIdMap[oldBeanId] ?: continue
 
+                    val waterWeight = (r["waterWeight"] as? Double) ?: 0.0
+                    val coffeeWeightVal = (r["coffeeWeight"] as? Double) ?: 0.0
+                    val coffeeWaterRatioVal = if (coffeeWeightVal > 0 && waterWeight > 0) {
+                        (waterWeight / coffeeWeightVal)
+                    } else {
+                        (r["coffeeWaterRatio"] as? Double) ?: 0.0
+                    }
+
                     val record = BrewRecord(
                         beanId = newBeanId,
                         recipeId = (r["recipeId"] as? Double)?.toLong(),
                         dateTime = (r["dateTime"] as Double).toLong(),
                         equipment = r["equipment"] as String,
-                        coffeeWeight = r["coffeeWeight"] as Double,
-                        waterWeight = r["waterWeight"] as Double,
+                        coffeeWeight = coffeeWeightVal,
+                        coffeeWaterRatio = coffeeWaterRatioVal,
                         waterTemp = r["waterTemp"] as Double,
                         grindSize = r["grindSize"] as String,
-                        extractionTime = (r["extractionTime"] as Double).toInt(),
-                        bloomTime = (r["bloomTime"] as Double).toInt(),
-                        pourCount = (r["pourCount"] as Double).toInt(),
-                        totalTime = (r["totalTime"] as Double).toInt(),
-                        acidity = (r["acidity"] as Double).toInt(),
-                        sweetness = (r["sweetness"] as Double).toInt(),
-                        bitterness = (r["bitterness"] as Double).toInt(),
-                        mouthfeel = (r["mouthfeel"] as Double).toInt(),
-                        aftertaste = (r["aftertaste"] as Double).toInt(),
-                        overallRating = (r["overallRating"] as Double).toInt(),
-                        flavorNotes = r["flavorNotes"] as String,
-                        imageUri = r["imageUri"] as String,
+                        extractionTime = (r["extractionTime"] as? Double)?.toInt() ?: 0,
+                        acidity = (r["acidity"] as? Double)?.toInt() ?: 0,
+                        sweetness = (r["sweetness"] as? Double)?.toInt() ?: 0,
+                        bitterness = (r["bitterness"] as? Double)?.toInt() ?: 0,
+                        mouthfeel = (r["mouthfeel"] as? Double)?.toInt() ?: 0,
+                        aftertaste = (r["aftertaste"] as? Double)?.toInt() ?: 0,
+                        overallRating = (r["overallRating"] as? Double)?.toInt() ?: 0,
+                        flavorNotes = r["flavorNotes"] as? String ?: "",
+                        imageUri = r["imageUri"] as? String ?: "",
                         createdAt = (r["createdAt"] as Double).toLong(),
                         updatedAt = (r["updatedAt"] as Double).toLong()
                     )
@@ -173,18 +178,22 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 val recipes = data["recipes"] as List<*>
                 for (recipeMap in recipes) {
                     val rec = recipeMap as Map<*, *>
+                    val waterWeight = (rec["waterWeight"] as? Double) ?: 0.0
+                    val coffeeWeightVal = (rec["coffeeWeight"] as? Double) ?: 0.0
+                    val coffeeWaterRatioVal = if (coffeeWeightVal > 0 && waterWeight > 0) {
+                        (waterWeight / coffeeWeightVal)
+                    } else {
+                        (rec["coffeeWaterRatio"] as? Double) ?: 0.0
+                    }
                     val recipe = BrewRecipe(
                         name = rec["name"] as String,
                         beanId = (rec["beanId"] as? Double)?.toLong(),
                         equipment = rec["equipment"] as String,
-                        coffeeWeight = rec["coffeeWeight"] as Double,
-                        waterWeight = rec["waterWeight"] as Double,
+                        coffeeWeight = coffeeWeightVal,
+                        coffeeWaterRatio = coffeeWaterRatioVal,
                         waterTemp = rec["waterTemp"] as Double,
                         grindSize = rec["grindSize"] as String,
-                        bloomTime = (rec["bloomTime"] as Double).toInt(),
-                        pourCount = (rec["pourCount"] as Double).toInt(),
-                        totalTime = (rec["totalTime"] as Double).toInt(),
-                        notes = rec["notes"] as String,
+                        notes = rec["notes"] as? String ?: "",
                         createdAt = (rec["createdAt"] as Double).toLong(),
                         updatedAt = (rec["updatedAt"] as Double).toLong()
                     )

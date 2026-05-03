@@ -48,13 +48,10 @@ fun BrewEditScreen(
     var selectedRecipeId by remember { mutableStateOf(-1L) }
     var equipment by remember { mutableStateOf("") }
     var coffeeWeight by remember { mutableStateOf("") }
-    var waterWeight by remember { mutableStateOf("") }
+    var coffeeWaterRatio by remember { mutableStateOf("") }
     var waterTemp by remember { mutableStateOf("") }
     var grindSize by remember { mutableStateOf("") }
     var extractionTime by remember { mutableStateOf("") }
-    var bloomTime by remember { mutableStateOf("") }
-    var pourCount by remember { mutableStateOf("") }
-    var totalTime by remember { mutableStateOf("") }
     var flavorNotes by remember { mutableStateOf("") }
 
     // Rating states (1-5, 0 = not rated)
@@ -82,13 +79,10 @@ fun BrewEditScreen(
                 selectedRecipeId = r.recipeId ?: -1L
                 equipment = r.equipment
                 coffeeWeight = if (r.coffeeWeight > 0) r.coffeeWeight.toString() else ""
-                waterWeight = if (r.waterWeight > 0) r.waterWeight.toString() else ""
+                coffeeWaterRatio = if (r.coffeeWaterRatio > 0) r.coffeeWaterRatio.toString() else ""
                 waterTemp = if (r.waterTemp > 0) r.waterTemp.toString() else ""
                 grindSize = r.grindSize
                 extractionTime = if (r.extractionTime > 0) r.extractionTime.toString() else ""
-                bloomTime = if (r.bloomTime > 0) r.bloomTime.toString() else ""
-                pourCount = if (r.pourCount > 0) r.pourCount.toString() else ""
-                totalTime = if (r.totalTime > 0) r.totalTime.toString() else ""
                 flavorNotes = r.flavorNotes
                 acidity = r.acidity
                 sweetness = r.sweetness
@@ -104,12 +98,9 @@ fun BrewEditScreen(
     fun applyRecipe(recipe: BrewRecipe) {
         equipment = recipe.equipment
         coffeeWeight = if (recipe.coffeeWeight > 0) recipe.coffeeWeight.toString() else ""
-        waterWeight = if (recipe.waterWeight > 0) recipe.waterWeight.toString() else ""
+        coffeeWaterRatio = if (recipe.coffeeWaterRatio > 0) recipe.coffeeWaterRatio.toString() else ""
         waterTemp = if (recipe.waterTemp > 0) recipe.waterTemp.toString() else ""
         grindSize = recipe.grindSize
-        bloomTime = if (recipe.bloomTime > 0) recipe.bloomTime.toString() else ""
-        pourCount = if (recipe.pourCount > 0) recipe.pourCount.toString() else ""
-        totalTime = if (recipe.totalTime > 0) recipe.totalTime.toString() else ""
     }
 
     Scaffold(
@@ -239,9 +230,9 @@ fun BrewEditScreen(
                     singleLine = true
                 )
                 OutlinedTextField(
-                    value = waterWeight,
-                    onValueChange = { waterWeight = it },
-                    label = { Text("水量 (ml)") },
+                    value = coffeeWaterRatio,
+                    onValueChange = { coffeeWaterRatio = it },
+                    label = { Text("粉水比") },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -267,29 +258,6 @@ fun BrewEditScreen(
                     value = extractionTime,
                     onValueChange = { extractionTime = it },
                     label = { Text("萃取时长 (秒)") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = bloomTime,
-                    onValueChange = { bloomTime = it },
-                    label = { Text("焖蒸时间 (秒)") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = pourCount,
-                    onValueChange = { pourCount = it },
-                    label = { Text("注水次数") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = totalTime,
-                    onValueChange = { totalTime = it },
-                    label = { Text("总时长 (秒)") },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -326,13 +294,10 @@ fun BrewEditScreen(
                                 ?: System.currentTimeMillis()) else System.currentTimeMillis(),
                             equipment = equipment,
                             coffeeWeight = coffeeWeight.toDoubleOrNull() ?: 0.0,
-                            waterWeight = waterWeight.toDoubleOrNull() ?: 0.0,
+                            coffeeWaterRatio = coffeeWaterRatio.toDoubleOrNull() ?: 0.0,
                             waterTemp = waterTemp.toDoubleOrNull() ?: 0.0,
                             grindSize = grindSize,
                             extractionTime = extractionTime.toIntOrNull() ?: 0,
-                            bloomTime = bloomTime.toIntOrNull() ?: 0,
-                            pourCount = pourCount.toIntOrNull() ?: 0,
-                            totalTime = totalTime.toIntOrNull() ?: 0,
                             acidity = acidity,
                             sweetness = sweetness,
                             bitterness = bitterness,

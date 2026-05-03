@@ -104,21 +104,9 @@ fun HomeScreen(
                     ) {
                         NavCard(
                             modifier = Modifier.weight(1f),
-                            emoji = "📊",
-                            label = "统计",
-                            onClick = { navController.navigate(Screen.Stats.createRoute()) }
-                        )
-                        NavCard(
-                            modifier = Modifier.weight(1f),
-                            emoji = "📥",
-                            label = "导入",
-                            onClick = { navController.navigate(Screen.Import.route) }
-                        )
-                        NavCard(
-                            modifier = Modifier.weight(1f),
-                            emoji = "💾",
-                            label = "备份",
-                            onClick = { navController.navigate(Screen.Backup.route) }
+                            emoji = "⚙️",
+                            label = "设置",
+                            onClick = { navController.navigate(Screen.Settings.route) }
                         )
                     }
                 }
@@ -262,7 +250,7 @@ fun RecordCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "${record.coffeeWeight}g / ${record.waterWeight}ml · ${record.waterTemp}℃",
+                    text = "${record.coffeeWeight}g · 1:${String.format("%.1f", record.coffeeWaterRatio)} · ${record.waterTemp}℃",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
