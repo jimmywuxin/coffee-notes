@@ -13,6 +13,7 @@ data class BrewRecipe(
     val coffeeWeight: Double = 0.0,
     val coffeeWaterRatio: Double = 0.0,
     val waterTemp: Double = 0.0,
+    val grinder: String = "",
     val grindSize: String = "",
     val notes: String = "",
     val createdAt: Long = System.currentTimeMillis(),

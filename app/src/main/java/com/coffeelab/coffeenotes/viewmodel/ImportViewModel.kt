@@ -31,7 +31,7 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
     sealed class ImportState {
         object Idle : ImportState()
         object Loading : ImportState()
-        data class Success(val beanCount: Int, val recordCount: Int, val tagCount: Int) : ImportState()
+        data class Success(val beanCount: Int, val recordCount: Int, val tagCount: Int, val skippedRecordCount: Int = 0) : ImportState()
         data class Error(val message: String) : ImportState()
     }
 
@@ -112,11 +112,17 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
                 // Import brew records
                 val notes = data.getAsJsonArray("brewingNotes")
                 var recordCount = 0
+                var skippedRecordCount = 0
 
                 for (element in notes) {
                     val note = element.asJsonObject
                     val beanOldId = note.get("beanId")?.asString ?: ""
-                    val beanNewId = beanIdMap[beanOldId] ?: 1L
+                    // Skip if bean not found in imported data (orphaned record)
+                    val beanNewId = beanIdMap[beanOldId]
+                    if (beanNewId == null) {
+                        skippedRecordCount++
+                        continue
+                    }
 
                     val params = note.getAsJsonObject("params")
                     val coffeeStr = params?.get("coffee")?.asString ?: "0"
@@ -156,7 +162,7 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
                     recordCount++
                 }
 
-                _importState.value = ImportState.Success(beanCount, recordCount, tagCount)
+                _importState.value = ImportState.Success(beanCount, recordCount, tagCount, skippedRecordCount)
             }
         } catch (e: Exception) {
             _importState.value = ImportState.Error("导入失败: ${e.message}")

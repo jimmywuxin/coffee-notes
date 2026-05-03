@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -137,11 +138,9 @@ fun HomeScreen(
                 }
             } else {
                 item {
-                    Card(
+                    Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = "还没有冲煮记录\n点击上方「冲煮记录」开始第一杯吧 ☕",
@@ -165,11 +164,10 @@ fun ActionCard(
     label: String,
     onClick: () -> Unit
 ) {
-    Card(
+    Surface(
         modifier = modifier.clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = MaterialTheme.shapes.medium
     ) {
         Column(
             modifier = Modifier
@@ -200,8 +198,10 @@ fun NavCard(
     label: String,
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = modifier.clickable(onClick = onClick)
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.medium
     ) {
         Column(
             modifier = Modifier
@@ -226,10 +226,12 @@ fun RecordCard(
     beanName: String,
     onClick: () -> Unit
 ) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick),
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier

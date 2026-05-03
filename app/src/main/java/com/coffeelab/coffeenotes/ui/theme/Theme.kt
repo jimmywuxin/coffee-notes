@@ -68,6 +68,7 @@ fun CoffeeNotesTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = CoffeeTypography,
+        shapes = CoffeeShapes,
         content = content
     )
 }

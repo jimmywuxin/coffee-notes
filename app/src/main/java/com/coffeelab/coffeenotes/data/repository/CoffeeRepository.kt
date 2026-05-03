@@ -64,8 +64,21 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun deleteEquipment(equipment: Equipment) = db.equipmentDao().delete(equipment)
     suspend fun getMaxSortOrder() = db.equipmentDao().getMaxSortOrder()
 
+    // ===== Grinder =====
+    val allGrinders: Flow<List<Grinder>> = db.grinderDao().getAll()
+    suspend fun getAllGrindersOnce() = db.grinderDao().getAllOnce()
+
+    suspend fun insertGrinder(grinder: Grinder): Long = db.grinderDao().insert(grinder)
+    suspend fun updateGrinder(grinder: Grinder) = db.grinderDao().update(grinder)
+    suspend fun deleteGrinder(grinder: Grinder) = db.grinderDao().delete(grinder)
+    suspend fun getMaxGrinderSortOrder() = db.grinderDao().getMaxSortOrder()
+
     suspend fun saveEquipmentOrder(items: List<Equipment>) {
-        db.equipmentDao().deleteAll()
-        db.equipmentDao().insertAll(items)
+        // Update sortOrder for each item without deleting
+        items.forEachIndexed { index, equipment ->
+            if (equipment.id > 0) {
+                db.equipmentDao().update(equipment.copy(sortOrder = index))
+            }
+        }
     }
 }

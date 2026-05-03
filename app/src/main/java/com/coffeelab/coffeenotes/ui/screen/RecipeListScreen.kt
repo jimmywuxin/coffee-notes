@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,12 +70,14 @@ fun RecipeListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(recipes) { recipe ->
-                    Card(
+                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
                                 navController.navigate(Screen.RecipeEdit.createRoute(recipe.id))
-                            }
+                            },
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(recipe.name, style = MaterialTheme.typography.titleMedium)

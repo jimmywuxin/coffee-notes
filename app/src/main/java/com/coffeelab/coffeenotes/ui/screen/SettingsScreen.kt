@@ -100,6 +100,15 @@ fun SettingsScreen(
             }
 
             item {
+                SettingsItem(
+                    icon = Icons.Default.Tune,
+                    title = "磨豆机管理",
+                    subtitle = "添加或编辑磨豆机",
+                    onClick = { navController.navigate(Screen.GrinderManagement.route) }
+                )
+            }
+
+            item {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             }
 
@@ -154,6 +163,7 @@ fun SettingsScreen(
                                     db.brewRecipeDao().deleteAll()
                                     db.coffeeBeanDao().deleteAll()
                                     db.equipmentDao().deleteAll()
+                                    db.grinderDao().deleteAll()
                                     showClearDataDialog = false
                                     showClearProgress = false
                                     navController.popBackStack()

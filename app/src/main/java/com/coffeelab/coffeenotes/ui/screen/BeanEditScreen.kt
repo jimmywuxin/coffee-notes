@@ -28,7 +28,7 @@ import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import kotlinx.coroutines.launch
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun BeanEditScreen(
     navController: NavController,
@@ -41,6 +41,7 @@ fun BeanEditScreen(
     var roaster by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var origin by remember { mutableStateOf("") }
+    var region by remember { mutableStateOf("") }
     var estate by remember { mutableStateOf("") }
     var variety by remember { mutableStateOf("") }
     var process by remember { mutableStateOf("") }
@@ -50,6 +51,7 @@ fun BeanEditScreen(
     var imageUri by remember { mutableStateOf("") }
     var tagInput by remember { mutableStateOf("") }
     val tags = remember { mutableStateListOf<String>() }
+    var originalGrindSize by remember { mutableStateOf("") }
 
     val isEditing = beanId > 0
     val recResult by viewModel.recognitionResult.collectAsState(initial = null)
@@ -127,10 +129,12 @@ fun BeanEditScreen(
             roaster = b.roaster
             name = b.name
             origin = b.origin
+            region = b.region
             estate = b.estate
             variety = b.variety
             process = b.process
             roastLevel = b.roastLevel
+            originalGrindSize = b.grindSize
             roastDate = if (b.roastDate != null) b.roastDate.toString() else ""
             notes = b.notes
             imageUri = b.imageUri
@@ -167,7 +171,7 @@ fun BeanEditScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Recognition Section
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Surface(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("拍照识别", style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 8.dp))
@@ -237,11 +241,15 @@ fun BeanEditScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(value = origin, onValueChange = { origin = it },
                     label = { Text("产地") }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(value = region, onValueChange = { region = it },
+                    label = { Text("产区") }, modifier = Modifier.weight(1f), singleLine = true)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(value = variety, onValueChange = { variety = it },
                     label = { Text("品种") }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(value = estate, onValueChange = { estate = it },
+                    label = { Text("庄园") }, modifier = Modifier.weight(1f), singleLine = true)
             }
-            OutlinedTextField(value = estate, onValueChange = { estate = it },
-                label = { Text("庄园") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(value = process, onValueChange = { process = it },
                     label = { Text("处理法") }, modifier = Modifier.weight(1f), singleLine = true)
@@ -278,16 +286,19 @@ fun BeanEditScreen(
 
             Button(onClick = {
                 scope.launch {
-                    val bean = CoffeeBean(
+                    val savedGrindSize = if (isEditing) originalGrindSize else ""
+                    val existingCreatedAt = if (isEditing) (bean?.createdAt ?: System.currentTimeMillis()) else System.currentTimeMillis()
+                    val beanToSave = CoffeeBean(
                         id = if (isEditing) beanId else 0,
-                        roaster = roaster, name = name, origin = origin, estate = estate,
+                        roaster = roaster, name = name, origin = origin, region = region, estate = estate,
                         variety = variety, process = process, roastLevel = roastLevel,
+                        grindSize = savedGrindSize,
                         roastDate = roastDate.toLongOrNull(), notes = notes, imageUri = imageUri,
-                        createdAt = if (isEditing) (bean?.createdAt ?: System.currentTimeMillis())
-                        else System.currentTimeMillis(), updatedAt = System.currentTimeMillis()
+                        createdAt = existingCreatedAt,
+                        updatedAt = System.currentTimeMillis()
                     )
-                    if (isEditing) viewModel.updateBeanSync(bean, tags.toList())
-                    else viewModel.saveBeanSync(bean, tags.toList())
+                    if (isEditing) viewModel.updateBeanSync(beanToSave, tags.toList())
+                    else viewModel.saveBeanSync(beanToSave, tags.toList())
                     navController.popBackStack()
                 }
             }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("保存") }

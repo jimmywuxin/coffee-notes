@@ -1,7 +1,5 @@
 package com.coffeelab.coffeenotes.ui.screen
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,32 +12,30 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.coffeelab.coffeenotes.data.entity.Equipment
-import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
-import androidx.compose.material3.Surface
+import com.coffeelab.coffeenotes.data.entity.Grinder
+import com.coffeelab.coffeenotes.viewmodel.GrinderViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EquipmentManagementScreen(
+fun GrinderManagementScreen(
     navController: NavController,
-    equipmentViewModel: EquipmentViewModel = viewModel()
+    grinderViewModel: GrinderViewModel = viewModel()
 ) {
-    val equipmentList by equipmentViewModel.allEquipment.collectAsState(initial = emptyList())
+    val grinderList by grinderViewModel.allGrinders.collectAsState(initial = emptyList())
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var editingEquipment by remember { mutableStateOf<Equipment?>(null) }
-    var newEquipmentName by remember { mutableStateOf("") }
+    var editingGrinder by remember { mutableStateOf<Grinder?>(null) }
+    var newGrinderName by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("器具管理") },
+                title = { Text("磨豆机管理") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
@@ -55,16 +51,16 @@ fun EquipmentManagementScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    newEquipmentName = ""
+                    newGrinderName = ""
                     showAddDialog = true
                 },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "添加器具")
+                Icon(Icons.Default.Add, contentDescription = "添加磨豆机")
             }
         }
     ) { padding ->
-        if (equipmentList.isEmpty()) {
+        if (grinderList.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -72,7 +68,7 @@ fun EquipmentManagementScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "还没有器具\n点击右下角 + 添加",
+                    "还没有磨豆机\n点击右下角 + 添加",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -84,16 +80,16 @@ fun EquipmentManagementScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(equipmentList) { equipment ->
-                    EquipmentItem(
-                        equipment = equipment,
+                items(grinderList) { grinder ->
+                    GrinderItem(
+                        grinder = grinder,
                         onEdit = {
-                            editingEquipment = equipment
-                            newEquipmentName = equipment.name
+                            editingGrinder = grinder
+                            newGrinderName = grinder.name
                             showEditDialog = true
                         },
                         onDelete = {
-                            editingEquipment = equipment
+                            editingGrinder = grinder
                             showDeleteDialog = true
                         }
                     )
@@ -102,16 +98,16 @@ fun EquipmentManagementScreen(
         }
     }
 
-    // Add Equipment Dialog
+    // Add Grinder Dialog
     if (showAddDialog) {
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("添加器具") },
+            title = { Text("添加磨豆机") },
             text = {
                 OutlinedTextField(
-                    value = newEquipmentName,
-                    onValueChange = { newEquipmentName = it },
-                    label = { Text("器具名称") },
+                    value = newGrinderName,
+                    onValueChange = { newGrinderName = it },
+                    label = { Text("磨豆机名称") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -119,12 +115,12 @@ fun EquipmentManagementScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (newEquipmentName.isNotBlank()) {
-                            equipmentViewModel.addEquipment(newEquipmentName.trim())
+                        if (newGrinderName.isNotBlank()) {
+                            grinderViewModel.addGrinder(newGrinderName.trim())
                             showAddDialog = false
                         }
                     },
-                    enabled = newEquipmentName.isNotBlank()
+                    enabled = newGrinderName.isNotBlank()
                 ) { Text("添加") }
             },
             dismissButton = {
@@ -133,16 +129,16 @@ fun EquipmentManagementScreen(
         )
     }
 
-    // Edit Equipment Dialog
-    if (showEditDialog && editingEquipment != null) {
+    // Edit Grinder Dialog
+    if (showEditDialog && editingGrinder != null) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
-            title = { Text("编辑器具") },
+            title = { Text("编辑磨豆机") },
             text = {
                 OutlinedTextField(
-                    value = newEquipmentName,
-                    onValueChange = { newEquipmentName = it },
-                    label = { Text("器具名称") },
+                    value = newGrinderName,
+                    onValueChange = { newGrinderName = it },
+                    label = { Text("磨豆机名称") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -150,16 +146,16 @@ fun EquipmentManagementScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (newEquipmentName.isNotBlank()) {
-                            editingEquipment?.let {
-                                equipmentViewModel.updateEquipment(
-                                    it.copy(name = newEquipmentName.trim())
+                        if (newGrinderName.isNotBlank()) {
+                            editingGrinder?.let {
+                                grinderViewModel.updateGrinder(
+                                    it.copy(name = newGrinderName.trim())
                                 )
                             }
                             showEditDialog = false
                         }
                     },
-                    enabled = newEquipmentName.isNotBlank()
+                    enabled = newGrinderName.isNotBlank()
                 ) { Text("保存") }
             },
             dismissButton = {
@@ -168,16 +164,16 @@ fun EquipmentManagementScreen(
         )
     }
 
-    // Delete Equipment Dialog
-    if (showDeleteDialog && editingEquipment != null) {
+    // Delete Grinder Dialog
+    if (showDeleteDialog && editingGrinder != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
-            text = { Text("确定要删除「${editingEquipment?.name}」吗？") },
+            text = { Text("确定要删除「${editingGrinder?.name}」吗？") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        editingEquipment?.let { equipmentViewModel.deleteEquipment(it) }
+                        editingGrinder?.let { grinderViewModel.deleteGrinder(it) }
                         showDeleteDialog = false
                     }
                 ) { Text("删除", color = MaterialTheme.colorScheme.error) }
@@ -190,8 +186,8 @@ fun EquipmentManagementScreen(
 }
 
 @Composable
-fun EquipmentItem(
-    equipment: Equipment,
+fun GrinderItem(
+    grinder: Grinder,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -208,7 +204,7 @@ fun EquipmentItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = equipment.name,
+                text = grinder.name,
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )

@@ -57,7 +57,7 @@ fun StatsScreen(
             )
 
             // General stats
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Surface(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("📦 咖啡豆总数：${beans.size} 款", style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -75,7 +75,7 @@ fun StatsScreen(
             if (beanId > 0) {
                 val bean = beans.find { it.id == beanId }
                 if (bean != null) {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Surface(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
                                 "${bean.roaster} - ${bean.name}",
@@ -106,7 +106,7 @@ fun StatsScreen(
             // Recent brews overview
             val allRecords by brewViewModel.allRecords.collectAsState(initial = emptyList())
             if (allRecords.isNotEmpty()) {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                Surface(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("冲煮记录总览", style = MaterialTheme.typography.titleMedium)
                         Text("总冲煮次数：${allRecords.size}")

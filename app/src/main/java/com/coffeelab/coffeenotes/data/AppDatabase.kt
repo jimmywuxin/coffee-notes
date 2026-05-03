@@ -17,9 +17,10 @@ import kotlinx.coroutines.launch
         FlavorTag::class,
         BrewRecord::class,
         BrewRecipe::class,
-        Equipment::class
+        Equipment::class,
+        Grinder::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun brewRecordDao(): BrewRecordDao
     abstract fun brewRecipeDao(): BrewRecipeDao
     abstract fun equipmentDao(): EquipmentDao
+    abstract fun grinderDao(): GrinderDao
 
     companion object {
         @Volatile
@@ -48,6 +50,7 @@ abstract class AppDatabase : RoomDatabase() {
                             INSTANCE?.let { database ->
                                 CoroutineScope(Dispatchers.IO).launch {
                                     populateEquipment(database)
+                                    populateGrinders(database)
                                 }
                             }
                         }
@@ -60,10 +63,25 @@ abstract class AppDatabase : RoomDatabase() {
 
         private suspend fun populateEquipment(database: AppDatabase) {
             val dao = database.equipmentDao()
-            val items = Equipment.DEFAULT_EQUIPMENT.mapIndexed { index, name ->
-                Equipment(name = name, sortOrder = index)
+            // Only populate if table is empty (handles both fresh DB and migration cases)
+            val existing = dao.getAllOnce()
+            if (existing.isEmpty()) {
+                val items = Equipment.DEFAULT_EQUIPMENT.mapIndexed { index, name ->
+                    Equipment(name = name, sortOrder = index)
+                }
+                dao.insertAll(items)
             }
-            dao.insertAll(items)
+        }
+
+        private suspend fun populateGrinders(database: AppDatabase) {
+            val dao = database.grinderDao()
+            val existing = dao.getAllOnce()
+            if (existing.isEmpty()) {
+                val items = Grinder.DEFAULT_GRINDERS.mapIndexed { index, name ->
+                    Grinder(name = name, sortOrder = index)
+                }
+                dao.insertAll(items)
+            }
         }
     }
 }

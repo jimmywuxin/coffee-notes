@@ -150,10 +150,12 @@ fun BeanCard(
     bean: CoffeeBean,
     onClick: () -> Unit
 ) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick),
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier
@@ -181,6 +183,13 @@ fun BeanCard(
                             color = MaterialTheme.colorScheme.secondary
                         )
                     }
+                    if (bean.region.isNotEmpty()) {
+                        Text(
+                            text = bean.region,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
                     if (bean.process.isNotEmpty()) {
                         Text(
                             text = bean.process,
@@ -198,7 +207,7 @@ fun BeanCard(
                 }
             }
             Text(
-                text = ">",
+                text = "›",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
