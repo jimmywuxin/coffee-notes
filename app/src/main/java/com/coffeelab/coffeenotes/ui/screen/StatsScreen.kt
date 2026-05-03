@@ -94,7 +94,7 @@ fun StatsScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text("🏆 最佳冲煮：", style = MaterialTheme.typography.titleMedium)
                                 Text("  器具：${best.equipment}")
-                                Text("  粉量：${best.coffeeWeight}g / ${best.waterWeight}ml")
+                                Text("  粉量：${best.coffeeWeight}g · 1:${String.format("%.1f", best.coffeeWaterRatio)}")
                                 Text("  水温：${best.waterTemp}℃")
                                 Text("  总评分：${"★".repeat(best.overallRating)}")
                             }

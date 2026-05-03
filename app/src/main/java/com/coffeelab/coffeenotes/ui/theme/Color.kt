@@ -2,21 +2,44 @@ package com.coffeelab.coffeenotes.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Brown80 = Color(0xFFA1887F)
-val Brown60 = Color(0xFF8D6E63)
-val Brown40 = Color(0xFF6D4C41)
-val Brown20 = Color(0xFF4E342E)
-val Brown10 = Color(0xFF3E2723)
+// 简约小清新配色 - 温暖自然色系
+val SageGreen = Color(0xFF7BA38C)
+val SageGreenLight = Color(0xFFB2D4C4)
+val SageGreenDark = Color(0xFF4E7A61)
 
-val DarkBrown = Color(0xFF3E2723)
-val MediumBrown = Color(0xFF6D4C41)
-val LightBrown = Color(0xFFA1887F)
-val Cream = Color(0xFFFFF8E1)
-val WarmWhite = Color(0xFFFFFDF7)
-val CoffeeGold = Color(0xFFC68642)
-val CoffeeGoldLight = Color(0xFFE8C396)
+val WarmBrown = Color(0xFF8B7355)
+val WarmBrownLight = Color(0xFFC4A882)
+val WarmBrownDark = Color(0xFF5D4E3A)
 
-val SurfaceLight = Color(0xFFFFFDF7)
-val SurfaceDark = Color(0xFF1C1B1F)
-val OnSurfaceLight = Color(0xFF1C1B1F)
-val OnSurfaceDark = Color(0xFFE6E1E5)
+val Cream = Color(0xFFFAF7F2)
+val WarmWhite = Color(0xFFFFFEFA)
+val SoftGray = Color(0xFFF5F2ED)
+val TextPrimary = Color(0xFF3D3D3D)
+val TextSecondary = Color(0xFF7A7A7A)
+val Divider = Color(0xFFE8E4DF)
+
+// 语义色
+val Primary = SageGreen
+val PrimaryContainer = SageGreenLight
+val Secondary = WarmBrown
+val SecondaryContainer = WarmBrownLight
+val Background = Cream
+val Surface = WarmWhite
+val SurfaceVariant = SoftGray
+val OnPrimary = Color.White
+val OnSecondary = Color.White
+val OnBackground = TextPrimary
+val OnSurface = TextPrimary
+val OnSurfaceVariant = TextSecondary
+val Outline = Divider
+val Error = Color(0xFFBA1A1A)
+val OnError = Color.White
+
+// Dark theme
+val DarkBackground = Color(0xFF1A1C1A)
+val DarkSurface = Color(0xFF1E211F)
+val DarkSurfaceVariant = Color(0xFF414943)
+val DarkOnBackground = Color(0xFFE2E3DE)
+val DarkOnSurface = Color(0xFFE2E3DE)
+val DarkOnSurfaceVariant = Color(0xFFBEC4BD)
+val DarkOutline = Color(0xFF5A635C)

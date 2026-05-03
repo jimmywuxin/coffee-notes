@@ -35,4 +35,7 @@ interface BrewRecordDao {
 
     @Query("SELECT * FROM brew_records WHERE beanId = :beanId ORDER BY overallRating DESC LIMIT 1")
     suspend fun getBestRecordForBean(beanId: Long): BrewRecord?
+
+    @Query("DELETE FROM brew_records")
+    suspend fun deleteAll()
 }

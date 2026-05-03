@@ -34,12 +34,9 @@ fun RecipeEditScreen(
     var selectedBeanId by remember { mutableStateOf(-1L) }
     var equipment by remember { mutableStateOf("") }
     var coffeeWeight by remember { mutableStateOf("") }
-    var waterWeight by remember { mutableStateOf("") }
+    var coffeeWaterRatio by remember { mutableStateOf("") }
     var waterTemp by remember { mutableStateOf("") }
     var grindSize by remember { mutableStateOf("") }
-    var bloomTime by remember { mutableStateOf("") }
-    var pourCount by remember { mutableStateOf("") }
-    var totalTime by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
     val equipmentItems = Equipment.DEFAULT_EQUIPMENT
@@ -52,12 +49,9 @@ fun RecipeEditScreen(
                 selectedBeanId = r.beanId ?: -1L
                 equipment = r.equipment
                 coffeeWeight = if (r.coffeeWeight > 0) r.coffeeWeight.toString() else ""
-                waterWeight = if (r.waterWeight > 0) r.waterWeight.toString() else ""
+                coffeeWaterRatio = if (r.coffeeWaterRatio > 0) r.coffeeWaterRatio.toString() else ""
                 waterTemp = if (r.waterTemp > 0) r.waterTemp.toString() else ""
                 grindSize = r.grindSize
-                bloomTime = if (r.bloomTime > 0) r.bloomTime.toString() else ""
-                pourCount = if (r.pourCount > 0) r.pourCount.toString() else ""
-                totalTime = if (r.totalTime > 0) r.totalTime.toString() else ""
                 notes = r.notes
             }
         }
@@ -116,9 +110,9 @@ fun RecipeEditScreen(
                     singleLine = true
                 )
                 OutlinedTextField(
-                    value = waterWeight,
-                    onValueChange = { waterWeight = it },
-                    label = { Text("水量 (ml)") },
+                    value = coffeeWaterRatio,
+                    onValueChange = { coffeeWaterRatio = it },
+                    label = { Text("粉水比") },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -139,29 +133,6 @@ fun RecipeEditScreen(
                     singleLine = true
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = bloomTime,
-                    onValueChange = { bloomTime = it },
-                    label = { Text("焖蒸时间 (秒)") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = pourCount,
-                    onValueChange = { pourCount = it },
-                    label = { Text("注水次数") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-            }
-            OutlinedTextField(
-                value = totalTime,
-                onValueChange = { totalTime = it },
-                label = { Text("总时长 (秒)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
@@ -179,12 +150,9 @@ fun RecipeEditScreen(
                             beanId = if (selectedBeanId > 0) selectedBeanId else null,
                             equipment = equipment,
                             coffeeWeight = coffeeWeight.toDoubleOrNull() ?: 0.0,
-                            waterWeight = waterWeight.toDoubleOrNull() ?: 0.0,
+                            coffeeWaterRatio = coffeeWaterRatio.toDoubleOrNull() ?: 0.0,
                             waterTemp = waterTemp.toDoubleOrNull() ?: 0.0,
                             grindSize = grindSize,
-                            bloomTime = bloomTime.toIntOrNull() ?: 0,
-                            pourCount = pourCount.toIntOrNull() ?: 0,
-                            totalTime = totalTime.toIntOrNull() ?: 0,
                             notes = notes
                         )
                         if (isEditing) {

@@ -10,29 +10,43 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
-    primary = MediumBrown,
-    onPrimary = WarmWhite,
-    primaryContainer = CoffeeGoldLight,
-    secondary = CoffeeGold,
-    onSecondary = WarmWhite,
-    background = WarmWhite,
-    surface = SurfaceLight,
-    onBackground = OnSurfaceLight,
-    onSurface = OnSurfaceLight,
-    outline = LightBrown
+    primary = Primary,
+    onPrimary = OnPrimary,
+    primaryContainer = PrimaryContainer,
+    onPrimaryContainer = SageGreenDark,
+    secondary = Secondary,
+    onSecondary = OnSecondary,
+    secondaryContainer = SecondaryContainer,
+    onSecondaryContainer = WarmBrownDark,
+    background = Background,
+    onBackground = OnBackground,
+    surface = Surface,
+    onSurface = OnSurface,
+    surfaceVariant = SurfaceVariant,
+    onSurfaceVariant = OnSurfaceVariant,
+    outline = Outline,
+    error = Error,
+    onError = OnError
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = LightBrown,
-    onPrimary = DarkBrown,
-    primaryContainer = Brown40,
-    secondary = CoffeeGold,
-    onSecondary = DarkBrown,
-    background = SurfaceDark,
-    surface = SurfaceDark,
-    onBackground = OnSurfaceDark,
-    onSurface = OnSurfaceDark,
-    outline = Brown60
+    primary = SageGreenLight,
+    onPrimary = SageGreenDark,
+    primaryContainer = SageGreenDark,
+    onPrimaryContainer = SageGreenLight,
+    secondary = WarmBrownLight,
+    onSecondary = WarmBrownDark,
+    secondaryContainer = WarmBrownDark,
+    onSecondaryContainer = WarmBrownLight,
+    background = DarkBackground,
+    onBackground = DarkOnBackground,
+    surface = DarkSurface,
+    onSurface = DarkOnSurface,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    outline = DarkOutline,
+    error = Error,
+    onError = OnError
 )
 
 @Composable

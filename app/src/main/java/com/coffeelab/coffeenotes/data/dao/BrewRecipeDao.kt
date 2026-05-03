@@ -23,4 +23,7 @@ interface BrewRecipeDao {
 
     @Query("SELECT * FROM brew_recipes WHERE equipment = :equipment")
     fun getRecipesByEquipment(equipment: String): Flow<List<BrewRecipe>>
+
+    @Query("DELETE FROM brew_recipes")
+    suspend fun deleteAll()
 }

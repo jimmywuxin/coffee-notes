@@ -126,6 +126,7 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
                     val coffeeWeight = coffeeStr.replace("g", "").trim().toDoubleOrNull() ?: 0.0
                     val waterWeight = waterStr.replace("g", "").replace("ml", "").trim().toDoubleOrNull() ?: 0.0
                     val waterTemp = tempStr.replace("°C", "").trim().toDoubleOrNull() ?: 0.0
+                    val coffeeWaterRatio = if (coffeeWeight > 0 && waterWeight > 0) waterWeight / coffeeWeight else 0.0
 
                     val taste = note.getAsJsonObject("taste")
                     val totalTime = note.get("totalTime")?.let {
@@ -138,7 +139,7 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
                         dateTime = note.get("timestamp")?.asLong ?: System.currentTimeMillis(),
                         equipment = note.get("equipment")?.asString ?: "",
                         coffeeWeight = coffeeWeight,
-                        waterWeight = waterWeight,
+                        coffeeWaterRatio = coffeeWaterRatio,
                         waterTemp = waterTemp,
                         grindSize = params?.get("grindSize")?.asString ?: "",
                         acidity = taste?.get("acidity")?.asInt ?: 0,

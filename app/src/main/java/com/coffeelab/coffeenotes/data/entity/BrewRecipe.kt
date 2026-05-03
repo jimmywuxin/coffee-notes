@@ -11,12 +11,9 @@ data class BrewRecipe(
     val beanId: Long? = null,
     val equipment: String = "",
     val coffeeWeight: Double = 0.0,
-    val waterWeight: Double = 0.0,
+    val coffeeWaterRatio: Double = 0.0,
     val waterTemp: Double = 0.0,
     val grindSize: String = "",
-    val bloomTime: Int = 0,
-    val pourCount: Int = 0,
-    val totalTime: Int = 0,
     val notes: String = "",
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()

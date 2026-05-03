@@ -26,4 +26,7 @@ interface CoffeeBeanDao {
 
     @Query("SELECT * FROM coffee_beans WHERE name LIKE '%' || :query || '%' OR roaster LIKE '%' || :query || '%' OR origin LIKE '%' || :query || '%'")
     fun searchBeans(query: String): Flow<List<CoffeeBean>>
+
+    @Query("DELETE FROM coffee_beans")
+    suspend fun deleteAll()
 }

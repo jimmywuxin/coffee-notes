@@ -105,5 +105,9 @@ fun CoffeeNavGraph(navController: NavHostController) {
         composable(Screen.EquipmentManagement.route) {
             EquipmentManagementScreen(navController = navController)
         }
+
+        composable(Screen.Settings.route) {
+            SettingsScreen(navController = navController)
+        }
     }
 }
