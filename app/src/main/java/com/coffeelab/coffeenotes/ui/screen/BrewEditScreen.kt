@@ -1,6 +1,7 @@
 package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -240,6 +241,7 @@ fun BrewEditScreen(
 
             // Brew Parameters
             Text("冲煮参数", style = MaterialTheme.typography.titleMedium)
+            // ratioDisplay 存分母数值字符串（如 "15"、"4.5"），显示时加 "1:" 前缀
             val ratioOptions = listOf("15", "16", "17", "2")
             Text("粉水比", style = MaterialTheme.typography.bodyMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -249,6 +251,39 @@ fun BrewEditScreen(
                         onClick = { coffeeWaterRatio = ratio },
                         label = { Text("1:$ratio") }
                     )
+                }
+                // 自定义粉水比
+                var showCustomRatio by remember { mutableStateOf(false) }
+                val isCustomRatio = coffeeWaterRatio.isNotEmpty() && !ratioOptions.contains(coffeeWaterRatio)
+                FilterChip(
+                    selected = showCustomRatio || isCustomRatio,
+                    onClick = { showCustomRatio = !showCustomRatio },
+                    label = { Text("自定义") }
+                )
+                if (showCustomRatio || isCustomRatio) {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 0.dp)
+                        ) {
+                            Text("1:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            BasicTextField(
+                                value = coffeeWaterRatio,
+                                onValueChange = {
+                                    coffeeWaterRatio = it
+                                    if (it.isNotEmpty()) showCustomRatio = true
+                                },
+                                textStyle = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.width(56.dp)
+                            )
+                        }
+                    }
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
