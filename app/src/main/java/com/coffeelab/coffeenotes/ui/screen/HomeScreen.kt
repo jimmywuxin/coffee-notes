@@ -34,7 +34,7 @@ fun HomeScreen(
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
     val recentRecords by brewViewModel.allRecords.collectAsState(initial = emptyList())
     var selectedWeekRange by remember { mutableStateOf("全部") }
-    val weekRanges = listOf("全部", "本周", "上周", "上上周", "三周以前")
+    val weekRanges = listOf("全部", "本周", "上周", "两周前", "更早")
 
     val filteredRecords = remember(selectedWeekRange, recentRecords) {
         DateUtils.filterByWeekRange(recentRecords, selectedWeekRange)

@@ -90,8 +90,8 @@ object DateUtils {
         return when (range) {
             "本周" -> records.filter { it.dateTime >= thisWeekStart }
             "上周" -> records.filter { it.dateTime >= lastWeekStart && it.dateTime < thisWeekStart }
-            "上上周" -> records.filter { it.dateTime >= twoWeeksAgoStart && it.dateTime < lastWeekStart }
-            "三周以前" -> records.filter { it.dateTime < twoWeeksAgoStart }
+            "两周前" -> records.filter { it.dateTime >= twoWeeksAgoStart && it.dateTime < lastWeekStart }
+            "更早" -> records.filter { it.dateTime < twoWeeksAgoStart }
             else -> records // "全部"
         }
     }
