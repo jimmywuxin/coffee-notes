@@ -16,6 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
+import com.coffeelab.coffeenotes.ui.component.RecordCard
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.DateUtils
 import com.coffeelab.coffeenotes.ui.component.RadarChart
@@ -219,6 +220,8 @@ fun BeanDetailScreen(
                         RecordCard(
                             record = record,
                             beanName = bean?.name ?: "",
+                            isSelectionMode = false,
+                            isSelected = false,
                             onClick = {
                                 navController.navigate(
                                     Screen.BrewEdit.createRoute(record.id, record.beanId)
