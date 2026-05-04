@@ -19,6 +19,7 @@ data class CoffeeBean(
     val roastDate: Long? = null,
     val notes: String = "",
     val imageUri: String = "",
+    val isFavorite: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

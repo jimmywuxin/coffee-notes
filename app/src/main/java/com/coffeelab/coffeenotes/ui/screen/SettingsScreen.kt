@@ -58,15 +58,6 @@ fun SettingsScreen(
 
             item {
                 SettingsItem(
-                    icon = Icons.Default.FileUpload,
-                    title = "导入",
-                    subtitle = "从文件导入咖啡数据",
-                    onClick = { navController.navigate(Screen.Import.route) }
-                )
-            }
-
-            item {
-                SettingsItem(
                     icon = Icons.Default.FileDownload,
                     title = "备份",
                     subtitle = "导出数据到本地文件",
