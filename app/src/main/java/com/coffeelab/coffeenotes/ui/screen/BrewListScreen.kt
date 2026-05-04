@@ -99,14 +99,14 @@ fun BrewListScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.error)
+                                    .background(Color.Transparent)
                                     .padding(horizontal = 20.dp),
                                 contentAlignment = Alignment.CenterEnd
                             ) {
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = "删除",
-                                    tint = Color.White
+                                    tint = Color.Transparent
                                 )
                             }
                         },
