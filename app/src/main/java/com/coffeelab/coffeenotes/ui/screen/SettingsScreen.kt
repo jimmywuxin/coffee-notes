@@ -29,9 +29,15 @@ fun SettingsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("设置") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -114,6 +120,28 @@ fun SettingsScreen(
                     title = "磨豆机管理",
                     subtitle = "添加或编辑磨豆机",
                     onClick = { navController.navigate(Screen.GrinderManagement.route) }
+                )
+            }
+
+            item {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
+
+            item {
+                Text(
+                    text = "关于",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Info,
+                    title = "关于咖啡笔记",
+                    subtitle = "版本信息与应用介绍",
+                    onClick = { navController.navigate(Screen.About.route) }
                 )
             }
 

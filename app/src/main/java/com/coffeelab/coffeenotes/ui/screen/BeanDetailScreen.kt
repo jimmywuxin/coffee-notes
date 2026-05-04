@@ -18,6 +18,7 @@ import coil.compose.AsyncImage
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.DateUtils
+import com.coffeelab.coffeenotes.ui.component.RadarChart
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import java.io.File
@@ -39,6 +40,27 @@ fun BeanDetailScreen(
     val bean by beanViewModel.selectedBean.collectAsState(initial = null)
     val tags by beanViewModel.tags.collectAsState(initial = emptyList())
     val records by brewViewModel.recordsForBean.collectAsState(initial = emptyList())
+
+    // 计算雷达图数据（取有评分记录的维度平均分）
+    val radarValues = remember(records) {
+        val ratedRecords = records.filter {
+            it.acidity > 0 || it.sweetness > 0 || it.bitterness > 0 || it.mouthfeel > 0 || it.aftertaste > 0
+        }
+        if (ratedRecords.isEmpty()) {
+            null
+        } else {
+            val sum = ratedRecords.fold(floatArrayOf(0f, 0f, 0f, 0f, 0f)) { acc, r ->
+                acc[0] += r.acidity.toFloat()
+                acc[1] += r.sweetness.toFloat()
+                acc[2] += r.bitterness.toFloat()
+                acc[3] += r.mouthfeel.toFloat()
+                acc[4] += r.aftertaste.toFloat()
+                acc
+            }
+            val count = ratedRecords.size.toFloat()
+            listOf(sum[0] / count, sum[1] / count, sum[2] / count, sum[3] / count, sum[4] / count)
+        }
+    }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -137,6 +159,21 @@ fun BeanDetailScreen(
                                 )
                             }
                         }
+                    }
+                }
+
+                // Radar Chart
+                if (radarValues != null) {
+                    item {
+                        Text(
+                            "风味雷达图",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                        RadarChart(
+                            values = radarValues,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                 }
 

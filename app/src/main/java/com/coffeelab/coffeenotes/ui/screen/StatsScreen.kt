@@ -394,7 +394,8 @@ private fun RatingSection(viewModel: StatsViewModel, beanId: Long) {
                     Text(
                         text = "${"★".repeat(rating)}",
                         color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.width(72.dp)
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.width(80.dp)
                     )
                     LinearProgressIndicator(
                         progress = { count.toFloat() / totalRated },
