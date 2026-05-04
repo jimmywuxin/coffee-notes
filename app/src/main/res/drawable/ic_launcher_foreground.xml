@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 用 inset 缩放居中，让 108dp 的内容缩小到 72dp safe zone -->
+    <item>
+        <inset android:insetLeft="66dp" android:insetRight="66dp" android:insetTop="66dp" android:insetBottom="66dp">
+            <clip>
+                <scale android:scaleWidth="0.667" android:scaleHeight="0.667" android:drawable="@drawable/ic_launcher_foreground_base"/>
+            </clip>
+        </inset>
+    </item>
+</layer-list>
