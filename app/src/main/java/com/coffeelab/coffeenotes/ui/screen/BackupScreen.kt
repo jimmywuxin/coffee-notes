@@ -84,7 +84,7 @@ fun BackupScreen(
                     )
                     Button(
                         onClick = {
-                            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA).format(Date())
+                            val dateStr = SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.CHINA).format(Date())
                             jsonExportLauncher.launch("CoffeeNotes_$dateStr.json")
                         },
                         modifier = Modifier.fillMaxWidth()

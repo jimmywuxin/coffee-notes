@@ -66,6 +66,12 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun toggleFavorite(bean: CoffeeBean) {
+        viewModelScope.launch {
+            repository.updateBean(bean.copy(isFavorite = !bean.isFavorite))
+        }
+    }
+
     fun searchBeans(query: String): Flow<List<CoffeeBean>> = repository.searchBeans(query)
 
     // ===== AI Recognition (pluggable engine) =====

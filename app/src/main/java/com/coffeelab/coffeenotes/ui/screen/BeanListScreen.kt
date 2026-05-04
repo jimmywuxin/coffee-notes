@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
+import com.coffeelab.coffeenotes.ui.component.BeanCard
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 
@@ -31,6 +32,10 @@ fun BeanListScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedBeans by remember { mutableStateOf(setOf<Long>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showFavoritesOnly by remember { mutableStateOf(false) }
+
+    // 显示的豆子（筛选收藏）
+    val displayedBeans = if (showFavoritesOnly) beans.filter { it.isFavorite } else beans
 
     // 进入多选模式
     fun enterSelectionMode(bean: CoffeeBean) {
@@ -177,7 +182,49 @@ fun BeanListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
-                items(beans) { bean ->
+                // 筛选栏
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = !showFavoritesOnly,
+                            onClick = { showFavoritesOnly = false },
+                            label = { Text("全部") }
+                        )
+                        FilterChip(
+                            selected = showFavoritesOnly,
+                            onClick = { showFavoritesOnly = true },
+                            label = { Text("❤ 收藏") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.errorContainer
+                            )
+                        )
+                    }
+                }
+
+                // 空状态
+                if (displayedBeans.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                if (showFavoritesOnly) "还没有收藏的豆子 🫑" else "还没有咖啡豆，点击 + 添加吧 🫘",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                items(displayedBeans) { bean ->
                     val isSelected = selectedBeans.contains(bean.id)
 
                     BeanCard(
@@ -195,6 +242,9 @@ fun BeanListScreen(
                             if (!isSelectionMode) {
                                 enterSelectionMode(bean)
                             }
+                        },
+                        onFavoriteClick = {
+                            viewModel.toggleFavorite(bean)
                         }
                     )
                 }
@@ -227,102 +277,5 @@ fun BeanListScreen(
                 TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
             }
         )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun BeanCard(
-    bean: CoffeeBean,
-    isSelectionMode: Boolean,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
-        color = if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        shape = MaterialTheme.shapes.medium,
-        tonalElevation = if (isSelected) 2.dp else 1.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 多选模式下的勾选框
-            AnimatedVisibility(
-                visible = isSelectionMode,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
-            ) {
-                Checkbox(
-                    checked = isSelected,
-                    onCheckedChange = { onClick() },
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = bean.name.ifEmpty { "未命名豆子" },
-                    style = MaterialTheme.typography.titleMedium
-                )
-                if (bean.roaster.isNotEmpty()) {
-                    Text(
-                        text = bean.roaster,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (bean.origin.isNotEmpty()) {
-                        Text(
-                            text = bean.origin,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                    if (bean.region.isNotEmpty()) {
-                        Text(
-                            text = bean.region,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                    if (bean.process.isNotEmpty()) {
-                        Text(
-                            text = bean.process,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                    if (bean.roastLevel.isNotEmpty()) {
-                        Text(
-                            text = bean.roastLevel,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                }
-            }
-            if (!isSelectionMode) {
-                Text(
-                    text = "›",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
     }
 }
