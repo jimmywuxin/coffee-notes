@@ -61,6 +61,7 @@ fun BrewEditScreen(
     var grindSize by remember { mutableStateOf("") }
     var extractionTime by remember { mutableStateOf("") }
     var flavorNotes by remember { mutableStateOf("") }
+    var showCustomRatio by remember { mutableStateOf(false) }
 
     // Rating states (1-5, 0 = not rated)
     var acidity by remember { mutableIntStateOf(0) }
@@ -107,7 +108,10 @@ fun BrewEditScreen(
                 selectedRecipeId = r.recipeId ?: -1L
                 equipment = r.equipment
                 coffeeWeight = if (r.coffeeWeight > 0) r.coffeeWeight.toString() else ""
-                coffeeWaterRatio = if (r.coffeeWaterRatio > 0) r.coffeeWaterRatio.toString() else ""
+                coffeeWaterRatio = if (r.coffeeWaterRatio > 0) {
+                    val s = r.coffeeWaterRatio.toString()
+                    if (s.endsWith(".0")) s.dropLast(2) else s
+                } else ""
                 waterAmount = if (r.waterAmount > 0) r.waterAmount.toString() else ""
                 waterTemp = if (r.waterTemp > 0) r.waterTemp.toString() else ""
                 grinder = r.grinder
@@ -128,7 +132,9 @@ fun BrewEditScreen(
     fun applyRecipe(recipe: BrewRecipe) {
         equipment = recipe.equipment
         coffeeWeight = if (recipe.coffeeWeight > 0) recipe.coffeeWeight.toString() else ""
-        coffeeWaterRatio = if (recipe.coffeeWaterRatio > 0) recipe.coffeeWaterRatio.toString() else ""
+        val ratioStr = if (recipe.coffeeWaterRatio > 0) recipe.coffeeWaterRatio.toString() else ""
+        coffeeWaterRatio = if (ratioStr.endsWith(".0")) ratioStr.dropLast(2) else ratioStr
+        showCustomRatio = false
         waterTemp = if (recipe.waterTemp > 0) recipe.waterTemp.toString() else ""
         grinder = recipe.grinder
         grindSize = recipe.grindSize
@@ -248,16 +254,21 @@ fun BrewEditScreen(
                 ratioOptions.forEach { ratio ->
                     FilterChip(
                         selected = coffeeWaterRatio == ratio,
-                        onClick = { coffeeWaterRatio = ratio },
+                        onClick = {
+                            coffeeWaterRatio = ratio
+                            showCustomRatio = false
+                        },
                         label = { Text("1:$ratio") }
                     )
                 }
                 // 自定义粉水比
-                var showCustomRatio by remember { mutableStateOf(false) }
                 val isCustomRatio = coffeeWaterRatio.isNotEmpty() && !ratioOptions.contains(coffeeWaterRatio)
                 FilterChip(
                     selected = showCustomRatio || isCustomRatio,
-                    onClick = { showCustomRatio = !showCustomRatio },
+                    onClick = {
+                        coffeeWaterRatio = ""
+                        showCustomRatio = true
+                    },
                     label = { Text("自定义") }
                 )
                 if (showCustomRatio || isCustomRatio) {
