@@ -92,6 +92,15 @@ fun SettingsScreen(
 
             item {
                 SettingsItem(
+                    icon = Icons.Default.MenuBook,
+                    title = "冲煮配方",
+                    subtitle = "管理冲煮配方",
+                    onClick = { navController.navigate(Screen.RecipeList.route) }
+                )
+            }
+
+            item {
+                SettingsItem(
                     icon = Icons.Default.Build,
                     title = "管理器具",
                     subtitle = "添加或编辑咖啡器具",

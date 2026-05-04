@@ -1,9 +1,11 @@
 package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,12 +19,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
-import com.coffeelab.coffeenotes.data.entity.BrewRecipe
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.DateUtils
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
-import com.coffeelab.coffeenotes.viewmodel.RecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,11 +33,26 @@ fun HomeScreen(
 ) {
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
     val recentRecords by brewViewModel.allRecords.collectAsState(initial = emptyList())
+    var selectedWeekRange by remember { mutableStateOf("全部") }
+    val weekRanges = listOf("全部", "本周", "上周", "上上周", "三周以前")
+
+    val filteredRecords = remember(selectedWeekRange, recentRecords) {
+        DateUtils.filterByWeekRange(recentRecords, selectedWeekRange)
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("☕ 咖啡笔记") },
+                actions = {
+                    IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "设置",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -49,14 +64,16 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Quick Action Buttons
+            // Quick Action Row: 冲煮记录 | 我的豆子 | 搜索
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     ActionCard(
                         modifier = Modifier.weight(1f),
@@ -67,8 +84,8 @@ fun HomeScreen(
                     ActionCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.Grain,
-                        label = "添加豆子",
-                        onClick = { navController.navigate(Screen.BeanEdit.createRoute()) }
+                        label = "我的豆子",
+                        onClick = { navController.navigate(Screen.BeanList.route) }
                     )
                     ActionCard(
                         modifier = Modifier.weight(1f),
@@ -79,62 +96,63 @@ fun HomeScreen(
                 }
             }
 
-            // Navigation Grid
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        NavCard(
-                            modifier = Modifier.weight(1f),
-                            emoji = "🫘",
-                            label = "我的豆子 (${beans.size})",
-                            onClick = { navController.navigate(Screen.BeanList.route) }
-                        )
-                        NavCard(
-                            modifier = Modifier.weight(1f),
-                            emoji = "📋",
-                            label = "冲煮配方",
-                            onClick = { navController.navigate(Screen.RecipeList.route) }
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        NavCard(
-                            modifier = Modifier.weight(1f),
-                            emoji = "⚙️",
-                            label = "设置",
-                            onClick = { navController.navigate(Screen.Settings.route) }
-                        )
-                    }
-                }
-            }
-
-            // Recent Records Section
+            // Recent Brews Section
             if (recentRecords.isNotEmpty()) {
                 item {
-                    Text(
-                        text = "最近冲煮",
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
+                    Column {
+                        Text(
+                            text = "最近冲煮",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                        )
+                        // Week filter chips
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            weekRanges.forEach { range ->
+                                FilterChip(
+                                    selected = (selectedWeekRange == range),
+                                    onClick = { selectedWeekRange = range },
+                                    label = { Text(range) }
+                                )
+                            }
+                        }
+                    }
                 }
 
-                items(recentRecords.take(50)) { record ->
-                    val beanName = beans.find { it.id == record.beanId }?.let { bean ->
-                        "${bean.roaster} - ${bean.name}"
-                    } ?: "未知豆子"
-
-                    RecordCard(
-                        record = record,
-                        beanName = beanName,
-                        onClick = {
-                            navController.navigate(Screen.BrewEdit.createRoute(record.id, record.beanId))
+                if (filteredRecords.isEmpty()) {
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = "暂无${selectedWeekRange}冲煮记录",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    )
+                    }
+                } else {
+                    items(filteredRecords.take(50)) { record ->
+                        val beanName = beans.find { it.id == record.beanId }?.let { bean ->
+                            "${bean.roaster} - ${bean.name}"
+                        } ?: "未知豆子"
+
+                        RecordCard(
+                            record = record,
+                            beanName = beanName,
+                            onClick = {
+                                navController.navigate(Screen.BrewEdit.createRoute(record.id, record.beanId))
+                            }
+                        )
+                    }
                 }
             } else {
                 item {
@@ -153,6 +171,9 @@ fun HomeScreen(
                     }
                 }
             }
+
+            // Bottom spacing
+            item { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
 }
@@ -172,49 +193,20 @@ fun ActionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(vertical = 14.dp, horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(26.dp)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-    }
-}
-
-@Composable
-fun NavCard(
-    modifier: Modifier = Modifier,
-    emoji: String,
-    label: String,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = emoji, style = MaterialTheme.typography.headlineMedium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
