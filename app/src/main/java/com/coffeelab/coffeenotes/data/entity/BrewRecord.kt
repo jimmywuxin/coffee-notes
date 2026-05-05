@@ -39,6 +39,9 @@ data class BrewRecord(
     val overallRating: Int = 0,
     val flavorNotes: String = "",
     val imageUri: String = "",
+    val isIced: Boolean = false,
+    val iceAmount: Int = 0,
+    val bypassAmount: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

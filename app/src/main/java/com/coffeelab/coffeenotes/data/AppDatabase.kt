@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.coffeelab.coffeenotes.data.dao.*
 import com.coffeelab.coffeenotes.data.entity.*
@@ -20,7 +21,7 @@ import kotlinx.coroutines.launch
         Equipment::class,
         Grinder::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -35,6 +36,15 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        // Migration from v4 → v5: add isIced, iceAmount, bypassAmount columns
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE brew_records ADD COLUMN isIced INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE brew_records ADD COLUMN iceAmount INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE brew_records ADD COLUMN bypassAmount INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -42,8 +52,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "coffee_notes.db"
                 )
-                    .fallbackToDestructiveMigrationFrom(1)
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_4_5)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
@@ -63,7 +72,6 @@ abstract class AppDatabase : RoomDatabase() {
 
         private suspend fun populateEquipment(database: AppDatabase) {
             val dao = database.equipmentDao()
-            // Only populate if table is empty (handles both fresh DB and migration cases)
             val existing = dao.getAllOnce()
             if (existing.isEmpty()) {
                 val items = Equipment.DEFAULT_EQUIPMENT.mapIndexed { index, name ->

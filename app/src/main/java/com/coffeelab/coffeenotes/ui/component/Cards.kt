@@ -178,7 +178,13 @@ fun RecordCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "${record.coffeeWeight}g · 1:${String.format("%.1f", record.coffeeWaterRatio)} · ${record.waterTemp}℃",
+                    text = buildString {
+                        append("${record.coffeeWeight}g")
+                        append(" · 1:${String.format("%.1f", record.coffeeWaterRatio)}")
+                        if (record.waterTemp > 0) append(" · ${record.waterTemp}℃")
+                        if (record.isIced) append(" · ❄️${record.iceAmount}g")
+                        if (record.bypassAmount > 0) append(" · +${record.bypassAmount}ml bypass")
+                    },
                     style = MaterialTheme.typography.bodySmall
                 )
             }
