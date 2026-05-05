@@ -71,6 +71,14 @@ fun BrewEditScreen(
     var aftertaste by remember { mutableIntStateOf(0) }
     var overall by remember { mutableIntStateOf(0) }
 
+    // New: iced & bypass
+    var isIced by remember { mutableStateOf(false) }
+    var iceAmount by remember { mutableStateOf("100") }
+    var bypassAmount by remember { mutableStateOf("") }
+
+    // New: reverse ratio calculation
+    var calculatedRatio by remember { mutableStateOf("") }
+
     // Equipment list
     val equipmentList by equipmentViewModel.allEquipment.collectAsState(initial = emptyList())
     val equipmentItems = if (equipmentList.isNotEmpty()) {
@@ -124,6 +132,9 @@ fun BrewEditScreen(
                 mouthfeel = r.mouthfeel
                 aftertaste = r.aftertaste
                 overall = r.overallRating
+                isIced = r.isIced
+                iceAmount = if (r.iceAmount > 0) r.iceAmount.toString() else "100"
+                bypassAmount = if (r.bypassAmount > 0) r.bypassAmount.toString() else ""
             }
         }
     }
@@ -315,6 +326,32 @@ fun BrewEditScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
             }
+            // Reverse calculation: derive ratio from actual coffeeWeight + waterAmount
+            val weight = coffeeWeight.toDoubleOrNull() ?: 0.0
+            val amount = waterAmount.toDoubleOrNull() ?: 0.0
+            val derivedRatio = if (weight > 0 && amount > 0) String.format("%.1f", amount / weight) else ""
+            if (derivedRatio.isNotEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    Text(
+                        text = "实际粉水比 1:${derivedRatio}（粉${coffeeWeight}g + 水${waterAmount}ml）",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(
+                        onClick = {
+                            coffeeWaterRatio = derivedRatio
+                            showCustomRatio = true
+                        }
+                    ) {
+                        Text("应用到粉水比")
+                    }
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = waterTemp,
@@ -379,6 +416,37 @@ fun BrewEditScreen(
                 )
             }
 
+            // Ice & Bypass
+            Text("冰饮 & Bypass", style = MaterialTheme.typography.titleMedium)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("加冰", style = MaterialTheme.typography.bodyMedium)
+                Switch(
+                    checked = isIced,
+                    onCheckedChange = { isIced = it }
+                )
+                if (isIced) {
+                    OutlinedTextField(
+                        value = iceAmount,
+                        onValueChange = { iceAmount = it },
+                        label = { Text("冰量 (g)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+            }
+            OutlinedTextField(
+                value = bypassAmount,
+                onValueChange = { bypassAmount = it },
+                label = { Text("Bypass 水量 (ml)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+
             // Tasting Scores
             Text("品鉴评分", style = MaterialTheme.typography.titleMedium)
             StarRatingRow(label = "酸度", rating = acidity, onRatingChange = { acidity = it })
@@ -422,7 +490,10 @@ fun BrewEditScreen(
                             mouthfeel = mouthfeel,
                             aftertaste = aftertaste,
                             overallRating = overall,
-                            flavorNotes = flavorNotes
+                            flavorNotes = flavorNotes,
+                            isIced = isIced,
+                            iceAmount = iceAmount.toIntOrNull() ?: 0,
+                            bypassAmount = bypassAmount.toIntOrNull() ?: 0
                         )
                         if (isEditing) {
                             brewViewModel.updateRecord(record)
