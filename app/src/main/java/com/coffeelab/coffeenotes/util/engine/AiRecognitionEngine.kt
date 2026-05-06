@@ -13,9 +13,9 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 
 /**
- * 小米 MiMo Omni 免费 AI 识别引擎
- * 
- * 调用 api.xiaomimimo.com 的视觉识别能力，
+ * MiniMax VLM 视觉识别引擎
+ *
+ * 调用 api.minimaxi.com 的视觉识别能力，
  * 将咖啡豆包装照片转为结构化信息。
  */
 class AiRecognitionEngine : RecognitionEngine {
@@ -23,13 +23,12 @@ class AiRecognitionEngine : RecognitionEngine {
     private val gson = Gson()
 
     companion object {
-        // 小米 MiMo API（需要 API Key）
-        private const val API_URL = "https://token-plan-cn.xiaomimimo.com/v1/chat/completions"
-        private const val MODEL = "mimo-v2-omni"
-        
+        // MiniMax VLM API
+        private const val API_URL = "https://api.minimaxi.com/v1/coding_plan/vlm"
+
         // API Key（从应用设置中读取，或通过 BuildConfig 注入）
         private var apiKey: String? = null
-        
+
         // OkHttpClient 单例
         private val client: OkHttpClient by lazy {
             OkHttpClient.Builder()
@@ -38,7 +37,7 @@ class AiRecognitionEngine : RecognitionEngine {
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build()
         }
-        
+
         fun setApiKey(key: String?) {
             apiKey = key
         }
@@ -59,7 +58,12 @@ class AiRecognitionEngine : RecognitionEngine {
   "roastLevel": "烘焙度（浅烘、中烘、深烘等）",
   "roastDate": "烘焙日期（如有，格式YYYY/MM/DD，没有则留空）",
   "flavors": ["风味1", "风味2", ...],
-  "notes": "其他备注信息"
+  "notes": "其他备注信息",
+  "dose": "粉量（克数，数字，没有则留空）",
+  "brewRatio": "粉水比（如 1:15、1:16 等，没有则留空）",
+  "waterAmount": "注水量（毫升，数字，没有则留空）",
+  "brewTime": "萃取时间（秒数，数字，没有则留空）",
+  "waterTemp": "水温（摄氏度，数字，没有则留空）"
 }
 
 # 规则：
@@ -71,6 +75,7 @@ class AiRecognitionEngine : RecognitionEngine {
 6. 无法确定的信息留空字符串 ""
 7. flavors 必须是字符串数组，风味词之间用常见分隔符（逗号、顿号、空格）分开
 8. 如果包装上有多个品种，用 / 分隔，如 "SL28/SL34"
+9. dose、waterAmount、brewTime、waterTemp 必须是数字（整数或小数），没有则留空
 
 # 常见咖啡产地参考：
 埃塞俄比亚(Ethiopia)、哥伦比亚(Colombia)、巴西(Brazil)、肯尼亚(Kenya)、
@@ -90,7 +95,7 @@ class AiRecognitionEngine : RecognitionEngine {
                 RecognitionResult(
                     success = false,
                     rawResponse = "识别失败: ${e.message}",
-                    engineName = "MiMo Omni"
+                    engineName = "MiniMax VLM"
                 )
             }
         }
@@ -105,27 +110,10 @@ class AiRecognitionEngine : RecognitionEngine {
     }
 
     private fun buildRequestBody(base64Image: String): String {
-        val userContent = listOf(
-            mapOf(
-                "type" to "image_url",
-                "image_url" to mapOf("url" to "data:image/jpeg;base64,$base64Image")
-            ),
-            mapOf(
-                "type" to "text",
-                "text" to "请识别这张咖啡豆包装照片上的信息。"
-            )
-        )
-
         val body = mapOf(
-            "model" to MODEL,
-            "messages" to listOf(
-                mapOf("role" to "system", "content" to SYSTEM_PROMPT),
-                mapOf("role" to "user", "content" to userContent)
-            ),
-            "max_tokens" to 500,
-            "temperature" to 0.1
+            "prompt" to SYSTEM_PROMPT,
+            "image_url" to "data:image/jpeg;base64,$base64Image"
         )
-
         return gson.toJson(body)
     }
 
@@ -136,12 +124,12 @@ class AiRecognitionEngine : RecognitionEngine {
         val requestBuilder = Request.Builder()
             .url(API_URL)
             .post(body)
-        
+
         // Add API Key if available
         apiKey?.let { key ->
             requestBuilder.addHeader("Authorization", "Bearer $key")
         }
-        
+
         val request = requestBuilder.build()
 
         val response = client.newCall(request).execute()
@@ -151,9 +139,8 @@ class AiRecognitionEngine : RecognitionEngine {
     private fun parseResponse(jsonResponse: String): RecognitionResult {
         return try {
             val root = gson.fromJson(jsonResponse, Map::class.java)
-            val choices = root["choices"] as? List<Map<String, Any>>
-            val message = choices?.firstOrNull()?.get("message") as? Map<String, Any>
-            val content = message?.get("content") as? String ?: ""
+            // MiniMax VLM 返回格式：{"content": "..."}
+            val content = root["content"] as? String ?: ""
 
             // Try to extract JSON from the response
             val jsonContent = extractJson(content)
@@ -170,15 +157,20 @@ class AiRecognitionEngine : RecognitionEngine {
                 roastDate = result.roastDate ?: "",
                 flavors = result.flavors ?: emptyList(),
                 notes = result.notes ?: "",
+                dose = parseNumber(result.dose),
+                brewRatio = result.brewRatio ?: "",
+                waterAmount = parseNumber(result.waterAmount),
+                brewTime = parseIntNumber(result.brewTime),
+                waterTemp = parseIntNumber(result.waterTemp),
                 rawResponse = content,
                 success = true,
-                engineName = "MiMo Omni"
+                engineName = "MiniMax VLM"
             )
         } catch (e: Exception) {
             RecognitionResult(
                 success = false,
                 rawResponse = "解析失败: ${e.message}",
-                engineName = "MiMo Omni"
+                engineName = "MiniMax VLM"
             )
         }
     }
@@ -193,6 +185,20 @@ class AiRecognitionEngine : RecognitionEngine {
             "{}"
         }
     }
+
+    /** 解析数字类型（可能是 Int/Float/Double/String），统一转为 Float? */
+    private fun parseNumber(value: Any?): Float? = when (value) {
+        is Number -> value.toFloat()
+        is String -> value.toFloatOrNull()
+        else -> null
+    }
+
+    /** 解析整数类型（可能是 Int/Float/Double/String），统一转为 Int? */
+    private fun parseIntNumber(value: Any?): Int? = when (value) {
+        is Number -> value.toInt()
+        is String -> value.toIntOrNull()
+        else -> null
+    }
 }
 
 /** MiMo Omni 返回的 JSON 映射 */
@@ -206,5 +212,10 @@ private data class BeanAIResult(
     val roastLevel: String? = null,
     val roastDate: String? = null,
     val flavors: List<String>? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    val dose: Any? = null,
+    val brewRatio: String? = null,
+    val waterAmount: Any? = null,
+    val brewTime: Any? = null,
+    val waterTemp: Any? = null
 )

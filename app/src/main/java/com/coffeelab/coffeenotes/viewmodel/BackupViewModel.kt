@@ -50,6 +50,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 val beans = repository.allBeans.first()
                 val records = repository.allRecords.first()
                 val recipes = repository.allRecipes.first()
+                val equipment = repository.getAllEquipmentOnce()
+                val grinders = repository.getAllGrindersOnce()
 
                 // Collect tags for each bean
                 val beansWithTags = beans.map { bean ->
@@ -62,11 +64,13 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
 
                 val backup = mapOf(
                     "exportDate" to SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.getDefault()).format(Date()),
-                    "appVersion" to "1.0.0",
+                    "appVersion" to "1.1.0",
                     "data" to mapOf(
                         "beans" to beansWithTags,
                         "records" to records,
-                        "recipes" to recipes
+                        "recipes" to recipes,
+                        "equipment" to equipment,
+                        "grinders" to grinders
                     )
                 )
 
@@ -79,7 +83,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 _backupState.value = BackupState.Success(
-                    "备份成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n配方: ${recipes.size} 个"
+                    "备份成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n配方: ${recipes.size} 个\n器具: ${equipment.size} 个\n磨豆机: ${grinders.size} 个"
                 )
             }
         } catch (e: Exception) {
@@ -121,6 +125,11 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         roastDate = (beanMap["roastDate"] as? Double)?.toLong(),
                         notes = beanMap["notes"] as String,
                         imageUri = beanMap["imageUri"] as String,
+                        dose = (beanMap["dose"] as? Double)?.toFloat(),
+                        brewRatio = beanMap["brewRatio"] as? String,
+                        waterAmount = (beanMap["waterAmount"] as? Double)?.toFloat(),
+                        brewTime = (beanMap["brewTime"] as? Double)?.toInt(),
+                        waterTemp = (beanMap["waterTemp"] as? Double)?.toInt(),
                         createdAt = (beanMap["createdAt"] as Double).toLong(),
                         updatedAt = (beanMap["updatedAt"] as Double).toLong()
                     )
@@ -203,8 +212,34 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     repository.insertRecipe(recipe)
                 }
 
+                // Import equipment (dedup by name)
+                val existingEquipment = repository.getAllEquipmentOnce().map { it.name }.toSet()
+                val equipmentList = data["equipment"] as? List<*>
+                var importedEquipment = 0
+                equipmentList?.forEach { eq ->
+                    val m = eq as Map<*, *>
+                    val name = m["name"] as? String ?: return@forEach
+                    if (name !in existingEquipment) {
+                        repository.insertEquipment(Equipment(name = name, sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0))
+                        importedEquipment++
+                    }
+                }
+
+                // Import grinders (dedup by name)
+                val existingGrinderNames = repository.getAllGrindersOnce().map { it.name }.toSet()
+                val grinderList = data["grinders"] as? List<*>
+                var importedGrinders = 0
+                grinderList?.forEach { gr ->
+                    val m = gr as Map<*, *>
+                    val name = m["name"] as? String ?: return@forEach
+                    if (name !in existingGrinderNames) {
+                        repository.insertGrinder(Grinder(name = name, sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0))
+                        importedGrinders++
+                    }
+                }
+
                 _backupState.value = BackupState.Success(
-                    "恢复成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n配方: ${recipes.size} 个"
+                    "恢复成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n配方: ${recipes.size} 个\n器具: +$importedEquipment 个\n磨豆机: +$importedGrinders 个"
                 )
             }
         } catch (e: Exception) {

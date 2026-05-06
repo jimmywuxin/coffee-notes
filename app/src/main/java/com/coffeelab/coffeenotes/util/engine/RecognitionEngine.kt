@@ -32,6 +32,12 @@ data class RecognitionResult(
     val roastDate: String = "",
     val flavors: List<String> = emptyList(),
     val notes: String = "",
+    // 官方萃取建议
+    val dose: Float? = null,             // 粉量（克）
+    val brewRatio: String = "",           // 粉水比
+    val waterAmount: Float? = null,      // 注水量（毫升）
+    val brewTime: Int? = null,            // 萃取时间（秒）
+    val waterTemp: Int? = null,           // 水温（°C）
     val rawResponse: String = "",
     val success: Boolean = true,
     val engineName: String = ""

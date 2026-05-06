@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
         Equipment::class,
         Grinder::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -45,6 +45,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migration from v5 → v6: add extraction suggestion columns to coffee_beans
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE coffee_beans ADD COLUMN dose REAL")
+                db.execSQL("ALTER TABLE coffee_beans ADD COLUMN brewRatio TEXT")
+                db.execSQL("ALTER TABLE coffee_beans ADD COLUMN waterAmount REAL")
+                db.execSQL("ALTER TABLE coffee_beans ADD COLUMN brewTime INTEGER")
+                db.execSQL("ALTER TABLE coffee_beans ADD COLUMN waterTemp INTEGER")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -52,7 +63,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "coffee_notes.db"
                 )
-                    .addMigrations(MIGRATION_4_5)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
@@ -73,22 +84,24 @@ abstract class AppDatabase : RoomDatabase() {
         private suspend fun populateEquipment(database: AppDatabase) {
             val dao = database.equipmentDao()
             val existing = dao.getAllOnce()
-            if (existing.isEmpty()) {
-                val items = Equipment.DEFAULT_EQUIPMENT.mapIndexed { index, name ->
-                    Equipment(name = name, sortOrder = index)
-                }
-                dao.insertAll(items)
+            val existingNames = existing.map { it.name }.toSet()
+            val toInsert = Equipment.DEFAULT_EQUIPMENT
+                .filter { it !in existingNames }
+                .mapIndexed { index, name -> Equipment(name = name, sortOrder = index) }
+            if (toInsert.isNotEmpty()) {
+                dao.insertAll(toInsert)
             }
         }
 
         private suspend fun populateGrinders(database: AppDatabase) {
             val dao = database.grinderDao()
             val existing = dao.getAllOnce()
-            if (existing.isEmpty()) {
-                val items = Grinder.DEFAULT_GRINDERS.mapIndexed { index, name ->
-                    Grinder(name = name, sortOrder = index)
-                }
-                dao.insertAll(items)
+            val existingNames = existing.map { it.name }.toSet()
+            val toInsert = Grinder.DEFAULT_GRINDERS
+                .filter { it !in existingNames }
+                .mapIndexed { index, name -> Grinder(name = name, sortOrder = index) }
+            if (toInsert.isNotEmpty()) {
+                dao.insertAll(toInsert)
             }
         }
     }

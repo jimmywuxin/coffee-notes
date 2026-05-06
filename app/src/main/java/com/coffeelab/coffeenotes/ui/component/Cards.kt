@@ -4,12 +4,14 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,10 +32,14 @@ fun BeanCard(
     onLongClick: () -> Unit = {},
     onFavoriteClick: () -> Unit = {}
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
+                interactionSource = interactionSource,
+                indication = null,
                 onClick = onClick,
                 onLongClick = onLongClick
             ),
@@ -112,7 +118,10 @@ fun BeanCard(
                     contentDescription = if (bean.isFavorite) "取消收藏" else "收藏",
                     modifier = Modifier
                         .padding(start = 8.dp)
-                        .clickable { onFavoriteClick() },
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onFavoriteClick() },
                     tint = if (bean.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -132,10 +141,14 @@ fun RecordCard(
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {}
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
+                interactionSource = interactionSource,
+                indication = null,
                 onClick = onClick,
                 onLongClick = onLongClick
             ),

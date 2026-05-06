@@ -13,9 +13,7 @@ data class Grinder(
     companion object {
         val DEFAULT_GRINDERS = listOf(
             "泰摩C5",
-            "泰摩C6",
-            "泰摩C7",
-            "玲珑R1"
+            "司令官C40"
         )
     }
 }
