@@ -112,22 +112,32 @@ fun SearchScreen(
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(searchResults) { item ->
-                            when (item) {
-                                is com.coffeelab.coffeenotes.data.entity.CoffeeBean -> {
-                                    BeanCard(bean = item) {
-                                        navController.navigate(Screen.BeanDetail.createRoute(item.id))
-                                    }
+                        // 先显示匹配的豆子
+                        val matchedBeans = searchResults.filterIsInstance<com.coffeelab.coffeenotes.data.entity.CoffeeBean>()
+                        items(matchedBeans) { bean ->
+                            BeanCard(
+                                bean = bean,
+                                onClick = {
+                                    navController.navigate(Screen.BeanDetail.createRoute(bean.id))
+                                },
+                                onFavoriteClick = {
+                                    beanViewModel.toggleFavorite(bean)
                                 }
-                                is com.coffeelab.coffeenotes.data.entity.BrewRecord -> {
-                                    val name = allBeans.find { it.id == item.beanId }?.name ?: "未知"
-                                    RecordCard(record = item, beanName = name) {
-                                        navController.navigate(
-                                            Screen.BrewEdit.createRoute(item.id, item.beanId)
-                                        )
-                                    }
+                            )
+                        }
+                        // 再显示匹配的冲煮记录
+                        val matchedRecords = searchResults.filterIsInstance<com.coffeelab.coffeenotes.data.entity.BrewRecord>()
+                        items(matchedRecords) { record ->
+                            val beanName = allBeans.find { it.id == record.beanId }?.name ?: "未知"
+                            RecordCard(
+                                record = record,
+                                beanName = beanName,
+                                onClick = {
+                                    navController.navigate(
+                                        Screen.BrewEdit.createRoute(record.id, record.beanId)
+                                    )
                                 }
-                            }
+                            )
                         }
                     }
                 }

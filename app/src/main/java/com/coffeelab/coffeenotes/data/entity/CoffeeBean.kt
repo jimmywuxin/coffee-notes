@@ -21,5 +21,12 @@ data class CoffeeBean(
     val imageUri: String = "",
     val isFavorite: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    // 官方萃取建议
+    val extractionMethod: String? = null,   // 器具：手冲/意式/AeroPress/冷萃/法压
+    val dose: Float? = null,               // 粉量（克）
+    val brewRatio: String? = null,          // 粉水比，如 "1:15"
+    val waterAmount: Float? = null,         // 注水量（毫升）
+    val brewTime: Int? = null,               // 萃取时间（秒）
+    val waterTemp: Int? = null               // 水温（°C），可留空
 )
