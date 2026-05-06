@@ -141,6 +141,41 @@ fun BeanDetailScreen(
                     }
                 }
 
+                // 官方萃取建议卡片
+                if (b.dose != null || b.brewRatio != null ||
+                    b.waterAmount != null || b.brewTime != null || b.waterTemp != null) {
+                    item {
+                        Surface(modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.secondaryContainer) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.LocalCafe, contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("官方萃取建议", style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                if (b.dose != null) {
+                                    ExtractionInfoRow("粉量", "${b.dose}g")
+                                }
+                                if (b.brewRatio?.isNotEmpty() == true) {
+                                    ExtractionInfoRow("粉水比", b.brewRatio)
+                                }
+                                if (b.waterAmount != null) {
+                                    ExtractionInfoRow("注水量", "${b.waterAmount}ml")
+                                }
+                                if (b.brewTime != null) {
+                                    ExtractionInfoRow("萃取时间", "${b.brewTime}s")
+                                }
+                                if (b.waterTemp != null) {
+                                    ExtractionInfoRow("水温", "${b.waterTemp}°C")
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Flavor Tags
                 if (tags.isNotEmpty()) {
                     item {
@@ -282,5 +317,22 @@ fun InfoRow(label: String, value: String) {
                 style = MaterialTheme.typography.bodyMedium
             )
         }
+    }
+}
+
+@Composable
+fun ExtractionInfoRow(label: String, value: String) {
+    Row(modifier = Modifier.padding(vertical = 2.dp)) {
+        Text(
+            text = "$label：",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.width(80.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
     }
 }

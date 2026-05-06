@@ -52,6 +52,12 @@ fun BeanEditScreen(
     var tagInput by remember { mutableStateOf("") }
     val tags = remember { mutableStateListOf<String>() }
     var originalGrindSize by remember { mutableStateOf("") }
+    // 官方萃取建议
+    var dose by remember { mutableStateOf("") }
+    var brewRatio by remember { mutableStateOf("") }
+    var waterAmount by remember { mutableStateOf("") }
+    var brewTime by remember { mutableStateOf("") }
+    var waterTemp by remember { mutableStateOf("") }
 
     val isEditing = beanId > 0
     val recResult by viewModel.recognitionResult.collectAsState(initial = null)
@@ -104,6 +110,12 @@ fun BeanEditScreen(
                 result.flavors.forEach { f ->
                     if (!tags.contains(f)) { tags.add(f); filled.add("风味:$f") }
                 }
+                // 萃取建议字段
+                result.dose?.let { d -> dose = d.toString(); filled.add("粉量") }
+                if (result.brewRatio.isNotEmpty()) { brewRatio = result.brewRatio; filled.add("粉水比") }
+                result.waterAmount?.let { w -> waterAmount = w.toString(); filled.add("注水量") }
+                result.brewTime?.let { t -> brewTime = t.toString(); filled.add("萃取时间") }
+                result.waterTemp?.let { temp -> waterTemp = temp.toString(); filled.add("水温") }
                 statusMessage = if (filled.isEmpty()) {
                     "识别完成，但未提取到信息"
                 } else {
@@ -138,6 +150,12 @@ fun BeanEditScreen(
             roastDate = if (b.roastDate != null) b.roastDate.toString() else ""
             notes = b.notes
             imageUri = b.imageUri
+            // 萃取建议
+            dose = b.dose?.toString() ?: ""
+            brewRatio = b.brewRatio ?: ""
+            waterAmount = b.waterAmount?.toString() ?: ""
+            brewTime = b.brewTime?.toString() ?: ""
+            waterTemp = b.waterTemp?.toString() ?: ""
             if (tags.isEmpty() && existingTags.isNotEmpty()) {
                 tags.clear()
                 tags.addAll(existingTags)
@@ -284,6 +302,25 @@ fun BeanEditScreen(
             OutlinedTextField(value = notes, onValueChange = { notes = it },
                 label = { Text("备注") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
 
+            // 官方萃取建议
+            Text("官方萃取建议", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(value = dose, onValueChange = { dose = it },
+                    label = { Text("粉量(g)") }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(value = brewRatio, onValueChange = { brewRatio = it },
+                    label = { Text("粉水比") }, modifier = Modifier.weight(1f), singleLine = true,
+                    placeholder = { Text("如 1:15") })
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(value = waterAmount, onValueChange = { waterAmount = it },
+                    label = { Text("注水量(ml)") }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(value = brewTime, onValueChange = { brewTime = it },
+                    label = { Text("萃取时间(s)") }, modifier = Modifier.weight(1f), singleLine = true)
+            }
+            OutlinedTextField(value = waterTemp, onValueChange = { waterTemp = it },
+                label = { Text("水温(°C)") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                placeholder = { Text("可留空") })
+
             Button(onClick = {
                 scope.launch {
                     val savedGrindSize = if (isEditing) originalGrindSize else ""
@@ -295,7 +332,12 @@ fun BeanEditScreen(
                         grindSize = savedGrindSize,
                         roastDate = roastDate.toLongOrNull(), notes = notes, imageUri = imageUri,
                         createdAt = existingCreatedAt,
-                        updatedAt = System.currentTimeMillis()
+                        updatedAt = System.currentTimeMillis(),
+                        dose = dose.toFloatOrNull(),
+                        brewRatio = brewRatio.ifBlank { null },
+                        waterAmount = waterAmount.toFloatOrNull(),
+                        brewTime = brewTime.toIntOrNull(),
+                        waterTemp = waterTemp.toIntOrNull()
                     )
                     if (isEditing) viewModel.updateBeanSync(beanToSave, tags.toList())
                     else viewModel.saveBeanSync(beanToSave, tags.toList())

@@ -30,6 +30,15 @@ import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
 import com.coffeelab.coffeenotes.viewmodel.GrinderViewModel
 import kotlinx.coroutines.launch
 
+// Extraction suggestion data class
+private data class ExtractionSuggestion(
+    val dose: Float?,
+    val brewRatio: String?,
+    val waterAmount: Float?,
+    val brewTime: Int?,
+    val waterTemp: Int?
+)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun BrewEditScreen(
@@ -78,6 +87,9 @@ fun BrewEditScreen(
 
     // New: reverse ratio calculation
     var calculatedRatio by remember { mutableStateOf("") }
+
+    // Extraction suggestion from selected bean
+    var selectedBeanExtraction by remember { mutableStateOf<ExtractionSuggestion?>(null) }
 
     // Equipment list
     val equipmentList by equipmentViewModel.allEquipment.collectAsState(initial = emptyList())
@@ -135,6 +147,24 @@ fun BrewEditScreen(
                 isIced = r.isIced
                 iceAmount = if (r.iceAmount > 0) r.iceAmount.toString() else "100"
                 bypassAmount = if (r.bypassAmount > 0) r.bypassAmount.toString() else ""
+            }
+        }
+    }
+
+    // Load extraction suggestion when selected bean changes
+    LaunchedEffect(selectedBeanId, beans) {
+        if (!isEditing) {
+            val bean = beans.find { it.id == selectedBeanId }
+            if (bean != null && (bean.dose != null || bean.brewRatio != null || bean.waterAmount != null || bean.brewTime != null || bean.waterTemp != null)) {
+                selectedBeanExtraction = ExtractionSuggestion(
+                    dose = bean.dose,
+                    brewRatio = bean.brewRatio,
+                    waterAmount = bean.waterAmount,
+                    brewTime = bean.brewTime,
+                    waterTemp = bean.waterTemp
+                )
+            } else {
+                selectedBeanExtraction = null
             }
         }
     }
@@ -223,6 +253,77 @@ fun BrewEditScreen(
                                     beanExpanded = false
                                 }
                             )
+                        }
+                    }
+                }
+            }
+
+            // Extraction suggestion card (display only, for reference)
+            selectedBeanExtraction?.let { suggestion ->
+                val hasAny = suggestion.dose != null || suggestion.brewRatio != null ||
+                    suggestion.waterAmount != null || suggestion.brewTime != null || suggestion.waterTemp != null
+                if (hasAny) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                "萃取参考",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                suggestion.dose?.let { doseVal ->
+                                    Column {
+                                        Text("粉量", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                                        Text("${doseVal}g", style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    }
+                                }
+                                suggestion.brewRatio?.let { ratioVal ->
+                                    Column {
+                                        Text("比例", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                                        Text(ratioVal, style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    }
+                                }
+                                suggestion.waterAmount?.let { waterVal ->
+                                    Column {
+                                        Text("注水量", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                                        Text("${waterVal}ml", style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    }
+                                }
+                                suggestion.brewTime?.let { timeVal ->
+                                    val mins = timeVal / 60
+                                    val secs = timeVal % 60
+                                    val timeStr = if (mins > 0) "${mins}分${secs}秒" else "${secs}秒"
+                                    Column {
+                                        Text("时间", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                                        Text(timeStr, style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    }
+                                }
+                                suggestion.waterTemp?.let { tempVal ->
+                                    Column {
+                                        Text("水温", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                                        Text("${tempVal}°C", style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
