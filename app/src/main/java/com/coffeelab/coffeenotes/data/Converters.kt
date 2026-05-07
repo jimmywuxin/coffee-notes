@@ -15,9 +15,13 @@ class Converters {
 
     @TypeConverter
     fun toBrewMethodStepList(json: String?): List<BrewMethodStep>? {
-        return json?.let {
+        if (json.isNullOrBlank()) return emptyList()
+        return try {
             val type = object : TypeToken<List<BrewMethodStep>>() {}.type
-            gson.fromJson(it, type)
+            gson.fromJson(json, type) ?: emptyList()
+        } catch (e: Exception) {
+            // Defensive: if JSON is malformed, return empty instead of crashing
+            emptyList()
         }
     }
 
@@ -26,10 +30,14 @@ class Converters {
 
         /** Parse JSON string to List<BrewMethodStep> (same logic as Room TypeConverter) */
         fun parseSteps(json: String?): List<BrewMethodStep> {
-            return json?.let {
+            if (json.isNullOrBlank()) return emptyList()
+            return try {
                 val type = object : TypeToken<List<BrewMethodStep>>() {}.type
-                gson.fromJson<List<BrewMethodStep>>(it, type) ?: emptyList()
-            } ?: emptyList()
+                gson.fromJson<List<BrewMethodStep>>(json, type) ?: emptyList()
+            } catch (e: Exception) {
+                // Defensive: if JSON is malformed, return empty instead of crashing
+                emptyList()
+            }
         }
 
         /** Serialize List<BrewMethodStep> to JSON string (same logic as Room TypeConverter) */
