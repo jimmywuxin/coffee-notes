@@ -70,16 +70,16 @@ fun CoffeeNavGraph(navController: NavHostController) {
             BrewEditScreen(navController = navController, recordId = recordId, beanId = beanId)
         }
 
-        composable(Screen.RecipeList.route) {
-            RecipeListScreen(navController = navController)
+        composable(Screen.BrewMethodList.route) {
+            BrewMethodListScreen(navController = navController)
         }
 
         composable(
-            route = Screen.RecipeEdit.route,
-            arguments = listOf(navArgument("recipeId") { type = NavType.LongType })
+            route = Screen.BrewMethodEdit.route,
+            arguments = listOf(navArgument("methodId") { type = NavType.LongType })
         ) { backStackEntry ->
-            val recipeId = backStackEntry.arguments?.getLong("recipeId") ?: -1L
-            RecipeEditScreen(navController = navController, recipeId = recipeId)
+            val methodId = backStackEntry.arguments?.getLong("methodId") ?: -1L
+            BrewMethodEditScreen(navController = navController, methodId = methodId)
         }
 
         composable(Screen.Search.route) {

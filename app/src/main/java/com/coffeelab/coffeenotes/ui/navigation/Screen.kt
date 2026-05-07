@@ -19,9 +19,9 @@ sealed class Screen(val route: String) {
         fun createRoute(recordId: Long = -1L, beanId: Long = -1L) =
             "brew_edit/$recordId/$beanId"
     }
-    object RecipeList : Screen("recipe_list")
-    object RecipeEdit : Screen("recipe_edit/{recipeId}") {
-        fun createRoute(recipeId: Long = -1L) = "recipe_edit/$recipeId"
+    object BrewMethodList : Screen("brew_method_list")
+    object BrewMethodEdit : Screen("brew_method_edit/{methodId}") {
+        fun createRoute(methodId: Long = -1L) = "brew_method_edit/$methodId"
     }
     object Search : Screen("search")
     object Stats : Screen("stats/{beanId}") {

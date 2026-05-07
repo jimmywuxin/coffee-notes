@@ -19,13 +19,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
-import com.coffeelab.coffeenotes.data.entity.BrewRecipe
+import com.coffeelab.coffeenotes.data.entity.BrewMethod
 import com.coffeelab.coffeenotes.data.entity.Grinder
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import com.coffeelab.coffeenotes.data.entity.Equipment
-import com.coffeelab.coffeenotes.viewmodel.RecipeViewModel
+import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
 import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
 import com.coffeelab.coffeenotes.viewmodel.GrinderViewModel
 import kotlinx.coroutines.launch
@@ -47,20 +47,20 @@ fun BrewEditScreen(
     beanId: Long,
     brewViewModel: BrewViewModel = viewModel(),
     beanViewModel: BeanViewModel = viewModel(),
-    recipeViewModel: RecipeViewModel = viewModel(),
+    methodViewModel: BrewMethodViewModel = viewModel(),
     equipmentViewModel: EquipmentViewModel = viewModel(),
     grinderViewModel: GrinderViewModel = viewModel()
 ) {
     val scope = rememberCoroutineScope()
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
-    val recipes by recipeViewModel.allRecipes.collectAsState(initial = emptyList())
+    val methods by methodViewModel.allMethods.collectAsState(initial = emptyList())
 
     val isEditing = recordId > 0
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     // State
     var selectedBeanId by remember { mutableStateOf(beanId) }
-    var selectedRecipeId by remember { mutableStateOf(-1L) }
+    var selectedMethodId by remember { mutableStateOf(-1L) }
     var equipment by remember { mutableStateOf("") }
     var coffeeWeight by remember { mutableStateOf("") }
     var coffeeWaterRatio by remember { mutableStateOf("") }
@@ -125,7 +125,7 @@ fun BrewEditScreen(
             val record = brewViewModel.getRecord(recordId)
             record?.let { r ->
                 selectedBeanId = r.beanId
-                selectedRecipeId = r.recipeId ?: -1L
+                selectedMethodId = r.methodId ?: -1L
                 equipment = r.equipment
                 coffeeWeight = if (r.coffeeWeight > 0) r.coffeeWeight.toString() else ""
                 coffeeWaterRatio = if (r.coffeeWaterRatio > 0) {
@@ -167,18 +167,6 @@ fun BrewEditScreen(
                 selectedBeanExtraction = null
             }
         }
-    }
-
-    // Apply recipe to fill parameters
-    fun applyRecipe(recipe: BrewRecipe) {
-        equipment = recipe.equipment
-        coffeeWeight = if (recipe.coffeeWeight > 0) recipe.coffeeWeight.toString() else ""
-        val ratioStr = if (recipe.coffeeWaterRatio > 0) recipe.coffeeWaterRatio.toString() else ""
-        coffeeWaterRatio = if (ratioStr.endsWith(".0")) ratioStr.dropLast(2) else ratioStr
-        showCustomRatio = false
-        waterTemp = if (recipe.waterTemp > 0) recipe.waterTemp.toString() else ""
-        grinder = recipe.grinder
-        grindSize = recipe.grindSize
     }
 
     Scaffold(
@@ -329,18 +317,52 @@ fun BrewEditScreen(
                 }
             }
 
-            // Select Recipe
-            Text("选择配方（可选）", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val filteredRecipes = recipes
-                if (filteredRecipes.isEmpty()) {
-                    Text("暂无配方", style = MaterialTheme.typography.bodySmall)
-                } else {
-                    filteredRecipes.forEach { recipe ->
-                        SuggestionChip(
-                            onClick = { applyRecipe(recipe) },
-                            label = { Text(recipe.name) }
-                        )
+            // Select Method
+            Text("选择冲煮手法", style = MaterialTheme.typography.titleMedium)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                methods.forEach { method ->
+                    FilterChip(
+                        selected = selectedMethodId == method.id,
+                        onClick = {
+                            selectedMethodId = if (selectedMethodId == method.id) -1L else method.id
+                        },
+                        label = { Text(method.name) }
+                    )
+                }
+            }
+
+            // Method detail card (shown when selected)
+            val selectedMethod = methods.find { it.id == selectedMethodId }
+            if (selectedMethod != null) {
+                val steps = com.coffeelab.coffeenotes.data.Converters.parseSteps(selectedMethod.steps)
+                if (steps.isNotEmpty()) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                selectedMethod.name,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            steps.forEachIndexed { index, step ->
+                                val waterStr = step.waterAmount?.let { "${it}ml" } ?: "至总水量"
+                                val descStr = step.description?.let { " · $it" } ?: ""
+                                Text(
+                                    "步骤${index + 1}：$waterStr · ${step.durationSeconds}秒$descStr",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -574,7 +596,7 @@ fun BrewEditScreen(
                         val record = BrewRecord(
                             id = if (isEditing) recordId else 0,
                             beanId = selectedBeanId,
-                            recipeId = if (selectedRecipeId > 0) selectedRecipeId else null,
+                            methodId = if (selectedMethodId > 0) selectedMethodId else null,
                             dateTime = if (isEditing) (brewViewModel.getRecord(recordId)?.dateTime
                                 ?: System.currentTimeMillis()) else System.currentTimeMillis(),
                             equipment = equipment,

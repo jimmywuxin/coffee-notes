@@ -48,8 +48,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
         try {
             withContext(Dispatchers.IO) {
                 val beans = repository.allBeans.first()
+                val methods = repository.allMethods.first()
                 val records = repository.allRecords.first()
-                val recipes = repository.allRecipes.first()
                 val equipment = repository.getAllEquipmentOnce()
                 val grinders = repository.getAllGrindersOnce()
 
@@ -68,7 +68,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     "data" to mapOf(
                         "beans" to beansWithTags,
                         "records" to records,
-                        "recipes" to recipes,
+                        "methods" to methods,
                         "equipment" to equipment,
                         "grinders" to grinders
                     )
@@ -83,7 +83,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 _backupState.value = BackupState.Success(
-                    "备份成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n配方: ${recipes.size} 个\n器具: ${equipment.size} 个\n磨豆机: ${grinders.size} 个"
+                    "备份成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n冲煮手法: ${methods.size} 个\n器具: ${equipment.size} 个\n磨豆机: ${grinders.size} 个"
                 )
             }
         } catch (e: Exception) {
@@ -125,6 +125,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         roastDate = (beanMap["roastDate"] as? Double)?.toLong(),
                         notes = beanMap["notes"] as String,
                         imageUri = beanMap["imageUri"] as String,
+                        isFavorite = (beanMap["isFavorite"] as? Boolean) ?: false,
                         dose = (beanMap["dose"] as? Double)?.toFloat(),
                         brewRatio = beanMap["brewRatio"] as? String,
                         waterAmount = (beanMap["waterAmount"] as? Double)?.toFloat(),
@@ -144,7 +145,28 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 }
 
-                // Import records
+                // Import methods (new brew_methods table) — MUST come first to build methodIdMap
+                val methods = data["methods"] as? List<*>
+                var importedMethods = 0
+                val methodIdMap = mutableMapOf<Long, Long>()
+                methods?.forEach { methodEntry ->
+                    val m = methodEntry as Map<*, *>
+                    val oldId = (m["id"] as Double).toLong()
+                    // steps is stored as JSON string (Room TypeConverter serializes List<BrewMethodStep>)
+                    val stepsStr = m["steps"] as? String
+                    val method = BrewMethod(
+                        name = m["name"] as String,
+                        isPreset = (m["isPreset"] as? Boolean) ?: false,
+                        steps = stepsStr,
+                        createdAt = (m["createdAt"] as Double).toLong(),
+                        updatedAt = (m["updatedAt"] as Double).toLong()
+                    )
+                    val newId = repository.insertMethod(method)
+                    methodIdMap[oldId] = newId
+                    importedMethods++
+                }
+
+                // Import records (with backward compat: old recipeId → methodId, using methodIdMap)
                 val records = data["records"] as List<*>
                 for (recordMap in records) {
                     val r = recordMap as Map<*, *>
@@ -159,9 +181,14 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         (r["coffeeWaterRatio"] as? Double) ?: 0.0
                     }
 
+                    // Backward compat: old backups use recipeId, new field is methodId
+                    val oldMethodId = (r["methodId"] as? Double)?.toLong()
+                        ?: (r["recipeId"] as? Double)?.toLong()
+                    val newMethodId = oldMethodId?.let { methodIdMap[it] }
+
                     val record = BrewRecord(
                         beanId = newBeanId,
-                        recipeId = (r["recipeId"] as? Double)?.toLong(),
+                        methodId = newMethodId,
                         dateTime = (r["dateTime"] as Double).toLong(),
                         equipment = r["equipment"] as? String ?: "",
                         coffeeWeight = coffeeWeightVal,
@@ -179,37 +206,10 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         overallRating = (r["overallRating"] as? Double)?.toInt() ?: 0,
                         flavorNotes = r["flavorNotes"] as? String ?: "",
                         imageUri = r["imageUri"] as? String ?: "",
-                        createdAt = (r["createdAt"] as Double).toLong(),
-                        updatedAt = (r["updatedAt"] as Double).toLong()
+                        createdAt = (r["createdAt"] as? Double)?.toLong() ?: System.currentTimeMillis(),
+                        updatedAt = (r["updatedAt"] as? Double)?.toLong() ?: System.currentTimeMillis()
                     )
                     repository.insertRecord(record)
-                }
-
-                // Import recipes
-                val recipes = data["recipes"] as List<*>
-                for (recipeMap in recipes) {
-                    val rec = recipeMap as Map<*, *>
-                    val waterWeight = (rec["waterWeight"] as? Double) ?: 0.0
-                    val coffeeWeightVal = (rec["coffeeWeight"] as? Double) ?: 0.0
-                    val coffeeWaterRatioVal = if (coffeeWeightVal > 0 && waterWeight > 0) {
-                        (waterWeight / coffeeWeightVal)
-                    } else {
-                        (rec["coffeeWaterRatio"] as? Double) ?: 0.0
-                    }
-                    val recipe = BrewRecipe(
-                        name = rec["name"] as String,
-                        beanId = (rec["beanId"] as? Double)?.toLong(),
-                        equipment = rec["equipment"] as? String ?: "",
-                        coffeeWeight = coffeeWeightVal,
-                        coffeeWaterRatio = coffeeWaterRatioVal,
-                        waterTemp = rec["waterTemp"] as? Double ?: 0.0,
-                        grinder = rec["grinder"] as? String ?: "",
-                        grindSize = rec["grindSize"] as? String ?: "",
-                        notes = rec["notes"] as? String ?: "",
-                        createdAt = (rec["createdAt"] as Double).toLong(),
-                        updatedAt = (rec["updatedAt"] as Double).toLong()
-                    )
-                    repository.insertRecipe(recipe)
                 }
 
                 // Import equipment (dedup by name)
@@ -239,7 +239,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 _backupState.value = BackupState.Success(
-                    "恢复成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n配方: ${recipes.size} 个\n器具: +$importedEquipment 个\n磨豆机: +$importedGrinders 个"
+                    "恢复成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n冲煮手法: +$importedMethods 个\n器具: +$importedEquipment 个\n磨豆机: +$importedGrinders 个"
                 )
             }
         } catch (e: Exception) {
