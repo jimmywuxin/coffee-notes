@@ -33,16 +33,22 @@ fun BeanListScreen(
     viewModel: BeanViewModel = viewModel()
 ) {
     val beans by viewModel.allBeans.collectAsState(initial = emptyList())
-    val mutableBeans = remember(beans) { beans.toMutableList() }
+    val mutableBeans = remember { mutableStateListOf(*beans.toTypedArray()) }
+    var isReorderMode by remember { mutableStateOf(false) }
+
+    // Keep mutableBeans in sync with beans when not in reorder mode
+    LaunchedEffect(beans, isReorderMode) {
+        if (!isReorderMode) {
+            mutableBeans.clear()
+            mutableBeans.addAll(beans)
+        }
+    }
 
     // 多选状态
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedBeans by remember { mutableStateOf(setOf<Long>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showFavoritesOnly by remember { mutableStateOf(false) }
-
-    // 排序模式
-    var isReorderMode by remember { mutableStateOf(false) }
 
     // 拖拽状态
     var draggingIndex by remember { mutableIntStateOf(-1) }

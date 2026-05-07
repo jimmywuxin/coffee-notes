@@ -25,8 +25,16 @@ fun BrewMethodListScreen(
     viewModel: BrewMethodViewModel = viewModel()
 ) {
     val methods by viewModel.allMethods.collectAsState(initial = emptyList())
-    val mutableList = remember(methods) { methods.toMutableList() }
+    val mutableList = remember { mutableStateListOf(*methods.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
+
+    // Keep mutableList in sync with methods when not in reorder mode
+    LaunchedEffect(methods, isReorderMode) {
+        if (!isReorderMode) {
+            mutableList.clear()
+            mutableList.addAll(methods)
+        }
+    }
 
     fun moveItem(fromIndex: Int, toIndex: Int) {
         if (toIndex < 0 || toIndex >= mutableList.size) return
