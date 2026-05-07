@@ -125,6 +125,7 @@ fun GrinderManagementScreen(
             ) {
                 Text(
                     "还没有磨豆机\n点击右下角 + 添加",
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

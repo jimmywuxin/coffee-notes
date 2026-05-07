@@ -36,7 +36,7 @@ fun BeanListScreen(
     navController: NavController,
     viewModel: BeanViewModel = viewModel()
 ) {
-    val beans by viewModel.allBeans.collectAsState(initial = emptyList())
+    val beans by viewModel.activeBeans.collectAsState(initial = emptyList())
     val mutableBeans = remember { mutableStateListOf(*beans.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
 

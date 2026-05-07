@@ -110,6 +110,7 @@ fun BrewMethodListScreen(
             ) {
                 Text(
                     "还没有冲煮手法\n点击 + 新建 🧪",
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

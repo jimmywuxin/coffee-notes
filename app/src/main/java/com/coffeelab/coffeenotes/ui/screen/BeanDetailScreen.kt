@@ -64,6 +64,7 @@ fun BeanDetailScreen(
     }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showArchiveDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -76,6 +77,12 @@ fun BeanDetailScreen(
                 },
                 actions = {
                     if (bean != null) {
+                        IconButton(onClick = { showArchiveDialog = true }) {
+                            Icon(
+                                if (bean!!.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
+                                contentDescription = if (bean!!.isArchived) "取消归档" else "归档"
+                            )
+                        }
                         IconButton(onClick = {
                             navController.navigate(Screen.BeanEdit.createRoute(beanId))
                         }) {
@@ -276,6 +283,37 @@ fun BeanDetailScreen(
                 }
             }
         }
+    }
+
+    // Archive Confirmation Dialog
+    if (showArchiveDialog && bean != null) {
+        AlertDialog(
+            onDismissRequest = { showArchiveDialog = false },
+            title = { Text(if (bean!!.isArchived) "取消归档" else "归档") },
+            text = {
+                Text(
+                    if (bean!!.isArchived)
+                        "将「${bean?.name}」恢复到豆子列表？"
+                    else
+                        "将「${bean?.name}」归档？\n归档后不在主列表显示，但数据和冲煮记录都保留。"
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        bean?.let {
+                            if (it.isArchived) beanViewModel.unarchiveBean(it)
+                            else beanViewModel.archiveBean(it)
+                            showArchiveDialog = false
+                            navController.popBackStack()
+                        }
+                    }
+                ) { Text("确认") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showArchiveDialog = false }) { Text("取消") }
+            }
+        )
     }
 
     // Delete Confirmation Dialog

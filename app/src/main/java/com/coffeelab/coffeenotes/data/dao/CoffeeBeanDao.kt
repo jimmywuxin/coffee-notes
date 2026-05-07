@@ -9,6 +9,12 @@ interface CoffeeBeanDao {
     @Query("SELECT * FROM coffee_beans ORDER BY sortOrder ASC, updatedAt DESC")
     fun getAllBeans(): Flow<List<CoffeeBean>>
 
+    @Query("SELECT * FROM coffee_beans WHERE isArchived = 0 ORDER BY sortOrder ASC, updatedAt DESC")
+    fun getActiveBeans(): Flow<List<CoffeeBean>>
+
+    @Query("SELECT * FROM coffee_beans WHERE isArchived = 1 ORDER BY updatedAt DESC")
+    fun getArchivedBeans(): Flow<List<CoffeeBean>>
+
     @Query("SELECT * FROM coffee_beans WHERE id = :id")
     suspend fun getBeanById(id: Long): CoffeeBean?
 

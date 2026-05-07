@@ -180,6 +180,7 @@ fun BrewListScreen(
             ) {
                 Text(
                     "还没有冲煮记录",
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

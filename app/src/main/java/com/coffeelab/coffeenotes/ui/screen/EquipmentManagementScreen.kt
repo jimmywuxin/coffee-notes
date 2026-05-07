@@ -119,6 +119,7 @@ fun EquipmentManagementScreen(
             ) {
                 Text(
                     "还没有器具\n点击右下角 + 添加",
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
