@@ -217,7 +217,8 @@ fun BrewEditScreen(
 
                 ExposedDropdownMenuBox(
                     expanded = beanExpanded,
-                    onExpandedChange = { beanExpanded = it }
+                    onExpandedChange = { beanExpanded = it },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedTextField(
                         value = selectedBeanName,
@@ -225,14 +226,11 @@ fun BrewEditScreen(
                         readOnly = true,
                         label = { Text("咖啡豆") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = beanExpanded) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth()
+                        modifier = Modifier.menuAnchor()
                     )
                     ExposedDropdownMenu(
                         expanded = beanExpanded,
-                        onDismissRequest = { beanExpanded = false },
-                        modifier = Modifier.fillMaxWidth()
+                        onDismissRequest = { beanExpanded = false }
                     ) {
                         beans.forEach { bean ->
                             DropdownMenuItem(
@@ -324,7 +322,8 @@ fun BrewEditScreen(
             val selectedMethodName = methods.find { it.id == selectedMethodId }?.name ?: "请选择冲煮手法（可选）"
             ExposedDropdownMenuBox(
                 expanded = methodExpanded,
-                onExpandedChange = { methodExpanded = it }
+                onExpandedChange = { methodExpanded = it },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
                     value = selectedMethodName,
@@ -332,14 +331,11 @@ fun BrewEditScreen(
                     readOnly = true,
                     label = { Text("冲煮手法") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = methodExpanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
+                    modifier = Modifier.menuAnchor()
                 )
                 ExposedDropdownMenu(
                     expanded = methodExpanded,
-                    onDismissRequest = { methodExpanded = false },
-                    modifier = Modifier.fillMaxWidth()
+                    onDismissRequest = { methodExpanded = false }
                 ) {
                     DropdownMenuItem(
                         text = { Text("不选择") },
@@ -397,7 +393,8 @@ fun BrewEditScreen(
             var equipmentExpanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(
                 expanded = equipmentExpanded,
-                onExpandedChange = { equipmentExpanded = it }
+                onExpandedChange = { equipmentExpanded = it },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
                     value = equipment.ifEmpty { "请选择器具（可选）" },
@@ -405,14 +402,11 @@ fun BrewEditScreen(
                     readOnly = true,
                     label = { Text("器具") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = equipmentExpanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
+                    modifier = Modifier.menuAnchor()
                 )
                 ExposedDropdownMenu(
                     expanded = equipmentExpanded,
-                    onDismissRequest = { equipmentExpanded = false },
-                    modifier = Modifier.fillMaxWidth()
+                    onDismissRequest = { equipmentExpanded = false }
                 ) {
                     DropdownMenuItem(
                         text = { Text("不选择") },
@@ -564,14 +558,11 @@ fun BrewEditScreen(
                         readOnly = true,
                         label = { Text("磨豆机") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = grinderExpanded) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth()
+                        modifier = Modifier.menuAnchor()
                     )
                     ExposedDropdownMenu(
                         expanded = grinderExpanded,
-                        onDismissRequest = { grinderExpanded = false },
-                        modifier = Modifier.fillMaxWidth()
+                        onDismissRequest = { grinderExpanded = false }
                     ) {
                         grinderItems.forEach { item ->
                             DropdownMenuItem(
