@@ -155,6 +155,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         notes = beanMap["notes"] as String,
                         imageUri = beanMap["imageUri"] as String,
                         isFavorite = (beanMap["isFavorite"] as? Boolean) ?: false,
+                        isArchived = (beanMap["isArchived"] as? Boolean) ?: false,
                         dose = (beanMap["dose"] as? Double)?.toFloat(),
                         brewRatio = beanMap["brewRatio"] as? String,
                         waterAmount = (beanMap["waterAmount"] as? Double)?.toFloat(),

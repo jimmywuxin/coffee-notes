@@ -9,6 +9,8 @@ class CoffeeRepository(private val db: AppDatabase) {
 
     // ===== Coffee Beans =====
     val allBeans: Flow<List<CoffeeBean>> = db.coffeeBeanDao().getAllBeans()
+    val activeBeans: Flow<List<CoffeeBean>> = db.coffeeBeanDao().getActiveBeans()
+    val archivedBeans: Flow<List<CoffeeBean>> = db.coffeeBeanDao().getArchivedBeans()
 
     suspend fun getBean(id: Long) = db.coffeeBeanDao().getBeanById(id)
     fun getBeanFlow(id: Long) = db.coffeeBeanDao().getBeanFlow(id)
@@ -17,6 +19,8 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun insertBean(bean: CoffeeBean): Long = db.coffeeBeanDao().insert(bean)
     suspend fun updateBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean)
     suspend fun deleteBean(bean: CoffeeBean) = db.coffeeBeanDao().delete(bean)
+    suspend fun archiveBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean.copy(isArchived = true, updatedAt = System.currentTimeMillis()))
+    suspend fun unarchiveBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean.copy(isArchived = false, updatedAt = System.currentTimeMillis()))
     @Transaction
     suspend fun saveBeanOrder(items: List<CoffeeBean>) {
         items.forEachIndexed { index, bean ->

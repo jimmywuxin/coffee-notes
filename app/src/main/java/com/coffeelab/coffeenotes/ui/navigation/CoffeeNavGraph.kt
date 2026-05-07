@@ -1,25 +1,35 @@
 package com.coffeelab.coffeenotes.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.coffeelab.coffeenotes.ui.screen.*
+import com.coffeelab.coffeenotes.viewmodel.*
 
 @Composable
 fun CoffeeNavGraph(navController: NavHostController) {
+    // Shared ViewModels scoped to NavGraph — persist across navigation
+    val beanViewModel: BeanViewModel = viewModel()
+    val brewViewModel: BrewViewModel = viewModel()
+    val brewMethodViewModel: BrewMethodViewModel = viewModel()
+    val equipmentViewModel: EquipmentViewModel = viewModel()
+    val grinderViewModel: GrinderViewModel = viewModel()
+    val statsViewModel: StatsViewModel = viewModel()
+
     NavHost(
         navController = navController,
         startDestination = Screen.Home.route
     ) {
         composable(Screen.Home.route) {
-            HomeScreen(navController = navController)
+            HomeScreen(navController = navController, beanViewModel = beanViewModel, brewViewModel = brewViewModel)
         }
 
         composable(Screen.BeanList.route) {
-            BeanListScreen(navController = navController)
+            BeanListScreen(navController = navController, viewModel = beanViewModel)
         }
 
         composable(
@@ -27,7 +37,7 @@ fun CoffeeNavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("beanId") { type = NavType.LongType })
         ) { backStackEntry ->
             val beanId = backStackEntry.arguments?.getLong("beanId") ?: -1L
-            BeanDetailScreen(navController = navController, beanId = beanId)
+            BeanDetailScreen(navController = navController, beanId = beanId, beanViewModel = beanViewModel, brewViewModel = brewViewModel)
         }
 
         composable(
@@ -55,7 +65,7 @@ fun CoffeeNavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("beanId") { type = NavType.LongType })
         ) { backStackEntry ->
             val beanId = backStackEntry.arguments?.getLong("beanId") ?: -1L
-            BrewListScreen(navController = navController, beanId = beanId)
+            BrewListScreen(navController = navController, beanId = beanId, brewViewModel = brewViewModel, beanViewModel = beanViewModel)
         }
 
         composable(
@@ -67,11 +77,11 @@ fun CoffeeNavGraph(navController: NavHostController) {
         ) { backStackEntry ->
             val recordId = backStackEntry.arguments?.getLong("recordId") ?: -1L
             val beanId = backStackEntry.arguments?.getLong("beanId") ?: -1L
-            BrewEditScreen(navController = navController, recordId = recordId, beanId = beanId)
+            BrewEditScreen(navController = navController, recordId = recordId, beanId = beanId, brewViewModel = brewViewModel, beanViewModel = beanViewModel, methodViewModel = brewMethodViewModel, equipmentViewModel = equipmentViewModel, grinderViewModel = grinderViewModel)
         }
 
         composable(Screen.BrewMethodList.route) {
-            BrewMethodListScreen(navController = navController)
+            BrewMethodListScreen(navController = navController, viewModel = brewMethodViewModel)
         }
 
         composable(
@@ -91,7 +101,7 @@ fun CoffeeNavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("beanId") { type = NavType.LongType })
         ) { backStackEntry ->
             val beanId = backStackEntry.arguments?.getLong("beanId") ?: -1L
-            StatsScreen(navController = navController, beanId = beanId)
+            StatsScreen(navController = navController, beanId = beanId, viewModel = statsViewModel)
         }
 
         composable(Screen.Backup.route) {
@@ -99,15 +109,19 @@ fun CoffeeNavGraph(navController: NavHostController) {
         }
 
         composable(Screen.EquipmentManagement.route) {
-            EquipmentManagementScreen(navController = navController)
+            EquipmentManagementScreen(navController = navController, equipmentViewModel = equipmentViewModel)
         }
 
         composable(Screen.GrinderManagement.route) {
-            GrinderManagementScreen(navController = navController)
+            GrinderManagementScreen(navController = navController, grinderViewModel = grinderViewModel)
         }
 
         composable(Screen.Settings.route) {
             SettingsScreen(navController = navController)
+        }
+
+        composable(Screen.ArchiveList.route) {
+            ArchiveListScreen(navController = navController, viewModel = beanViewModel)
         }
 
         composable(Screen.About.route) {

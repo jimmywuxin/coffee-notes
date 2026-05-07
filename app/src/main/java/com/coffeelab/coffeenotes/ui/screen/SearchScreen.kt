@@ -1,6 +1,7 @@
 package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -23,7 +24,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SearchScreen(
     navController: NavController,
@@ -149,8 +150,11 @@ fun SearchScreen(
                 val equipmentTypes = allRecords.map { it.equipment }.distinct().filter { it.isNotEmpty() }
                 if (equipmentTypes.isNotEmpty()) {
                     Text("按器具：", style = MaterialTheme.typography.bodyMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        equipmentTypes.take(6).forEach { equip ->
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        equipmentTypes.forEach { equip ->
                             SuggestionChip(
                                 onClick = { query = equip },
                                 label = { Text(equip) }
@@ -163,8 +167,11 @@ fun SearchScreen(
                 if (allBeans.isNotEmpty()) {
                     Text("按烘焙商：", style = MaterialTheme.typography.bodyMedium)
                     val roasters = allBeans.map { it.roaster }.filter { it.isNotEmpty() }.distinct()
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        roasters.take(5).forEach { roaster ->
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        roasters.forEach { roaster ->
                             SuggestionChip(
                                 onClick = { query = roaster },
                                 label = { Text(roaster) }

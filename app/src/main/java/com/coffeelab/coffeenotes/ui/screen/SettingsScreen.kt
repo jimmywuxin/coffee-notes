@@ -115,6 +115,15 @@ fun SettingsScreen(
             }
 
             item {
+                SettingsItem(
+                    icon = Icons.Default.Archive,
+                    title = "已归档的豆子",
+                    subtitle = "查看已归档的咖啡豆",
+                    onClick = { navController.navigate(Screen.ArchiveList.route) }
+                )
+            }
+
+            item {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             }
 

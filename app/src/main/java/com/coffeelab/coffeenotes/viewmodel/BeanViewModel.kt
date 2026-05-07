@@ -21,6 +21,8 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = CoffeeRepository(AppDatabase.getInstance(application))
     val allBeans = repository.allBeans
+    val activeBeans = repository.activeBeans
+    val archivedBeans = repository.archivedBeans
 
     private val _selectedBean = MutableStateFlow<CoffeeBean?>(null)
     val selectedBean: StateFlow<CoffeeBean?> = _selectedBean.asStateFlow()
@@ -63,6 +65,18 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteBean(bean: CoffeeBean) {
         viewModelScope.launch {
             repository.deleteBean(bean)
+        }
+    }
+
+    fun archiveBean(bean: CoffeeBean) {
+        viewModelScope.launch {
+            repository.archiveBean(bean)
+        }
+    }
+
+    fun unarchiveBean(bean: CoffeeBean) {
+        viewModelScope.launch {
+            repository.unarchiveBean(bean)
         }
     }
 
