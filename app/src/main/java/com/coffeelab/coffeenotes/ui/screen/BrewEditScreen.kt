@@ -415,9 +415,10 @@ fun BrewEditScreen(
                     modifier = Modifier.menuAnchor()
                 )
                 ExposedDropdownMenu(
-                    expanded = equipmentExpanded,
-                    onDismissRequest = { equipmentExpanded = false }
-                ) {
+                        expanded = equipmentExpanded,
+                        onDismissRequest = { equipmentExpanded = false },
+                        modifier = Modifier.offset(y = 4.dp)
+                    ) {
                     DropdownMenuItem(
                         text = { Text("不选择") },
                         onClick = {
