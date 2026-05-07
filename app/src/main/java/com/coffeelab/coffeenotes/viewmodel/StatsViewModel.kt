@@ -70,6 +70,8 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     val tempCounts: Flow<List<TempBucket>> = db.brewRecordDao().getBrewCountsByTemp()
 
+    val timeSlotCounts: Flow<List<TimeSlotCount>> = db.brewRecordDao().getBrewCountsByTimeSlot()
+
     // ===== Rating Analysis =====
     val ratingCounts: Flow<List<RatingCount>> = db.brewRecordDao().getBrewCountsByRating()
 

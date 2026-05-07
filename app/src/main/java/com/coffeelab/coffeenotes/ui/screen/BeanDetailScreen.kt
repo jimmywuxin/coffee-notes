@@ -7,6 +7,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -65,8 +67,11 @@ fun BeanDetailScreen(
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showArchiveDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(bean?.name ?: "豆子详情") },
@@ -302,10 +307,20 @@ fun BeanDetailScreen(
                 TextButton(
                     onClick = {
                         bean?.let {
-                            if (it.isArchived) beanViewModel.unarchiveBean(it)
+                            val isArchived = it.isArchived
+                            if (isArchived) beanViewModel.unarchiveBean(it)
                             else beanViewModel.archiveBean(it)
                             showArchiveDialog = false
-                            navController.popBackStack()
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(
+                                    if (isArchived) "已取消归档" else "已归档",
+                                    duration = SnackbarDuration.Indefinite
+                                )
+                            }
+                            coroutineScope.launch {
+                                delay(1000)
+                                navController.popBackStack()
+                            }
                         }
                     }
                 ) { Text("确认") }
@@ -326,9 +341,19 @@ fun BeanDetailScreen(
                 TextButton(
                     onClick = {
                         bean?.let {
+                            val beanName = it.name
                             beanViewModel.deleteBean(it)
                             showDeleteDialog = false
-                            navController.popBackStack()
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(
+                                    "已删除「${beanName}」",
+                                    duration = SnackbarDuration.Indefinite
+                                )
+                            }
+                            coroutineScope.launch {
+                                delay(1000)
+                                navController.popBackStack()
+                            }
                         }
                     }
                 ) { Text("删除", color = MaterialTheme.colorScheme.error) }
