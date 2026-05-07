@@ -45,15 +45,14 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun updateRecord(record: BrewRecord) = db.brewRecordDao().update(record)
     suspend fun deleteRecord(record: BrewRecord) = db.brewRecordDao().delete(record)
 
-    // ===== Brew Recipes =====
-    val allRecipes: Flow<List<BrewRecipe>> = db.brewRecipeDao().getAllRecipes()
+    // ===== Brew Methods =====
+    val allMethods: Flow<List<BrewMethod>> = db.brewMethodDao().getAllMethods()
 
-    suspend fun getRecipe(id: Long) = db.brewRecipeDao().getRecipeById(id)
-    fun getRecipesByEquipment(equipment: String) = db.brewRecipeDao().getRecipesByEquipment(equipment)
+    suspend fun getMethod(id: Long) = db.brewMethodDao().getMethodById(id)
 
-    suspend fun insertRecipe(recipe: BrewRecipe): Long = db.brewRecipeDao().insert(recipe)
-    suspend fun updateRecipe(recipe: BrewRecipe) = db.brewRecipeDao().update(recipe)
-    suspend fun deleteRecipe(recipe: BrewRecipe) = db.brewRecipeDao().delete(recipe)
+    suspend fun insertMethod(method: BrewMethod): Long = db.brewMethodDao().insert(method)
+    suspend fun updateMethod(method: BrewMethod) = db.brewMethodDao().update(method)
+    suspend fun deleteMethod(method: BrewMethod) = db.brewMethodDao().delete(method)
 
     // ===== Equipment =====
     val allEquipment: Flow<List<Equipment>> = db.equipmentDao().getAll()

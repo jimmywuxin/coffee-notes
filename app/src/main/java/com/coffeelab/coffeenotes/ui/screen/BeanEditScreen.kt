@@ -304,16 +304,41 @@ fun BeanEditScreen(
 
             // 官方萃取建议
             Text("官方萃取建议", style = MaterialTheme.typography.titleMedium)
+            // dose + waterAmount（调换后的位置）
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(value = dose, onValueChange = { dose = it },
                     label = { Text("粉量(g)") }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(value = waterAmount, onValueChange = { waterAmount = it },
+                    label = { Text("注水量(ml)") }, modifier = Modifier.weight(1f), singleLine = true)
+            }
+            // 自动计算粉水比（输入粉量+注水量后显示）
+            val autoDose = dose.toFloatOrNull() ?: 0f
+            val autoWater = waterAmount.toFloatOrNull() ?: 0f
+            val derivedRatio = if (autoDose > 0 && autoWater > 0) String.format("%.1f", autoWater / autoDose) else ""
+            if (derivedRatio.isNotEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    Text(
+                        text = "自动计算粉水比 1:${derivedRatio}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(
+                        onClick = { brewRatio = derivedRatio }
+                    ) {
+                        Text("应用到粉水比")
+                    }
+                }
+            }
+            // brewRatio + brewTime（调换后的位置）
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(value = brewRatio, onValueChange = { brewRatio = it },
                     label = { Text("粉水比") }, modifier = Modifier.weight(1f), singleLine = true,
                     placeholder = { Text("如 1:15") })
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(value = waterAmount, onValueChange = { waterAmount = it },
-                    label = { Text("注水量(ml)") }, modifier = Modifier.weight(1f), singleLine = true)
                 OutlinedTextField(value = brewTime, onValueChange = { brewTime = it },
                     label = { Text("萃取时间(s)") }, modifier = Modifier.weight(1f), singleLine = true)
             }

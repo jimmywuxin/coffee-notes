@@ -21,7 +21,7 @@ data class BrewRecord(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val beanId: Long,
-    val recipeId: Long? = null,
+    val methodId: Long? = null,
     val dateTime: Long = System.currentTimeMillis(),
     val equipment: String = "",
     val coffeeWeight: Double = 0.0,

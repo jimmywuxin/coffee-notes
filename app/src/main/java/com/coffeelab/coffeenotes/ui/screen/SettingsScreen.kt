@@ -89,10 +89,10 @@ fun SettingsScreen(
 
             item {
                 SettingsItem(
-                    icon = Icons.Default.MenuBook,
-                    title = "冲煮配方",
-                    subtitle = "管理冲煮配方",
-                    onClick = { navController.navigate(Screen.RecipeList.route) }
+                    icon = Icons.Default.LocalCafe,
+                    title = "冲煮手法",
+                    subtitle = "管理冲煮手法",
+                    onClick = { navController.navigate(Screen.BrewMethodList.route) }
                 )
             }
 
@@ -153,7 +153,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.DeleteForever,
                     title = "清空所有数据",
-                    subtitle = "删除所有咖啡豆、冲煮记录和配方",
+                    subtitle = "删除所有咖啡豆、冲煮记录和手法",
                     onClick = { showClearDataDialog = true },
                     isDestructive = true
                 )
@@ -188,7 +188,7 @@ fun SettingsScreen(
                                 try {
                                     val db = AppDatabase.getInstance(navController.context)
                                     db.brewRecordDao().deleteAll()
-                                    db.brewRecipeDao().deleteAll()
+                                    db.brewMethodDao().deleteAll()
                                     db.coffeeBeanDao().deleteAll()
                                     db.equipmentDao().deleteAll()
                                     db.grinderDao().deleteAll()
