@@ -33,12 +33,14 @@ fun BrewListScreen(
     brewViewModel: BrewViewModel = viewModel(),
     beanViewModel: BeanViewModel = viewModel()
 ) {
-    val records by if (beanId > 0) {
+    val rawRecords by if (beanId > 0) {
         brewViewModel.loadRecordsForBean(beanId)
         brewViewModel.recordsForBean.collectAsState(initial = emptyList())
     } else {
         brewViewModel.allRecords.collectAsState(initial = emptyList())
     }
+    // Limit display when showing all records from bottom tab
+    val records = if (beanId <= 0) rawRecords.take(100) else rawRecords
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
 
     // 多选状态
@@ -192,7 +194,7 @@ fun BrewListScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(records) { record ->
+                items(records, contentType = { "record" }) { record ->
                     val beanName = beans.find { it.id == record.beanId }?.let {
                         "${it.roaster} - ${it.name}"
                     } ?: "未知豆子"

@@ -103,7 +103,34 @@ interface BrewRecordDao {
     /** 按烘焙度分组统计 */
     @Query("SELECT roastLevel, COUNT(*) as cnt FROM coffee_beans WHERE roastLevel != '' GROUP BY roastLevel ORDER BY cnt DESC")
     fun getBeanCountByRoastLevel(): Flow<List<RoastLevelCount>>
+
+    /** 按冲煮时段分组统计 */
+    @Query("""
+        SELECT
+            CASE
+                WHEN CAST(strftime('%H', dateTime / 1000, 'unixepoch', '+8 hours') AS INTEGER) < 6 THEN '深夜'
+                WHEN CAST(strftime('%H', dateTime / 1000, 'unixepoch', '+8 hours') AS INTEGER) < 9 THEN '早晨'
+                WHEN CAST(strftime('%H', dateTime / 1000, 'unixepoch', '+8 hours') AS INTEGER) < 12 THEN '上午'
+                WHEN CAST(strftime('%H', dateTime / 1000, 'unixepoch', '+8 hours') AS INTEGER) < 18 THEN '下午'
+                WHEN CAST(strftime('%H', dateTime / 1000, 'unixepoch', '+8 hours') AS INTEGER) < 22 THEN '晚上'
+                ELSE '深夜'
+            END as slot,
+            COUNT(*) as cnt
+        FROM brew_records
+        GROUP BY slot
+        ORDER BY
+            CASE slot
+                WHEN '早晨' THEN 1
+                WHEN '上午' THEN 2
+                WHEN '下午' THEN 3
+                WHEN '晚上' THEN 4
+                WHEN '深夜' THEN 5
+            END
+    """)
+    fun getBrewCountsByTimeSlot(): Flow<List<TimeSlotCount>>
 }
+
+data class TimeSlotCount(val slot: String, val cnt: Int)
 
 data class EquipmentCount(val equipment: String, val cnt: Int)
 data class RatioCount(val coffeeWaterRatio: Double, val cnt: Int)

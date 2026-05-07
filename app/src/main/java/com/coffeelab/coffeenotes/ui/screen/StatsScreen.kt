@@ -1,5 +1,6 @@
 package com.coffeelab.coffeenotes.ui.screen
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,7 +10,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +32,10 @@ fun StatsScreen(
     beanId: Long,
     viewModel: StatsViewModel = viewModel()
 ) {
+    val isOverview = beanId <= 0
+    val tabTitles = if (isOverview) listOf("趋势", "习惯", "评分", "风味") else listOf("趋势", "习惯", "评分")
+    var selectedTab by remember { mutableIntStateOf(0) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -44,40 +53,44 @@ fun StatsScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (beanId > 0) {
-                BeanStatsSection(viewModel, beanId)
-            } else {
-                OverviewSection(viewModel)
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Tab Row
+            TabRow(selectedTabIndex = selectedTab) {
+                tabTitles.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = { Text(title) }
+                    )
+                }
             }
 
-            // --- Section 1: 📈 冲煮趋势 ---
-            BrewTrendSection(viewModel, beanId)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Overview/Bean info - always show
+                if (isOverview) {
+                    OverviewSection(viewModel)
+                } else {
+                    BeanStatsSection(viewModel, beanId)
+                }
 
-            // --- Section 2: ☕ 冲煮习惯分析 ---
-            BrewHabitsSection(viewModel)
+                when (selectedTab) {
+                    0 -> BrewTrendSection(viewModel, beanId)
+                    1 -> {
+                        BrewHabitsSection(viewModel)
+                        if (isOverview) BeanSection(viewModel)
+                    }
+                    2 -> RatingSection(viewModel, beanId)
+                    3 -> if (isOverview) FlavorSection(viewModel)
+                }
 
-            // --- Section 3: 🫘 豆子统计（仅总览） ---
-            if (beanId <= 0) {
-                BeanSection(viewModel)
+                Spacer(modifier = Modifier.height(32.dp))
             }
-
-            // --- Section 4: ⭐ 评分深度分析 ---
-            RatingSection(viewModel, beanId)
-
-            // --- Section 5: 🔥 风味词统计（仅总览） ---
-            if (beanId <= 0) {
-                FlavorSection(viewModel)
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
@@ -176,36 +189,66 @@ private fun BrewTrendSection(viewModel: StatsViewModel, beanId: Long) {
 private fun MonthlyTrendBar(counts: List<Int>) {
     if (counts.isEmpty()) return
     val maxCount = counts.max().coerceAtLeast(1)
-
-    // 只显示近6个月或总量的月份标签
     val labels = generateMonthLabels(counts.size)
+    val lineColor = MaterialTheme.colorScheme.primary
+    val gridColor = MaterialTheme.colorScheme.surfaceVariant
+    val textColor = MaterialTheme.colorScheme.onSurface
 
     Column {
-        counts.forEachIndexed { index, count ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp)
-            ) {
+        // Chart
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+        ) {
+            val w = size.width
+            val h = size.height
+            val padBottom = 24f
+            val padTop = 12f
+            val chartH = h - padBottom - padTop
+            val stepX = if (counts.size > 1) w / (counts.size - 1) else w
+
+            // Grid lines (3 horizontal)
+            for (i in 0..2) {
+                val y = padTop + chartH * i / 2
+                drawLine(gridColor, Offset(0f, y), Offset(w, y), strokeWidth = 1f)
+            }
+
+            // Line path
+            val path = Path()
+            counts.forEachIndexed { i, c ->
+                val x = if (counts.size > 1) i * stepX else w / 2
+                val y = padTop + chartH * (1 - c.toFloat() / maxCount)
+                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            drawPath(path, lineColor, style = Stroke(width = 3f))
+
+            // Points + value labels
+            counts.forEachIndexed { i, c ->
+                val x = if (counts.size > 1) i * stepX else w / 2
+                val y = padTop + chartH * (1 - c.toFloat() / maxCount)
+                drawCircle(lineColor, radius = 5f, center = Offset(x, y))
+                drawCircle(Color.White, radius = 3f, center = Offset(x, y))
+                // Value above point
+                drawContext.canvas.nativeCanvas.apply {
+                    val paint = android.graphics.Paint().apply {
+                        color = textColor.hashCode()
+                        textSize = 28f
+                        textAlign = android.graphics.Paint.Align.CENTER
+                    }
+                    drawText("$c", x, y - 12f, paint)
+                }
+            }
+        }
+
+        // Month labels
+        Row(modifier = Modifier.fillMaxWidth()) {
+            labels.forEachIndexed { i, label ->
                 Text(
-                    text = labels.getOrElse(index) { "" },
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.width(48.dp)
-                )
-                LinearProgressIndicator(
-                    progress = { count.toFloat() / maxCount },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(16.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-                Text(
-                    text = "$count",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(start = 8.dp),
-                    fontWeight = FontWeight.Bold
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.weight(1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
         }
@@ -284,11 +327,30 @@ private fun BrewHabitsSection(viewModel: StatsViewModel) {
         if (ratioCnt.isNotEmpty()) {
             Text("💧 常用粉水比")
             Spacer(modifier = Modifier.height(4.dp))
+            val maxRatio = ratioCnt.maxOfOrNull { it.cnt } ?: 1
             ratioCnt.forEach { (ratio, cnt) ->
-                Text(
-                    text = "  1:$ratio  ——  $cnt 次",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "1:$ratio",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.width(56.dp)
+                    )
+                    LinearProgressIndicator(
+                        progress = { cnt.toFloat() / maxRatio },
+                        modifier = Modifier.weight(1f).height(14.dp),
+                        color = MaterialTheme.colorScheme.secondary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    Text(
+                        text = "$cnt",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
             }
         }
 
@@ -299,11 +361,65 @@ private fun BrewHabitsSection(viewModel: StatsViewModel) {
         if (tempCnt.isNotEmpty()) {
             Text("🌡 常用水温区间")
             Spacer(modifier = Modifier.height(4.dp))
+            val maxTemp = tempCnt.maxOfOrNull { it.cnt } ?: 1
             tempCnt.forEach { (bucket, cnt) ->
-                Text(
-                    text = "  ${bucket}℃~${bucket + 5}℃  ——  $cnt 次",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "${bucket}~${bucket + 5}℃",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.width(64.dp)
+                    )
+                    LinearProgressIndicator(
+                        progress = { cnt.toFloat() / maxTemp },
+                        modifier = Modifier.weight(1f).height(14.dp),
+                        color = MaterialTheme.colorScheme.tertiary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    Text(
+                        text = "$cnt",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 冲煮时段分布
+        val timeSlotCnt by viewModel.timeSlotCounts.collectAsState(initial = emptyList())
+        if (timeSlotCnt.isNotEmpty()) {
+            Text("🕐 冲煮时段")
+            Spacer(modifier = Modifier.height(4.dp))
+            val slotIcons = mapOf("早晨" to "🌅", "上午" to "☀️", "下午" to "🌤", "晚上" to "🌙", "深夜" to "🌃")
+            val maxSlot = timeSlotCnt.maxOfOrNull { it.cnt } ?: 1
+            timeSlotCnt.forEach { (slot, cnt) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "${slotIcons[slot] ?: ""} $slot",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.width(72.dp)
+                    )
+                    LinearProgressIndicator(
+                        progress = { cnt.toFloat() / maxSlot },
+                        modifier = Modifier.weight(1f).height(14.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    Text(
+                        text = "$cnt",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
             }
         }
     }

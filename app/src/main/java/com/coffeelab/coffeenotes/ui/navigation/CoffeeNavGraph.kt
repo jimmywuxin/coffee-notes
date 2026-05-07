@@ -1,6 +1,7 @@
 package com.coffeelab.coffeenotes.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -11,7 +12,7 @@ import com.coffeelab.coffeenotes.ui.screen.*
 import com.coffeelab.coffeenotes.viewmodel.*
 
 @Composable
-fun CoffeeNavGraph(navController: NavHostController) {
+fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
     // Shared ViewModels scoped to NavGraph — persist across navigation
     val beanViewModel: BeanViewModel = viewModel()
     val brewViewModel: BrewViewModel = viewModel()
@@ -22,7 +23,8 @@ fun CoffeeNavGraph(navController: NavHostController) {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route
+        startDestination = Screen.Home.route,
+        modifier = modifier
     ) {
         composable(Screen.Home.route) {
             HomeScreen(navController = navController, beanViewModel = beanViewModel, brewViewModel = brewViewModel)
