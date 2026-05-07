@@ -23,14 +23,22 @@ fun EquipmentManagementScreen(
     equipmentViewModel: EquipmentViewModel = viewModel()
 ) {
     val equipmentList by equipmentViewModel.allEquipment.collectAsState(initial = emptyList())
-    val mutableList = remember(equipmentList) { equipmentList.toMutableList() }
+    val mutableList = remember { mutableStateListOf(*equipmentList.toTypedArray()) }
+    var isReorderMode by remember { mutableStateOf(false) }
+
+    // Keep mutableList in sync with equipmentList when not in reorder mode
+    LaunchedEffect(equipmentList, isReorderMode) {
+        if (!isReorderMode) {
+            mutableList.clear()
+            mutableList.addAll(equipmentList)
+        }
+    }
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var editingEquipment by remember { mutableStateOf<Equipment?>(null) }
     var newEquipmentName by remember { mutableStateOf("") }
-    var isReorderMode by remember { mutableStateOf(false) }
 
     fun moveItem(fromIndex: Int, toIndex: Int) {
         if (toIndex < 0 || toIndex >= mutableList.size) return
