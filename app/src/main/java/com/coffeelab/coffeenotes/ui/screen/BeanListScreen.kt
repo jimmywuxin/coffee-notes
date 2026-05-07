@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -48,6 +49,7 @@ fun BeanListScreen(
         targetValue = accumulatedDrag,
         animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
     )
+    val coroutineScope = rememberCoroutineScope()
 
     // Keep mutableBeans in sync with beans when not in reorder mode
     LaunchedEffect(beans, isReorderMode) {
@@ -332,6 +334,19 @@ fun BeanListScreen(
                                         val newInfo = newLayoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIndex }
                                         dragStartItemOffset = newInfo?.offset?.toFloat() ?: 0f
                                     }
+
+                                    // Auto-scroll when dragged item nears top/bottom edge
+                                    val viewHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+                                    val itemTop = myInfo.offset + accumulatedDrag
+                                    val itemBottom = itemTop + myInfo.size
+                                    val edgeThreshold = viewHeight * 0.15f
+                                    if (itemTop < edgeThreshold) {
+                                        val scrollTarget = (draggingItemIndex - 1).coerceAtLeast(0)
+                                        coroutineScope.launch { lazyListState.animateScrollToItem(scrollTarget) }
+                                    } else if (itemBottom > viewHeight - edgeThreshold) {
+                                        val scrollTarget = (draggingItemIndex + 1).coerceAtMost(mutableBeans.lastIndex)
+                                        coroutineScope.launch { lazyListState.animateScrollToItem(scrollTarget) }
+                                    }
                                 }
                             },
                             onDragEnd = {
@@ -407,13 +422,36 @@ private fun DraggableBeanItem(
     onDragEnd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val animatedElevation by animateFloatAsState(
+        targetValue = if (isDragging) 12f else 0f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 200f),
+        label = "elevation"
+    )
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isDragging) 1.03f else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 200f),
+        label = "scale"
+    )
+    val animatedDragOffset by animateFloatAsState(
+        targetValue = if (isDragging) dragOffset else 0f,
+        animationSpec = spring(dampingRatio = 0.4f, stiffness = 150f),
+        label = "dragOffset"
+    )
+    val animatedBgColor by animateColorAsState(
+        targetValue = if (isDragging) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceVariant,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 150f),
+        label = "bgColor"
+    )
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .graphicsLayer {
                 alpha = if (isDragging) 0.95f else 1f
-                shadowElevation = if (isDragging) 8.dp.toPx() else 0f
-                translationY = if (isDragging) dragOffset else 0f
+                shadowElevation = animatedElevation
+                translationY = animatedDragOffset
+                scaleX = animatedScale
+                scaleY = animatedScale
             }
             .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
@@ -426,8 +464,7 @@ private fun DraggableBeanItem(
                     onDragCancel = { onDragEnd() }
                 )
             },
-        color = if (isDragging) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceVariant,
+        color = animatedBgColor,
         shape = MaterialTheme.shapes.medium
     ) {
         Row(

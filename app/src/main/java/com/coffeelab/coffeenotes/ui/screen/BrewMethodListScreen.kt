@@ -1,7 +1,9 @@
 package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
@@ -201,13 +203,36 @@ private fun DraggableMethodItem(
     onDragEnd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val animatedElevation by animateFloatAsState(
+        targetValue = if (isDragging) 12f else 0f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 200f),
+        label = "elevation"
+    )
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isDragging) 1.03f else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 200f),
+        label = "scale"
+    )
+    val animatedDragOffset by animateFloatAsState(
+        targetValue = if (isDragging) dragOffset else 0f,
+        animationSpec = spring(dampingRatio = 0.4f, stiffness = 150f),
+        label = "dragOffset"
+    )
+    val animatedBgColor by animateColorAsState(
+        targetValue = if (isDragging) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceVariant,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 150f),
+        label = "bgColor"
+    )
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .graphicsLayer {
                 alpha = if (isDragging) 0.95f else 1f
-                shadowElevation = if (isDragging) 8.dp.toPx() else 0f
-                translationY = if (isDragging) dragOffset else 0f
+                shadowElevation = animatedElevation
+                translationY = animatedDragOffset
+                scaleX = animatedScale
+                scaleY = animatedScale
             }
             .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
@@ -220,8 +245,7 @@ private fun DraggableMethodItem(
                     onDragCancel = { onDragEnd() }
                 )
             },
-        color = if (isDragging) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceVariant,
+        color = animatedBgColor,
         shape = MaterialTheme.shapes.medium
     ) {
         Row(

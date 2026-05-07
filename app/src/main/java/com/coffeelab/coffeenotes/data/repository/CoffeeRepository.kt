@@ -1,5 +1,6 @@
 package com.coffeelab.coffeenotes.data.repository
 
+import androidx.room.Transaction
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.*
 import kotlinx.coroutines.flow.Flow
@@ -16,6 +17,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun insertBean(bean: CoffeeBean): Long = db.coffeeBeanDao().insert(bean)
     suspend fun updateBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean)
     suspend fun deleteBean(bean: CoffeeBean) = db.coffeeBeanDao().delete(bean)
+    @Transaction
     suspend fun saveBeanOrder(items: List<CoffeeBean>) {
         items.forEachIndexed { index, bean ->
             if (bean.id > 0) {
@@ -60,6 +62,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun insertMethod(method: BrewMethod): Long = db.brewMethodDao().insert(method)
     suspend fun updateMethod(method: BrewMethod) = db.brewMethodDao().update(method)
     suspend fun deleteMethod(method: BrewMethod) = db.brewMethodDao().delete(method)
+    @Transaction
     suspend fun saveMethodOrder(items: List<BrewMethod>) {
         items.forEachIndexed { index, method ->
             if (method.id > 0) {
@@ -86,6 +89,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun deleteGrinder(grinder: Grinder) = db.grinderDao().delete(grinder)
     suspend fun getMaxGrinderSortOrder() = db.grinderDao().getMaxSortOrder()
 
+    @Transaction
     suspend fun saveEquipmentOrder(items: List<Equipment>) {
         // Update sortOrder for each item without deleting
         items.forEachIndexed { index, equipment ->
@@ -95,6 +99,7 @@ class CoffeeRepository(private val db: AppDatabase) {
         }
     }
 
+    @Transaction
     suspend fun saveGrinderOrder(items: List<Grinder>) {
         items.forEachIndexed { index, grinder ->
             if (grinder.id > 0) {
