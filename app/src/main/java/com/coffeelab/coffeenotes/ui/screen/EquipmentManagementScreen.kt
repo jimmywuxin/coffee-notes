@@ -1,20 +1,26 @@
 package com.coffeelab.coffeenotes.ui.screen
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.Equipment
 import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
-import androidx.compose.material3.Surface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,11 +32,23 @@ fun EquipmentManagementScreen(
     val mutableList = remember { mutableStateListOf(*equipmentList.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
 
+    // 拖拽状态 — 使用 LazyListState 精确追踪位置
+    val lazyListState = rememberLazyListState()
+    var draggingItemIndex by remember { mutableIntStateOf(-1) }
+    var dragStartItemOffset by remember { mutableFloatStateOf(0f) }
+    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
+    val smoothDragOffset by animateFloatAsState(
+        targetValue = accumulatedDrag,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
+    )
+
     // Keep mutableList in sync with equipmentList when not in reorder mode
     LaunchedEffect(equipmentList, isReorderMode) {
         if (!isReorderMode) {
             mutableList.clear()
             mutableList.addAll(equipmentList)
+            draggingItemIndex = -1
+            accumulatedDrag = 0f
         }
     }
 
@@ -40,14 +58,10 @@ fun EquipmentManagementScreen(
     var editingEquipment by remember { mutableStateOf<Equipment?>(null) }
     var newEquipmentName by remember { mutableStateOf("") }
 
-    fun moveItem(fromIndex: Int, toIndex: Int) {
-        if (toIndex < 0 || toIndex >= mutableList.size) return
-        val item = mutableList.removeAt(fromIndex)
-        mutableList.add(toIndex, item)
-    }
-
     fun saveOrder() {
         isReorderMode = false
+        draggingItemIndex = -1
+        accumulatedDrag = 0f
         equipmentViewModel.saveEquipmentOrder(mutableList.toList())
     }
 
@@ -83,9 +97,7 @@ fun EquipmentManagementScreen(
                         }
                     }
                     if (isReorderMode) {
-                        IconButton(onClick = { saveOrder() }) {
-                            Icon(Icons.Default.Check, contentDescription = "完成排序", tint = MaterialTheme.colorScheme.onPrimary)
-                        }
+                        // 松手即完成，不再需要完成按钮
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -110,6 +122,7 @@ fun EquipmentManagementScreen(
             }
         } else {
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -117,17 +130,58 @@ fun EquipmentManagementScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (isReorderMode) {
-                    itemsIndexed(mutableList) { index, equipment ->
-                        ReorderableEquipmentItem(
+                    itemsIndexed(mutableList, key = { _, item -> item.id }) { index, equipment ->
+                        val isDraggingThisItem = isReorderMode && draggingItemIndex == index
+                        DraggableEquipmentItem(
                             equipment = equipment,
-                            onMoveUp = { moveItem(index, index - 1) },
-                            onMoveDown = { moveItem(index, index + 1) },
-                            isFirst = index == 0,
-                            isLast = index == mutableList.size - 1
+                            isDragging = isDraggingThisItem,
+                            dragOffset = if (isDraggingThisItem) smoothDragOffset else 0f,
+                            onDragStart = {
+                                draggingItemIndex = index
+                                accumulatedDrag = 0f
+                                val layoutInfo = lazyListState.layoutInfo
+                                val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+                                dragStartItemOffset = myInfo?.offset?.toFloat() ?: 0f
+                            },
+                            onDrag = { dragAmount ->
+                                accumulatedDrag += dragAmount.y
+                                val layoutInfo = lazyListState.layoutInfo
+                                val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggingItemIndex }
+                                if (myInfo != null) {
+                                    val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
+                                    var targetIndex = draggingItemIndex
+                                    layoutInfo.visibleItemsInfo
+                                        .filter { it.index != draggingItemIndex }
+                                        .forEach { info ->
+                                            val itemCenter = info.offset + info.size / 2
+                                            if (accumulatedDrag > 0 && info.index > draggingItemIndex && currentCenterY > itemCenter) {
+                                                targetIndex = maxOf(targetIndex, info.index)
+                                            } else if (accumulatedDrag < 0 && info.index < draggingItemIndex && currentCenterY < itemCenter) {
+                                                targetIndex = minOf(targetIndex, info.index)
+                                            }
+                                        }
+                                    targetIndex = targetIndex.coerceIn(0, mutableList.lastIndex)
+                                    if (targetIndex != draggingItemIndex) {
+                                        val item = mutableList.removeAt(draggingItemIndex)
+                                        mutableList.add(targetIndex, item)
+                                        draggingItemIndex = targetIndex
+                                        accumulatedDrag = 0f
+                                        val newLayoutInfo = lazyListState.layoutInfo
+                                        val newInfo = newLayoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIndex }
+                                        dragStartItemOffset = newInfo?.offset?.toFloat() ?: 0f
+                                    }
+                                }
+                            },
+                            onDragEnd = {
+                                draggingItemIndex = -1
+                                accumulatedDrag = 0f
+                                equipmentViewModel.saveEquipmentOrder(mutableList.toList())
+                                isReorderMode = false
+                            }
                         )
                     }
                 } else {
-                    itemsIndexed(equipmentList) { _, equipment ->
+                    itemsIndexed(equipmentList, key = { _, item -> item.id }) { _, equipment ->
                         EquipmentItem(
                             equipment = equipment,
                             onEdit = {
@@ -234,50 +288,55 @@ fun EquipmentManagementScreen(
 }
 
 @Composable
-private fun ReorderableEquipmentItem(
+private fun DraggableEquipmentItem(
     equipment: Equipment,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-    isFirst: Boolean,
-    isLast: Boolean
+    isDragging: Boolean,
+    dragOffset: Float,
+    onDragStart: () -> Unit,
+    onDrag: (Offset) -> Unit,
+    onDragEnd: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                alpha = if (isDragging) 0.95f else 1f
+                shadowElevation = if (isDragging) 8.dp.toPx() else 0f
+                translationY = if (isDragging) dragOffset else 0f
+            }
+            .pointerInput(Unit) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { onDragStart() },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDrag(dragAmount)
+                    },
+                    onDragEnd = { onDragEnd() },
+                    onDragCancel = { onDragEnd() }
+                )
+            },
+        color = if (isDragging) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surfaceVariant,
         shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 Icons.Default.DragHandle,
                 contentDescription = "拖动排序",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 8.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = equipment.name,
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = onMoveUp, enabled = !isFirst) {
-                Icon(
-                    Icons.Default.KeyboardArrowUp,
-                    contentDescription = "上移",
-                    tint = if (!isFirst) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                )
-            }
-            IconButton(onClick = onMoveDown, enabled = !isLast) {
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = "下移",
-                    tint = if (!isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                )
-            }
         }
     }
 }

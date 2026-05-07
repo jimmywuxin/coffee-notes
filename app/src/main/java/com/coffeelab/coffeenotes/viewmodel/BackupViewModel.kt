@@ -62,12 +62,41 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     )
                 }
 
+                // Collect records with isIced/iceAmount for backup
+                val recordsWithIce = records.map { record ->
+                    mapOf(
+                        "beanId" to record.beanId,
+                        "methodId" to record.methodId,
+                        "dateTime" to record.dateTime,
+                        "equipment" to record.equipment,
+                        "coffeeWeight" to record.coffeeWeight,
+                        "coffeeWaterRatio" to record.coffeeWaterRatio,
+                        "waterAmount" to record.waterAmount,
+                        "waterTemp" to record.waterTemp,
+                        "grinder" to record.grinder,
+                        "grindSize" to record.grindSize,
+                        "extractionTime" to record.extractionTime,
+                        "acidity" to record.acidity,
+                        "sweetness" to record.sweetness,
+                        "bitterness" to record.bitterness,
+                        "mouthfeel" to record.mouthfeel,
+                        "aftertaste" to record.aftertaste,
+                        "overallRating" to record.overallRating,
+                        "flavorNotes" to record.flavorNotes,
+                        "imageUri" to record.imageUri,
+                        "isIced" to record.isIced,
+                        "iceAmount" to record.iceAmount,
+                        "createdAt" to record.createdAt,
+                        "updatedAt" to record.updatedAt
+                    )
+                }
+
                 val backup = mapOf(
                     "exportDate" to SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.getDefault()).format(Date()),
                     "appVersion" to "1.1.0",
                     "data" to mapOf(
                         "beans" to beansWithTags,
-                        "records" to records,
+                        "records" to recordsWithIce,
                         "methods" to methods,
                         "equipment" to equipment,
                         "grinders" to grinders
@@ -145,17 +174,20 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 }
 
-                // Import methods (new brew_methods table) — MUST come first to build methodIdMap
+                // Import methods (dedup by name — same logic as equipment/grinders)
                 val methods = data["methods"] as? List<*>
                 var importedMethods = 0
                 val methodIdMap = mutableMapOf<Long, Long>()
+                val existingMethodNames = repository.allMethods.first().map { it.name }.toSet()
                 methods?.forEach { methodEntry ->
                     val m = methodEntry as Map<*, *>
+                    val name = m["name"] as? String ?: return@forEach
+                    if (name in existingMethodNames) return@forEach
                     val oldId = (m["id"] as Double).toLong()
                     // steps is stored as JSON string (Room TypeConverter serializes List<BrewMethodStep>)
                     val stepsStr = m["steps"] as? String
                     val method = BrewMethod(
-                        name = m["name"] as String,
+                        name = name,
                         isPreset = (m["isPreset"] as? Boolean) ?: false,
                         steps = stepsStr,
                         createdAt = (m["createdAt"] as Double).toLong(),
@@ -206,6 +238,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         overallRating = (r["overallRating"] as? Double)?.toInt() ?: 0,
                         flavorNotes = r["flavorNotes"] as? String ?: "",
                         imageUri = r["imageUri"] as? String ?: "",
+                        isIced = r["isIced"] as? Boolean ?: false,
+                        iceAmount = (r["iceAmount"] as? Double)?.toInt() ?: 0,
                         createdAt = (r["createdAt"] as? Double)?.toLong() ?: System.currentTimeMillis(),
                         updatedAt = (r["updatedAt"] as? Double)?.toLong() ?: System.currentTimeMillis()
                     )

@@ -1,6 +1,8 @@
 package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -15,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -36,11 +39,23 @@ fun BeanListScreen(
     val mutableBeans = remember { mutableStateListOf(*beans.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
 
+    // 拖拽状态 — 使用 LazyListState 精确追踪位置
+    val lazyListState = rememberLazyListState()
+    var draggingItemIndex by remember { mutableIntStateOf(-1) }
+    var dragStartItemOffset by remember { mutableFloatStateOf(0f) }
+    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
+    val smoothDragOffset by animateFloatAsState(
+        targetValue = accumulatedDrag,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
+    )
+
     // Keep mutableBeans in sync with beans when not in reorder mode
     LaunchedEffect(beans, isReorderMode) {
         if (!isReorderMode) {
             mutableBeans.clear()
             mutableBeans.addAll(beans)
+            draggingItemIndex = -1
+            accumulatedDrag = 0f
         }
     }
 
@@ -49,10 +64,6 @@ fun BeanListScreen(
     var selectedBeans by remember { mutableStateOf(setOf<Long>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showFavoritesOnly by remember { mutableStateOf(false) }
-
-    // 拖拽状态
-    var draggingIndex by remember { mutableIntStateOf(-1) }
-    var dragOffset by remember { mutableFloatStateOf(0f) }
 
     // 显示的豆子（筛选收藏）
     val displayedBeans = if (showFavoritesOnly) beans.filter { it.isFavorite } else beans
@@ -96,16 +107,11 @@ fun BeanListScreen(
         showDeleteDialog = true
     }
 
-    // 移动豆子（排序模式）
-    fun moveBean(fromIndex: Int, toIndex: Int) {
-        if (toIndex < 0 || toIndex >= mutableBeans.size) return
-        val item = mutableBeans.removeAt(fromIndex)
-        mutableBeans.add(toIndex, item)
-    }
-
     // 保存排序
     fun saveOrder() {
         isReorderMode = false
+        draggingItemIndex = -1
+        accumulatedDrag = 0f
         viewModel.saveBeanOrder(mutableBeans.toList())
     }
 
@@ -144,16 +150,30 @@ fun BeanListScreen(
                         }
                     }
                     if (isReorderMode) {
-                        IconButton(onClick = { saveOrder() }) {
-                            Icon(Icons.Default.Check, contentDescription = "完成排序")
-                        }
+                        // 松手即完成，不再需要完成按钮
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isSelectionMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
-                    titleContentColor = if (isSelectionMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = if (isSelectionMode || isReorderMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = if (isSelectionMode || isReorderMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
+                    containerColor = when {
+                        isSelectionMode -> MaterialTheme.colorScheme.primaryContainer
+                        isReorderMode -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                    titleContentColor = when {
+                        isSelectionMode -> MaterialTheme.colorScheme.onPrimaryContainer
+                        isReorderMode -> MaterialTheme.colorScheme.onPrimary
+                        else -> MaterialTheme.colorScheme.onPrimary
+                    },
+                    navigationIconContentColor = when {
+                        isSelectionMode -> MaterialTheme.colorScheme.onPrimaryContainer
+                        isReorderMode -> MaterialTheme.colorScheme.onPrimary
+                        else -> MaterialTheme.colorScheme.onPrimary
+                    },
+                    actionIconContentColor = when {
+                        isSelectionMode -> MaterialTheme.colorScheme.onPrimaryContainer
+                        isReorderMode -> MaterialTheme.colorScheme.onPrimary
+                        else -> MaterialTheme.colorScheme.onPrimary
+                    }
                 )
             )
         },
@@ -217,15 +237,12 @@ fun BeanListScreen(
                 )
             }
         } else {
-            val listState = rememberLazyListState()
-            val items = if (isReorderMode) mutableBeans else displayedBeans
-
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .padding(horizontal = 16.dp),
-                state = listState,
+                state = lazyListState,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
@@ -271,14 +288,58 @@ fun BeanListScreen(
                     }
                 }
 
-                itemsIndexed(if (isReorderMode) mutableBeans else displayedBeans) { index, bean ->
+                itemsIndexed(
+                    if (isReorderMode) mutableBeans else displayedBeans,
+                    key = { index, bean -> if (isReorderMode) mutableBeans[index].id else bean.id }
+                ) { index, bean ->
+                    val isDraggingThisItem = isReorderMode && draggingItemIndex == index
                     if (isReorderMode) {
-                        ReorderableBeanItem(
+                        DraggableBeanItem(
                             bean = bean,
-                            index = index,
-                            totalCount = mutableBeans.size,
-                            onMoveUp = { if (index > 0) moveBean(index, index - 1) },
-                            onMoveDown = { if (index < mutableBeans.size - 1) moveBean(index, index + 1) }
+                            isDragging = isDraggingThisItem,
+                            dragOffset = if (isDraggingThisItem) smoothDragOffset else 0f,
+                            onDragStart = {
+                                draggingItemIndex = index
+                                accumulatedDrag = 0f
+                                val layoutInfo = lazyListState.layoutInfo
+                                val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+                                dragStartItemOffset = myInfo?.offset?.toFloat() ?: 0f
+                            },
+                            onDrag = { dragAmount ->
+                                accumulatedDrag += dragAmount.y
+                                val layoutInfo = lazyListState.layoutInfo
+                                val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggingItemIndex }
+                                if (myInfo != null) {
+                                    val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
+                                    var targetIndex = draggingItemIndex
+                                    layoutInfo.visibleItemsInfo
+                                        .filter { it.index != draggingItemIndex }
+                                        .forEach { info ->
+                                            val itemCenter = info.offset + info.size / 2
+                                            if (accumulatedDrag > 0 && info.index > draggingItemIndex && currentCenterY > itemCenter) {
+                                                targetIndex = maxOf(targetIndex, info.index)
+                                            } else if (accumulatedDrag < 0 && info.index < draggingItemIndex && currentCenterY < itemCenter) {
+                                                targetIndex = minOf(targetIndex, info.index)
+                                            }
+                                        }
+                                    targetIndex = targetIndex.coerceIn(0, mutableBeans.lastIndex)
+                                    if (targetIndex != draggingItemIndex) {
+                                        val item = mutableBeans.removeAt(draggingItemIndex)
+                                        mutableBeans.add(targetIndex, item)
+                                        draggingItemIndex = targetIndex
+                                        accumulatedDrag = 0f
+                                        val newLayoutInfo = lazyListState.layoutInfo
+                                        val newInfo = newLayoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIndex }
+                                        dragStartItemOffset = newInfo?.offset?.toFloat() ?: 0f
+                                    }
+                                }
+                            },
+                            onDragEnd = {
+                                draggingItemIndex = -1
+                                accumulatedDrag = 0f
+                                viewModel.saveBeanOrder(mutableBeans.toList())
+                                isReorderMode = false
+                            }
                         )
                     } else {
                         val isSelected = selectedBeans.contains(bean.id)
@@ -337,30 +398,49 @@ fun BeanListScreen(
 }
 
 @Composable
-private fun ReorderableBeanItem(
+private fun DraggableBeanItem(
     bean: CoffeeBean,
-    index: Int,
-    totalCount: Int,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
+    isDragging: Boolean,
+    dragOffset: Float,
+    onDragStart: () -> Unit,
+    onDrag: (Offset) -> Unit,
+    onDragEnd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                alpha = if (isDragging) 0.95f else 1f
+                shadowElevation = if (isDragging) 8.dp.toPx() else 0f
+                translationY = if (isDragging) dragOffset else 0f
+            }
+            .pointerInput(Unit) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { onDragStart() },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDrag(dragAmount)
+                    },
+                    onDragEnd = { onDragEnd() },
+                    onDragCancel = { onDragEnd() }
+                )
+            },
+        color = if (isDragging) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surfaceVariant,
         shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 Icons.Default.DragHandle,
                 contentDescription = "拖动排序",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 8.dp)
+                modifier = Modifier.padding(end = 12.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -371,26 +451,6 @@ private fun ReorderableBeanItem(
                     text = "${bean.roaster} ${if (bean.origin.isNotEmpty()) "· ${bean.origin}" else ""}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(
-                onClick = onMoveUp,
-                enabled = index > 0
-            ) {
-                Icon(
-                    Icons.Default.KeyboardArrowUp,
-                    contentDescription = "上移",
-                    tint = if (index > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                )
-            }
-            IconButton(
-                onClick = onMoveDown,
-                enabled = index < totalCount - 1
-            ) {
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = "下移",
-                    tint = if (index < totalCount - 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 )
             }
         }

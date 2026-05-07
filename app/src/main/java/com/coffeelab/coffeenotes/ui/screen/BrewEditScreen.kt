@@ -232,7 +232,7 @@ fun BrewEditScreen(
                     ExposedDropdownMenu(
                         expanded = beanExpanded,
                         onDismissRequest = { beanExpanded = false },
-                        modifier = Modifier.heightIn(max = 200.dp)
+                        modifier = Modifier.heightIn(max = 240.dp)
                     ) {
                         beans.forEach { bean ->
                             DropdownMenuItem(
@@ -344,9 +344,10 @@ fun BrewEditScreen(
                     modifier = Modifier.menuAnchor()
                 )
                 ExposedDropdownMenu(
-                    expanded = methodExpanded,
-                    onDismissRequest = { methodExpanded = false }
-                ) {
+                        expanded = methodExpanded,
+                        onDismissRequest = { methodExpanded = false },
+                        modifier = Modifier.heightIn(max = 240.dp)
+                    ) {
                     DropdownMenuItem(
                         text = { Text("不选择") },
                         onClick = {
@@ -417,7 +418,7 @@ fun BrewEditScreen(
                 ExposedDropdownMenu(
                         expanded = equipmentExpanded,
                         onDismissRequest = { equipmentExpanded = false },
-                        modifier = Modifier.offset(y = 4.dp)
+                        modifier = Modifier.offset(y = 4.dp).heightIn(max = 240.dp)
                     ) {
                     DropdownMenuItem(
                         text = { Text("不选择") },
@@ -573,7 +574,8 @@ fun BrewEditScreen(
                     )
                     ExposedDropdownMenu(
                         expanded = grinderExpanded,
-                        onDismissRequest = { grinderExpanded = false }
+                        onDismissRequest = { grinderExpanded = false },
+                        modifier = Modifier.heightIn(max = 240.dp)
                     ) {
                         grinderItems.forEach { item ->
                             DropdownMenuItem(

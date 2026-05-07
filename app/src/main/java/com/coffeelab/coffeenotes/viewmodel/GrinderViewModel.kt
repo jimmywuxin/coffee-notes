@@ -35,4 +35,10 @@ class GrinderViewModel(application: Application) : AndroidViewModel(application)
             repository.deleteGrinder(grinder)
         }
     }
+
+    fun saveGrinderOrder(items: List<Grinder>) {
+        viewModelScope.launch {
+            repository.saveGrinderOrder(items)
+        }
+    }
 }
