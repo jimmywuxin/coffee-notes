@@ -6,10 +6,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BrewMethodDao {
-    @Query("SELECT * FROM brew_methods ORDER BY isPreset DESC, updatedAt DESC")
+    @Query("SELECT * FROM brew_methods ORDER BY sortOrder ASC, updatedAt DESC")
     fun getAllMethods(): Flow<List<BrewMethod>>
 
-    @Query("SELECT * FROM brew_methods ORDER BY isPreset DESC, updatedAt DESC")
+    @Query("SELECT * FROM brew_methods ORDER BY sortOrder ASC, updatedAt DESC")
     suspend fun getAllOnce(): List<BrewMethod>
 
     @Query("SELECT * FROM brew_methods WHERE id = :id")
@@ -26,4 +26,7 @@ interface BrewMethodDao {
 
     @Query("DELETE FROM brew_methods")
     suspend fun deleteAll()
+
+    @Query("UPDATE brew_methods SET sortOrder = :sortOrder WHERE id = :id")
+    suspend fun updateSortOrder(id: Long, sortOrder: Int)
 }

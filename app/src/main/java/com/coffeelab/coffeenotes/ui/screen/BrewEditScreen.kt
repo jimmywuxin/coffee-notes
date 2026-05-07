@@ -319,19 +319,42 @@ fun BrewEditScreen(
 
             // Select Method
             Text("选择冲煮手法", style = MaterialTheme.typography.titleMedium)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+            var methodExpanded by remember { mutableStateOf(false) }
+            val selectedMethodName = methods.find { it.id == selectedMethodId }?.name ?: "请选择冲煮手法（可选）"
+            ExposedDropdownMenuBox(
+                expanded = methodExpanded,
+                onExpandedChange = { methodExpanded = it }
             ) {
-                methods.forEach { method ->
-                    FilterChip(
-                        selected = selectedMethodId == method.id,
+                OutlinedTextField(
+                    value = selectedMethodName,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("冲煮手法") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = methodExpanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = methodExpanded,
+                    onDismissRequest = { methodExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("不选择") },
                         onClick = {
-                            selectedMethodId = if (selectedMethodId == method.id) -1L else method.id
-                        },
-                        label = { Text(method.name) }
+                            selectedMethodId = -1L
+                            methodExpanded = false
+                        }
                     )
+                    methods.forEach { method ->
+                        DropdownMenuItem(
+                            text = { Text(method.name) },
+                            onClick = {
+                                selectedMethodId = method.id
+                                methodExpanded = false
+                            }
+                        )
+                    }
                 }
             }
 
@@ -369,20 +392,48 @@ fun BrewEditScreen(
 
             // Equipment
             Text("器具", style = MaterialTheme.typography.titleMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                equipmentItems.forEach { item ->
-                    FilterChip(
-                        selected = equipment == item,
-                        onClick = { equipment = item },
-                        label = { Text(item) }
+            var equipmentExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = equipmentExpanded,
+                onExpandedChange = { equipmentExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = equipment.ifEmpty { "请选择器具（可选）" },
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("器具") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = equipmentExpanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = equipmentExpanded,
+                    onDismissRequest = { equipmentExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("不选择") },
+                        onClick = {
+                            equipment = ""
+                            equipmentExpanded = false
+                        }
                     )
+                    equipmentItems.forEach { item ->
+                        DropdownMenuItem(
+                            text = { Text(item) },
+                            onClick = {
+                                equipment = item
+                                equipmentExpanded = false
+                            }
+                        )
+                    }
                 }
             }
 
             // Brew Parameters
             Text("冲煮参数", style = MaterialTheme.typography.titleMedium)
             // ratioDisplay 存分母数值字符串（如 "15"、"4.5"），显示时加 "1:" 前缀
-            val ratioOptions = listOf("15", "16", "17", "2")
+            val ratioOptions = listOf("2", "15", "16", "17")
             Text("粉水比", style = MaterialTheme.typography.bodyMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 ratioOptions.forEach { ratio ->

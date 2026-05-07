@@ -20,6 +20,7 @@ data class CoffeeBean(
     val notes: String = "",
     val imageUri: String = "",
     val isFavorite: Boolean = false,
+    val sortOrder: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     // 官方萃取建议

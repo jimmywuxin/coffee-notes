@@ -1,20 +1,14 @@
 package com.coffeelab.coffeenotes.ui.screen
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -29,28 +23,61 @@ fun EquipmentManagementScreen(
     equipmentViewModel: EquipmentViewModel = viewModel()
 ) {
     val equipmentList by equipmentViewModel.allEquipment.collectAsState(initial = emptyList())
+    val mutableList = remember(equipmentList) { equipmentList.toMutableList() }
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var editingEquipment by remember { mutableStateOf<Equipment?>(null) }
     var newEquipmentName by remember { mutableStateOf("") }
+    var isReorderMode by remember { mutableStateOf(false) }
+
+    fun moveItem(fromIndex: Int, toIndex: Int) {
+        if (toIndex < 0 || toIndex >= mutableList.size) return
+        val item = mutableList.removeAt(fromIndex)
+        mutableList.add(toIndex, item)
+    }
+
+    fun saveOrder() {
+        isReorderMode = false
+        equipmentViewModel.saveEquipmentOrder(mutableList.toList())
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("器具管理") },
+                title = {
+                    if (isReorderMode) Text("器具排序") else Text("器具管理")
+                },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    if (isReorderMode) {
+                        IconButton(onClick = { isReorderMode = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "取消")
+                        }
+                    } else {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        }
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        newEquipmentName = ""
-                        showAddDialog = true
-                    }) {
-                        Icon(Icons.Default.Add, contentDescription = "添加器具", tint = MaterialTheme.colorScheme.onPrimary)
+                    if (!isReorderMode && equipmentList.isNotEmpty()) {
+                        IconButton(onClick = { isReorderMode = true }) {
+                            Icon(Icons.Default.SwapVert, contentDescription = "排序", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                    if (!isReorderMode) {
+                        IconButton(onClick = {
+                            newEquipmentName = ""
+                            showAddDialog = true
+                        }) {
+                            Icon(Icons.Default.Add, contentDescription = "添加器具", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                    if (isReorderMode) {
+                        IconButton(onClick = { saveOrder() }) {
+                            Icon(Icons.Default.Check, contentDescription = "完成排序", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -61,7 +88,7 @@ fun EquipmentManagementScreen(
             )
         }
     ) { padding ->
-        if (equipmentList.isEmpty()) {
+        if (equipmentList.isEmpty() && !isReorderMode) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -81,19 +108,31 @@ fun EquipmentManagementScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(equipmentList) { equipment ->
-                    EquipmentItem(
-                        equipment = equipment,
-                        onEdit = {
-                            editingEquipment = equipment
-                            newEquipmentName = equipment.name
-                            showEditDialog = true
-                        },
-                        onDelete = {
-                            editingEquipment = equipment
-                            showDeleteDialog = true
-                        }
-                    )
+                if (isReorderMode) {
+                    itemsIndexed(mutableList) { index, equipment ->
+                        ReorderableEquipmentItem(
+                            equipment = equipment,
+                            onMoveUp = { moveItem(index, index - 1) },
+                            onMoveDown = { moveItem(index, index + 1) },
+                            isFirst = index == 0,
+                            isLast = index == mutableList.size - 1
+                        )
+                    }
+                } else {
+                    itemsIndexed(equipmentList) { _, equipment ->
+                        EquipmentItem(
+                            equipment = equipment,
+                            onEdit = {
+                                editingEquipment = equipment
+                                newEquipmentName = equipment.name
+                                showEditDialog = true
+                            },
+                            onDelete = {
+                                editingEquipment = equipment
+                                showDeleteDialog = true
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -183,6 +222,55 @@ fun EquipmentManagementScreen(
                 TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
             }
         )
+    }
+}
+
+@Composable
+private fun ReorderableEquipmentItem(
+    equipment: Equipment,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    isFirst: Boolean,
+    isLast: Boolean
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.DragHandle,
+                contentDescription = "拖动排序",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            Text(
+                text = equipment.name,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onMoveUp, enabled = !isFirst) {
+                Icon(
+                    Icons.Default.KeyboardArrowUp,
+                    contentDescription = "上移",
+                    tint = if (!isFirst) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
+            }
+            IconButton(onClick = onMoveDown, enabled = !isLast) {
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = "下移",
+                    tint = if (!isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
+            }
+        }
     }
 }
 

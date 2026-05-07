@@ -16,6 +16,13 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun insertBean(bean: CoffeeBean): Long = db.coffeeBeanDao().insert(bean)
     suspend fun updateBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean)
     suspend fun deleteBean(bean: CoffeeBean) = db.coffeeBeanDao().delete(bean)
+    suspend fun saveBeanOrder(items: List<CoffeeBean>) {
+        items.forEachIndexed { index, bean ->
+            if (bean.id > 0) {
+                db.coffeeBeanDao().update(bean.copy(sortOrder = index))
+            }
+        }
+    }
 
     // ===== Flavor Tags =====
     fun getTagsForBean(beanId: Long) = db.flavorTagDao().getTagsForBean(beanId)
@@ -53,6 +60,13 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun insertMethod(method: BrewMethod): Long = db.brewMethodDao().insert(method)
     suspend fun updateMethod(method: BrewMethod) = db.brewMethodDao().update(method)
     suspend fun deleteMethod(method: BrewMethod) = db.brewMethodDao().delete(method)
+    suspend fun saveMethodOrder(items: List<BrewMethod>) {
+        items.forEachIndexed { index, method ->
+            if (method.id > 0) {
+                db.brewMethodDao().updateSortOrder(method.id, index)
+            }
+        }
+    }
 
     // ===== Equipment =====
     val allEquipment: Flow<List<Equipment>> = db.equipmentDao().getAll()

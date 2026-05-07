@@ -15,6 +15,7 @@ data class BrewMethod(
     // Stored as JSON string in SQLite (TypeConverter: List<BrewMethodStep> ↔ String)
     // Backup: Gson serializes as JSON array in backup JSON
     val steps: String? = null,
+    val sortOrder: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

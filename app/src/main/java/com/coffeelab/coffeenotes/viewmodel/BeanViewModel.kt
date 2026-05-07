@@ -72,6 +72,12 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun saveBeanOrder(items: List<CoffeeBean>) {
+        viewModelScope.launch {
+            repository.saveBeanOrder(items)
+        }
+    }
+
     fun searchBeans(query: String): Flow<List<CoffeeBean>> = repository.searchBeans(query)
 
     // ===== AI Recognition (pluggable engine) =====

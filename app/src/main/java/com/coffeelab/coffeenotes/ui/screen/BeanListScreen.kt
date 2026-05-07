@@ -3,16 +3,22 @@ package com.coffeelab.coffeenotes.ui.screen
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
@@ -27,12 +33,20 @@ fun BeanListScreen(
     viewModel: BeanViewModel = viewModel()
 ) {
     val beans by viewModel.allBeans.collectAsState(initial = emptyList())
+    val mutableBeans = remember(beans) { beans.toMutableList() }
 
     // 多选状态
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedBeans by remember { mutableStateOf(setOf<Long>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showFavoritesOnly by remember { mutableStateOf(false) }
+
+    // 排序模式
+    var isReorderMode by remember { mutableStateOf(false) }
+
+    // 拖拽状态
+    var draggingIndex by remember { mutableIntStateOf(-1) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
 
     // 显示的豆子（筛选收藏）
     val displayedBeans = if (showFavoritesOnly) beans.filter { it.isFavorite } else beans
@@ -58,11 +72,9 @@ fun BeanListScreen(
     // 全选/取消全选
     fun toggleSelectAll() {
         if (selectedBeans.size == beans.size) {
-            // 已全选 → 取消全部
             selectedBeans = emptySet()
             isSelectionMode = false
         } else {
-            // 未全选 → 选中全部
             selectedBeans = beans.map { it.id }.toSet()
         }
     }
@@ -78,39 +90,64 @@ fun BeanListScreen(
         showDeleteDialog = true
     }
 
+    // 移动豆子（排序模式）
+    fun moveBean(fromIndex: Int, toIndex: Int) {
+        if (toIndex < 0 || toIndex >= mutableBeans.size) return
+        val item = mutableBeans.removeAt(fromIndex)
+        mutableBeans.add(toIndex, item)
+    }
+
+    // 保存排序
+    fun saveOrder() {
+        isReorderMode = false
+        viewModel.saveBeanOrder(mutableBeans.toList())
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    if (isSelectionMode) {
-                        Text("${selectedBeans.size} 条已选")
-                    } else {
-                        Text("🫘 我的豆子")
+                    when {
+                        isSelectionMode -> Text("${selectedBeans.size} 条已选")
+                        isReorderMode -> Text("拖动排序")
+                        else -> Text("🫘 我的豆子")
                     }
                 },
                 navigationIcon = {
-                    if (isSelectionMode) {
-                        IconButton(onClick = { exitSelectionMode() }) {
+                    when {
+                        isSelectionMode -> IconButton(onClick = { exitSelectionMode() }) {
                             Icon(Icons.Default.Close, contentDescription = "取消")
                         }
-                    } else {
-                        IconButton(onClick = { navController.popBackStack() }) {
+                        isReorderMode -> IconButton(onClick = {
+                            isReorderMode = false
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "取消")
+                        }
+                        else -> IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                         }
                     }
                 },
                 actions = {
-                    if (!isSelectionMode) {
+                    if (!isSelectionMode && !isReorderMode) {
+                        IconButton(onClick = { isReorderMode = true }) {
+                            Icon(Icons.Default.SwapVert, contentDescription = "排序")
+                        }
                         IconButton(onClick = { navController.navigate(Screen.BeanEdit.createRoute()) }) {
                             Icon(Icons.Default.Add, contentDescription = "添加豆子")
+                        }
+                    }
+                    if (isReorderMode) {
+                        IconButton(onClick = { saveOrder() }) {
+                            Icon(Icons.Default.Check, contentDescription = "完成排序")
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (isSelectionMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
                     titleContentColor = if (isSelectionMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = if (isSelectionMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = if (isSelectionMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
+                    navigationIconContentColor = if (isSelectionMode || isReorderMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = if (isSelectionMode || isReorderMode) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
                 )
             )
         },
@@ -160,7 +197,7 @@ fun BeanListScreen(
             }
         }
     ) { padding ->
-        if (beans.isEmpty()) {
+        if (beans.isEmpty() && !isReorderMode) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -174,79 +211,92 @@ fun BeanListScreen(
                 )
             }
         } else {
+            val listState = rememberLazyListState()
+            val items = if (isReorderMode) mutableBeans else displayedBeans
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .padding(horizontal = 16.dp),
+                state = listState,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
-                // 筛选栏
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(
-                            selected = !showFavoritesOnly,
-                            onClick = { showFavoritesOnly = false },
-                            label = { Text("全部") }
-                        )
-                        FilterChip(
-                            selected = showFavoritesOnly,
-                            onClick = { showFavoritesOnly = true },
-                            label = { Text("❤ 收藏") },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.errorContainer
-                            )
-                        )
-                    }
-                }
-
-                // 空状态
-                if (displayedBeans.isEmpty()) {
+                if (!isReorderMode) {
                     item {
-                        Box(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp),
-                            contentAlignment = Alignment.Center
+                                .padding(bottom = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                if (showFavoritesOnly) "还没有收藏的豆子 🫑" else "还没有咖啡豆，点击 + 添加吧 🫘",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            FilterChip(
+                                selected = !showFavoritesOnly,
+                                onClick = { showFavoritesOnly = false },
+                                label = { Text("全部") }
                             )
+                            FilterChip(
+                                selected = showFavoritesOnly,
+                                onClick = { showFavoritesOnly = true },
+                                label = { Text("❤ 收藏") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.errorContainer
+                                )
+                            )
+                        }
+                    }
+
+                    if (displayedBeans.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    if (showFavoritesOnly) "还没有收藏的豆子 🫑" else "还没有咖啡豆，点击 + 添加吧 🫘",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
 
-                items(displayedBeans) { bean ->
-                    val isSelected = selectedBeans.contains(bean.id)
-
-                    BeanCard(
-                        bean = bean,
-                        isSelectionMode = isSelectionMode,
-                        isSelected = isSelected,
-                        onClick = {
-                            if (isSelectionMode) {
-                                toggleSelection(bean.id)
-                            } else {
-                                navController.navigate(Screen.BeanDetail.createRoute(bean.id))
+                itemsIndexed(if (isReorderMode) mutableBeans else displayedBeans) { index, bean ->
+                    if (isReorderMode) {
+                        ReorderableBeanItem(
+                            bean = bean,
+                            index = index,
+                            totalCount = mutableBeans.size,
+                            onMoveUp = { if (index > 0) moveBean(index, index - 1) },
+                            onMoveDown = { if (index < mutableBeans.size - 1) moveBean(index, index + 1) }
+                        )
+                    } else {
+                        val isSelected = selectedBeans.contains(bean.id)
+                        BeanCard(
+                            bean = bean,
+                            isSelectionMode = isSelectionMode,
+                            isSelected = isSelected,
+                            onClick = {
+                                if (isSelectionMode) {
+                                    toggleSelection(bean.id)
+                                } else {
+                                    navController.navigate(Screen.BeanDetail.createRoute(bean.id))
+                                }
+                            },
+                            onLongClick = {
+                                if (!isSelectionMode) {
+                                    enterSelectionMode(bean)
+                                }
+                            },
+                            onFavoriteClick = {
+                                viewModel.toggleFavorite(bean)
                             }
-                        },
-                        onLongClick = {
-                            if (!isSelectionMode) {
-                                enterSelectionMode(bean)
-                            }
-                        },
-                        onFavoriteClick = {
-                            viewModel.toggleFavorite(bean)
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -277,5 +327,66 @@ fun BeanListScreen(
                 TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
             }
         )
+    }
+}
+
+@Composable
+private fun ReorderableBeanItem(
+    bean: CoffeeBean,
+    index: Int,
+    totalCount: Int,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.DragHandle,
+                contentDescription = "拖动排序",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = bean.name.ifEmpty { "(未命名)" },
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "${bean.roaster} ${if (bean.origin.isNotEmpty()) "· ${bean.origin}" else ""}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(
+                onClick = onMoveUp,
+                enabled = index > 0
+            ) {
+                Icon(
+                    Icons.Default.KeyboardArrowUp,
+                    contentDescription = "上移",
+                    tint = if (index > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
+            }
+            IconButton(
+                onClick = onMoveDown,
+                enabled = index < totalCount - 1
+            ) {
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = "下移",
+                    tint = if (index < totalCount - 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
+            }
+        }
     }
 }

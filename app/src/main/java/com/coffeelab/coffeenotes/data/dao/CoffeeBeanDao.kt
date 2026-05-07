@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CoffeeBeanDao {
-    @Query("SELECT * FROM coffee_beans ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM coffee_beans ORDER BY sortOrder ASC, updatedAt DESC")
     fun getAllBeans(): Flow<List<CoffeeBean>>
 
     @Query("SELECT * FROM coffee_beans WHERE id = :id")
