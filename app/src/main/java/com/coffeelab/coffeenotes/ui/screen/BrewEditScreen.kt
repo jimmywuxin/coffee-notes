@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -230,11 +231,20 @@ fun BrewEditScreen(
                     )
                     ExposedDropdownMenu(
                         expanded = beanExpanded,
-                        onDismissRequest = { beanExpanded = false }
+                        onDismissRequest = { beanExpanded = false },
+                        modifier = Modifier.heightIn(max = 200.dp)
                     ) {
                         beans.forEach { bean ->
                             DropdownMenuItem(
-                                text = { Text("${bean.roaster} - ${bean.name}") },
+                                text = {
+                                    Box(modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            "${bean.roaster} - ${bean.name}",
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                },
                                 onClick = {
                                     selectedBeanId = bean.id
                                     beanExpanded = false
