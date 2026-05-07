@@ -3,11 +3,9 @@ package com.coffeelab.coffeenotes.ui.screen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,19 +25,52 @@ fun BrewMethodListScreen(
     viewModel: BrewMethodViewModel = viewModel()
 ) {
     val methods by viewModel.allMethods.collectAsState(initial = emptyList())
+    val mutableList = remember(methods) { methods.toMutableList() }
+    var isReorderMode by remember { mutableStateOf(false) }
+
+    fun moveItem(fromIndex: Int, toIndex: Int) {
+        if (toIndex < 0 || toIndex >= mutableList.size) return
+        val item = mutableList.removeAt(fromIndex)
+        mutableList.add(toIndex, item)
+    }
+
+    fun saveOrder() {
+        isReorderMode = false
+        viewModel.saveMethodOrder(mutableList.toList())
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("☕ 冲煮手法") },
+                title = {
+                    if (isReorderMode) Text("冲煮手法排序") else Text("☕ 冲煮手法")
+                },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    if (isReorderMode) {
+                        IconButton(onClick = { isReorderMode = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "取消")
+                        }
+                    } else {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        }
                     }
                 },
                 actions = {
-                    IconButton(onClick = { navController.navigate(Screen.BrewMethodEdit.createRoute()) }) {
-                        Icon(Icons.Default.Add, contentDescription = "新建手法", tint = MaterialTheme.colorScheme.onPrimary)
+                    if (!isReorderMode && methods.isNotEmpty()) {
+                        IconButton(onClick = { isReorderMode = true }) {
+                            Icon(Icons.Default.SwapVert, contentDescription = "排序", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                    if (!isReorderMode) {
+                        IconButton(onClick = { navController.navigate(Screen.BrewMethodEdit.createRoute()) }) {
+                            Icon(Icons.Default.Add, contentDescription = "新建手法", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                    if (isReorderMode) {
+                        IconButton(onClick = { saveOrder() }) {
+                            Icon(Icons.Default.Check, contentDescription = "完成排序", tint = MaterialTheme.colorScheme.onPrimary)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -50,7 +81,7 @@ fun BrewMethodListScreen(
             )
         }
     ) { padding ->
-        if (methods.isEmpty()) {
+        if (methods.isEmpty() && !isReorderMode) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
@@ -68,14 +99,83 @@ fun BrewMethodListScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(methods) { method ->
-                    MethodCard(
-                        method = method,
-                        onClick = {
-                            navController.navigate(Screen.BrewMethodEdit.createRoute(method.id))
-                        }
-                    )
+                if (isReorderMode) {
+                    itemsIndexed(mutableList) { index, method ->
+                        ReorderableMethodItem(
+                            method = method,
+                            onMoveUp = { moveItem(index, index - 1) },
+                            onMoveDown = { moveItem(index, index + 1) },
+                            isFirst = index == 0,
+                            isLast = index == mutableList.size - 1
+                        )
+                    }
+                } else {
+                    itemsIndexed(methods) { _, method ->
+                        MethodCard(
+                            method = method,
+                            onClick = {
+                                navController.navigate(Screen.BrewMethodEdit.createRoute(method.id))
+                            }
+                        )
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReorderableMethodItem(
+    method: BrewMethod,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    isFirst: Boolean,
+    isLast: Boolean
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.DragHandle,
+                contentDescription = "拖动排序",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(method.name, style = MaterialTheme.typography.titleMedium)
+                val parsedSteps = Converters.parseSteps(method.steps)
+                val stepSummary = parsedSteps.withIndex().joinToString(" → ") { (i, step) ->
+                    val water = step.waterAmount?.let { "${it}ml" } ?: "至总水量"
+                    "${i + 1}: ${water}/${step.durationSeconds}s"
+                }
+                Text(
+                    stepSummary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onMoveUp, enabled = !isFirst) {
+                Icon(
+                    Icons.Default.KeyboardArrowUp,
+                    contentDescription = "上移",
+                    tint = if (!isFirst) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
+            }
+            IconButton(onClick = onMoveDown, enabled = !isLast) {
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = "下移",
+                    tint = if (!isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
             }
         }
     }

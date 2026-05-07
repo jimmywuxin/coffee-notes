@@ -36,4 +36,10 @@ class BrewMethodViewModel(application: Application) : AndroidViewModel(applicati
             repository.deleteMethod(method)
         }
     }
+
+    fun saveMethodOrder(items: List<BrewMethod>) {
+        viewModelScope.launch {
+            repository.saveMethodOrder(items)
+        }
+    }
 }
