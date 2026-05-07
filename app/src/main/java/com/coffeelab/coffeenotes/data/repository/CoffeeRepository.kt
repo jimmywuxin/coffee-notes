@@ -94,4 +94,12 @@ class CoffeeRepository(private val db: AppDatabase) {
             }
         }
     }
+
+    suspend fun saveGrinderOrder(items: List<Grinder>) {
+        items.forEachIndexed { index, grinder ->
+            if (grinder.id > 0) {
+                db.grinderDao().update(grinder.copy(sortOrder = index))
+            }
+        }
+    }
 }

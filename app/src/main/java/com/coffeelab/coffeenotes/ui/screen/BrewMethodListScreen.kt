@@ -1,15 +1,22 @@
 package com.coffeelab.coffeenotes.ui.screen
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -27,23 +34,30 @@ fun BrewMethodListScreen(
     val methods by viewModel.allMethods.collectAsState(initial = emptyList())
     val mutableList = remember { mutableStateListOf(*methods.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
+    // 拖拽状态 — 使用 LazyListState 精确追踪位置
+    val lazyListState = rememberLazyListState()
+    var draggingItemIndex by remember { mutableIntStateOf(-1) }
+    var dragStartItemOffset by remember { mutableFloatStateOf(0f) }
+    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
+    val smoothDragOffset by animateFloatAsState(
+        targetValue = accumulatedDrag,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
+    )
 
     // Keep mutableList in sync with methods when not in reorder mode
     LaunchedEffect(methods, isReorderMode) {
         if (!isReorderMode) {
             mutableList.clear()
             mutableList.addAll(methods)
+            draggingItemIndex = -1
+            accumulatedDrag = 0f
         }
-    }
-
-    fun moveItem(fromIndex: Int, toIndex: Int) {
-        if (toIndex < 0 || toIndex >= mutableList.size) return
-        val item = mutableList.removeAt(fromIndex)
-        mutableList.add(toIndex, item)
     }
 
     fun saveOrder() {
         isReorderMode = false
+        draggingItemIndex = -1
+        accumulatedDrag = 0f
         viewModel.saveMethodOrder(mutableList.toList())
     }
 
@@ -76,9 +90,7 @@ fun BrewMethodListScreen(
                         }
                     }
                     if (isReorderMode) {
-                        IconButton(onClick = { saveOrder() }) {
-                            Icon(Icons.Default.Check, contentDescription = "完成排序", tint = MaterialTheme.colorScheme.onPrimary)
-                        }
+                        // 松手即完成，不再需要完成按钮
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -101,6 +113,7 @@ fun BrewMethodListScreen(
             }
         } else {
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -108,17 +121,63 @@ fun BrewMethodListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (isReorderMode) {
-                    itemsIndexed(mutableList) { index, method ->
-                        ReorderableMethodItem(
+                    itemsIndexed(mutableList, key = { _, item -> item.id }) { index, method ->
+                        val isDraggingThisItem = isReorderMode && draggingItemIndex == index
+                        DraggableMethodItem(
                             method = method,
-                            onMoveUp = { moveItem(index, index - 1) },
-                            onMoveDown = { moveItem(index, index + 1) },
-                            isFirst = index == 0,
-                            isLast = index == mutableList.size - 1
+                            isDragging = isDraggingThisItem,
+                            dragOffset = if (isDraggingThisItem) smoothDragOffset else 0f,
+                            onDragStart = {
+                                draggingItemIndex = index
+                                accumulatedDrag = 0f
+                                // 使用 layoutInfo 获取 item 在列表中的真实像素位置
+                                val layoutInfo = lazyListState.layoutInfo
+                                val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+                                dragStartItemOffset = myInfo?.offset?.toFloat() ?: 0f
+                            },
+                            onDrag = { dragAmount ->
+                                accumulatedDrag += dragAmount.y
+                                // 当前 item 中心在列表坐标系中的位置（含拖动偏移）
+                                val layoutInfo = lazyListState.layoutInfo
+                                val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggingItemIndex }
+                                if (myInfo != null) {
+                                    val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
+                                    // 与相邻 item 中心比较，确定目标位置
+                                    var targetIndex = draggingItemIndex
+                                    layoutInfo.visibleItemsInfo
+                                        .filter { it.index != draggingItemIndex }
+                                        .forEach { info ->
+                                            val itemCenter = info.offset + info.size / 2
+                                            if (accumulatedDrag > 0 && info.index > draggingItemIndex && currentCenterY > itemCenter) {
+                                                targetIndex = maxOf(targetIndex, info.index)
+                                            } else if (accumulatedDrag < 0 && info.index < draggingItemIndex && currentCenterY < itemCenter) {
+                                                targetIndex = minOf(targetIndex, info.index)
+                                            }
+                                        }
+                                    targetIndex = targetIndex.coerceIn(0, mutableList.lastIndex)
+                                    if (targetIndex != draggingItemIndex) {
+                                        val item = mutableList.removeAt(draggingItemIndex)
+                                        mutableList.add(targetIndex, item)
+                                        draggingItemIndex = targetIndex
+                                        // 重置拖动偏移，避免 item 闪跳
+                                        accumulatedDrag = 0f
+                                        // 更新起始偏移为 item 的新位置
+                                        val newLayoutInfo = lazyListState.layoutInfo
+                                        val newInfo = newLayoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIndex }
+                                        dragStartItemOffset = newInfo?.offset?.toFloat() ?: 0f
+                                    }
+                                }
+                            },
+                            onDragEnd = {
+                                draggingItemIndex = -1
+                                accumulatedDrag = 0f
+                                viewModel.saveMethodOrder(mutableList.toList())
+                                isReorderMode = false
+                            }
                         )
                     }
                 } else {
-                    itemsIndexed(methods) { _, method ->
+                    itemsIndexed(methods, key = { _, item -> item.id }) { _, method ->
                         MethodCard(
                             method = method,
                             onClick = {
@@ -133,30 +192,49 @@ fun BrewMethodListScreen(
 }
 
 @Composable
-private fun ReorderableMethodItem(
+private fun DraggableMethodItem(
     method: BrewMethod,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-    isFirst: Boolean,
-    isLast: Boolean
+    isDragging: Boolean,
+    dragOffset: Float,
+    onDragStart: () -> Unit,
+    onDrag: (Offset) -> Unit,
+    onDragEnd: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                alpha = if (isDragging) 0.95f else 1f
+                shadowElevation = if (isDragging) 8.dp.toPx() else 0f
+                translationY = if (isDragging) dragOffset else 0f
+            }
+            .pointerInput(Unit) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { offset -> onDragStart() },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDrag(dragAmount)
+                    },
+                    onDragEnd = { onDragEnd() },
+                    onDragCancel = { onDragEnd() }
+                )
+            },
+        color = if (isDragging) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surfaceVariant,
         shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 Icons.Default.DragHandle,
                 contentDescription = "拖动排序",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 8.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(method.name, style = MaterialTheme.typography.titleMedium)
@@ -169,20 +247,6 @@ private fun ReorderableMethodItem(
                     stepSummary,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            IconButton(onClick = onMoveUp, enabled = !isFirst) {
-                Icon(
-                    Icons.Default.KeyboardArrowUp,
-                    contentDescription = "上移",
-                    tint = if (!isFirst) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                )
-            }
-            IconButton(onClick = onMoveDown, enabled = !isLast) {
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = "下移",
-                    tint = if (!isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 )
             }
         }
