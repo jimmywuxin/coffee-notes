@@ -231,7 +231,8 @@ fun BrewEditScreen(
                     )
                     ExposedDropdownMenu(
                         expanded = beanExpanded,
-                        onDismissRequest = { beanExpanded = false }
+                        onDismissRequest = { beanExpanded = false },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         beans.forEach { bean ->
                             DropdownMenuItem(
@@ -337,7 +338,8 @@ fun BrewEditScreen(
                 )
                 ExposedDropdownMenu(
                     expanded = methodExpanded,
-                    onDismissRequest = { methodExpanded = false }
+                    onDismissRequest = { methodExpanded = false },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     DropdownMenuItem(
                         text = { Text("不选择") },
@@ -409,7 +411,8 @@ fun BrewEditScreen(
                 )
                 ExposedDropdownMenu(
                     expanded = equipmentExpanded,
-                    onDismissRequest = { equipmentExpanded = false }
+                    onDismissRequest = { equipmentExpanded = false },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     DropdownMenuItem(
                         text = { Text("不选择") },
@@ -561,11 +564,14 @@ fun BrewEditScreen(
                         readOnly = true,
                         label = { Text("磨豆机") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = grinderExpanded) },
-                        modifier = Modifier.menuAnchor()
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = grinderExpanded,
-                        onDismissRequest = { grinderExpanded = false }
+                        onDismissRequest = { grinderExpanded = false },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         grinderItems.forEach { item ->
                             DropdownMenuItem(
