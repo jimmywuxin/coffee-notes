@@ -81,7 +81,7 @@ fun SettingsScreen(
             item {
                 SettingsItem(
                     icon = Icons.Default.Analytics,
-                    title = "统计",
+                    title = "统计总览",
                     subtitle = "查看冲煮数据统计",
                     onClick = { navController.navigate(Screen.Stats.createRoute()) }
                 )
@@ -99,7 +99,7 @@ fun SettingsScreen(
             item {
                 SettingsItem(
                     icon = Icons.Default.Build,
-                    title = "管理器具",
+                    title = "器具管理",
                     subtitle = "添加或编辑咖啡器具",
                     onClick = { navController.navigate(Screen.EquipmentManagement.route) }
                 )
@@ -111,15 +111,6 @@ fun SettingsScreen(
                     title = "磨豆机管理",
                     subtitle = "添加或编辑磨豆机",
                     onClick = { navController.navigate(Screen.GrinderManagement.route) }
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Archive,
-                    title = "已归档的豆子",
-                    subtitle = "查看已归档的咖啡豆",
-                    onClick = { navController.navigate(Screen.ArchiveList.route) }
                 )
             }
 

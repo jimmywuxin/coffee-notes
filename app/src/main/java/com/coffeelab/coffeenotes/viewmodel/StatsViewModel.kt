@@ -109,4 +109,12 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     fun getBrewCountForBean(beanId: Long) = repository.getBrewCountForBean(beanId)
 
     suspend fun getBestRecordForBean(beanId: Long) = repository.getBestRecordForBean(beanId)
+
+    // ===== Per-Bean Brew Habits =====
+    fun getEquipmentCountsForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByEquipmentForBean(beanId)
+    fun getRatioCountsForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByRatioForBean(beanId)
+    fun getTempCountsForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByTempForBean(beanId)
+    fun getTimeSlotCountsForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByTimeSlotForBean(beanId)
+    fun getRatingCountsForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByRatingForBean(beanId)
+    fun getAvgRatingForBean(beanId: Long) = db.brewRecordDao().getAvgRatingForBean(beanId)
 }

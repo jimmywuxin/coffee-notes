@@ -269,6 +269,11 @@ fun BeanListScreen(
                                     selectedContainerColor = MaterialTheme.colorScheme.errorContainer
                                 )
                             )
+                            FilterChip(
+                                selected = false,
+                                onClick = { navController.navigate(Screen.ArchiveList.route) },
+                                label = { Text("📁 归档") }
+                            )
                         }
                     }
 
