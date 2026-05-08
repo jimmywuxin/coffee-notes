@@ -110,10 +110,10 @@ fun AboutScreen() {
                     Spacer(modifier = Modifier.height(12.dp))
                     FeatureItem("☕", "豆子管理", "记录烘焙商、产地、品种、处理法")
                     FeatureItem("📝", "冲煮记录", "记录粉量、水温、研磨度、萃取时间")
-                    FeatureItem("📋", "冲煮配方", "保存常用配方，一键填充参数")
+                    FeatureItem("📋", "冲煮手法", "保存常用手法，一键填充参数")
                     FeatureItem("🏷️", "风味标签", "预置 + 自定义风味标签")
                     FeatureItem("🤖", "AI 识别", "MiniMax-M2.7 智能识别咖啡信息")
-                    FeatureItem("📊", "统计分析", "冲煮数据统计和风味雷达图")
+                    FeatureItem("📊", "统计分析", "全量统计 + 单豆统计，水温三段式分布")
                 }
             }
 
