@@ -22,6 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.dao.*
 import com.coffeelab.coffeenotes.viewmodel.StatsViewModel
+import kotlinx.coroutines.flow.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -82,7 +83,7 @@ fun StatsScreen(
                 when (selectedTab) {
                     0 -> BrewTrendSection(viewModel, beanId)
                     1 -> {
-                        BrewHabitsSection(viewModel)
+                        BrewHabitsSection(viewModel, beanId)
                         if (isOverview) BeanSection(viewModel)
                     }
                     2 -> RatingSection(viewModel, beanId)
@@ -279,13 +280,16 @@ private fun WeekComparisonBox(label: String, count: Int, color: Color) {
 
 // ===================== ② 冲煮习惯分析 =====================
 @Composable
-private fun BrewHabitsSection(viewModel: StatsViewModel) {
+private fun BrewHabitsSection(viewModel: StatsViewModel, beanId: Long) {
     StatCard {
         Text("☕ 冲煮习惯分析", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
 
+        val isPerBean = beanId > 0
+
         // 器具排行
-        val equipmentCnt by viewModel.equipmentCounts.collectAsState(initial = emptyList())
+        val equipmentCnt by (if (isPerBean) viewModel.getEquipmentCountsForBean(beanId) else viewModel.equipmentCounts)
+            .collectAsState(initial = emptyList())
         if (equipmentCnt.isNotEmpty()) {
             Text("🔧 器具使用排行")
             Spacer(modifier = Modifier.height(4.dp))
@@ -323,7 +327,8 @@ private fun BrewHabitsSection(viewModel: StatsViewModel) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // 粉水比分布
-        val ratioCnt by viewModel.ratioCounts.collectAsState(initial = emptyList())
+        val ratioCnt by (if (isPerBean) viewModel.getRatioCountsForBean(beanId) else viewModel.ratioCounts)
+            .collectAsState(initial = emptyList())
         if (ratioCnt.isNotEmpty()) {
             Text("💧 常用粉水比")
             Spacer(modifier = Modifier.height(4.dp))
@@ -357,20 +362,22 @@ private fun BrewHabitsSection(viewModel: StatsViewModel) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // 水温分布
-        val tempCnt by viewModel.tempCounts.collectAsState(initial = emptyList())
+        val tempCnt by (if (isPerBean) viewModel.getTempCountsForBean(beanId) else viewModel.tempCounts)
+            .collectAsState(initial = emptyList())
         if (tempCnt.isNotEmpty()) {
             Text("🌡 常用水温区间")
             Spacer(modifier = Modifier.height(4.dp))
             val maxTemp = tempCnt.maxOfOrNull { it.cnt } ?: 1
+            val tempLabels = mapOf(0 to "88°C以下", 1 to "88-91°C", 2 to "92-95°C")
             tempCnt.forEach { (bucket, cnt) ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
                 ) {
                     Text(
-                        text = "${bucket}~${bucket + 5}℃",
+                        text = tempLabels[bucket] ?: "${bucket}°C",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.width(64.dp)
+                        modifier = Modifier.width(80.dp)
                     )
                     LinearProgressIndicator(
                         progress = { cnt.toFloat() / maxTemp },
@@ -391,7 +398,8 @@ private fun BrewHabitsSection(viewModel: StatsViewModel) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // 冲煮时段分布
-        val timeSlotCnt by viewModel.timeSlotCounts.collectAsState(initial = emptyList())
+        val timeSlotCnt by (if (isPerBean) viewModel.getTimeSlotCountsForBean(beanId) else viewModel.timeSlotCounts)
+            .collectAsState(initial = emptyList())
         if (timeSlotCnt.isNotEmpty()) {
             Text("🕐 冲煮时段")
             Spacer(modifier = Modifier.height(4.dp))
@@ -480,11 +488,13 @@ private fun BeanSection(viewModel: StatsViewModel) {
 // ===================== ④ 评分深度分析 =====================
 @Composable
 private fun RatingSection(viewModel: StatsViewModel, beanId: Long) {
+    val isPerBean = beanId > 0
     StatCard {
         Text("⭐ 评分深度分析", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
 
-        val avgRating by viewModel.overallAvgRating.collectAsState(initial = 0.0)
+        val avgRating by (if (isPerBean) viewModel.getAvgRatingForBean(beanId).map { v -> v ?: 0.0 } else viewModel.overallAvgRating)
+            .collectAsState(initial = 0.0)
         if (avgRating > 0) {
             Text(text = "📊 整体平均评分：${String.format("%.1f", avgRating)} / 5")
         }
@@ -492,8 +502,8 @@ private fun RatingSection(viewModel: StatsViewModel, beanId: Long) {
         Spacer(modifier = Modifier.height(8.dp))
 
         // 评分分布
-        val ratings by viewModel.ratingCounts.collectAsState(initial = emptyList())
-        val allRecords by viewModel.allRecords.collectAsState(initial = emptyList())
+        val ratings by (if (isPerBean) viewModel.getRatingCountsForBean(beanId) else viewModel.ratingCounts)
+            .collectAsState(initial = emptyList())
         val totalRated = ratings.sumOf { it.cnt }
 
         if (ratings.isNotEmpty() && totalRated > 0) {
@@ -533,7 +543,7 @@ private fun RatingSection(viewModel: StatsViewModel, beanId: Long) {
 
         // 各器具平均评分
         val equipRatings by viewModel.avgRatingByEquipment.collectAsState(initial = emptyList())
-        if (equipRatings.isNotEmpty()) {
+        if (equipRatings.isNotEmpty() && !isPerBean) {
             Text("🔧 各器具平均评分")
             Spacer(modifier = Modifier.height(4.dp))
             equipRatings.forEach { (equip, avg) ->

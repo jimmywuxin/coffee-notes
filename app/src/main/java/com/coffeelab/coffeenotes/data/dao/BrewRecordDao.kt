@@ -63,9 +63,15 @@ interface BrewRecordDao {
     """)
     fun getBrewCountsByRatio(): Flow<List<RatioCount>>
 
-    /** 按水温分段统计（每5度一个区间） */
+    /** 按水温分段统计（固定三段：88°C以下 / 88-91°C / 92-95°C） */
     @Query("""
-        SELECT CAST(waterTemp / 5 AS INTEGER) * 5 as bucket, COUNT(*) as cnt
+        SELECT
+            CASE
+                WHEN waterTemp <= 88 THEN 0
+                WHEN waterTemp <= 91 THEN 1
+                ELSE 2
+            END as bucket,
+            COUNT(*) as cnt
         FROM brew_records WHERE waterTemp > 0
         GROUP BY bucket ORDER BY bucket
     """)
@@ -74,6 +80,66 @@ interface BrewRecordDao {
     /** 按评分分组统计 */
     @Query("SELECT overallRating, COUNT(*) as cnt FROM brew_records WHERE overallRating > 0 GROUP BY overallRating ORDER BY overallRating")
     fun getBrewCountsByRating(): Flow<List<RatingCount>>
+
+    /** 某豆子的按评分分组统计 */
+    @Query("SELECT overallRating, COUNT(*) as cnt FROM brew_records WHERE beanId = :beanId AND overallRating > 0 GROUP BY overallRating ORDER BY overallRating")
+    fun getBrewCountsByRatingForBean(beanId: Long): Flow<List<RatingCount>>
+
+    /** 某器具的冲煮次数 */
+    @Query("SELECT equipment, COUNT(*) as cnt FROM brew_records WHERE beanId = :beanId AND equipment != '' GROUP BY equipment ORDER BY cnt DESC")
+    fun getBrewCountsByEquipmentForBean(beanId: Long): Flow<List<EquipmentCount>>
+
+    /** 某豆子的粉水比分布 */
+    @Query("""
+        SELECT coffeeWaterRatio, COUNT(*) as cnt FROM brew_records
+        WHERE beanId = :beanId AND coffeeWaterRatio > 0
+        GROUP BY CAST(coffeeWaterRatio AS INTEGER)
+        ORDER BY CAST(coffeeWaterRatio AS INTEGER)
+    """)
+    fun getBrewCountsByRatioForBean(beanId: Long): Flow<List<RatioCount>>
+
+    /** 某豆子的水温分布 */
+    @Query("""
+        SELECT
+            CASE
+                WHEN waterTemp <= 88 THEN 0
+                WHEN waterTemp <= 91 THEN 1
+                ELSE 2
+            END as bucket,
+            COUNT(*) as cnt
+        FROM brew_records WHERE beanId = :beanId AND waterTemp > 0
+        GROUP BY bucket ORDER BY bucket
+    """)
+    fun getBrewCountsByTempForBean(beanId: Long): Flow<List<TempBucket>>
+
+    /** 某豆子的冲煮时段 */
+    @Query("""
+        SELECT
+            CASE
+                WHEN CAST(strftime('%H', dateTime / 1000, 'unixepoch', '+8 hours') AS INTEGER) < 6 THEN '深夜'
+                WHEN CAST(strftime('%H', dateTime / 1000, 'unixepoch', '+8 hours') AS INTEGER) < 9 THEN '早晨'
+                WHEN CAST(strftime('%H', dateTime / 1000, 'unixepoch', '+8 hours') AS INTEGER) < 12 THEN '上午'
+                WHEN CAST(strftime('%H', dateTime / 1000, 'unixepoch', '+8 hours') AS INTEGER) < 18 THEN '下午'
+                WHEN CAST(strftime('%H', dateTime / 1000, 'unixepoch', '+8 hours') AS INTEGER) < 22 THEN '晚上'
+                ELSE '深夜'
+            END as slot,
+            COUNT(*) as cnt
+        FROM brew_records WHERE beanId = :beanId
+        GROUP BY slot
+        ORDER BY
+            CASE slot
+                WHEN '早晨' THEN 1
+                WHEN '上午' THEN 2
+                WHEN '下午' THEN 3
+                WHEN '晚上' THEN 4
+                WHEN '深夜' THEN 5
+            END
+    """)
+    fun getBrewCountsByTimeSlotForBean(beanId: Long): Flow<List<TimeSlotCount>>
+
+    /** 某豆子的平均总评分 */
+    @Query("SELECT AVG(overallRating * 1.0) FROM brew_records WHERE beanId = :beanId AND overallRating > 0")
+    fun getAvgRatingForBean(beanId: Long): Flow<Double?>
 
     /** 某豆子的月冲煮趋势 */
     @Query("""
