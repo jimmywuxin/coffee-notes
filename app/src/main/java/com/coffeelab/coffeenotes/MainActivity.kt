@@ -70,7 +70,8 @@ class MainActivity : ComponentActivity() {
                     Screen.Home.route,
                     Screen.BeanList.route,
                     Screen.BrewList.createRoute(),
-                    Screen.Settings.route
+                    Screen.Settings.route,
+                    Screen.ArchiveList.route
                 )
 
                 val showBottomBar = currentRoute in mainRoutes ||

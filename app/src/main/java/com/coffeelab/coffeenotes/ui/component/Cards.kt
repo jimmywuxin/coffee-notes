@@ -7,6 +7,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -30,7 +31,8 @@ fun BeanCard(
     isSelected: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
-    onFavoriteClick: () -> Unit = {}
+    onFavoriteClick: () -> Unit = {},
+    onUnarchiveClick: (() -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -113,17 +115,31 @@ fun BeanCard(
                 }
             }
             if (!isSelectionMode) {
-                Icon(
-                    imageVector = if (bean.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = if (bean.isFavorite) "取消收藏" else "收藏",
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { onFavoriteClick() },
-                    tint = if (bean.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (onUnarchiveClick != null) {
+                    Icon(
+                        imageVector = Icons.Default.Unarchive,
+                        contentDescription = "取消归档",
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onUnarchiveClick() },
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (bean.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = if (bean.isFavorite) "取消收藏" else "收藏",
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onFavoriteClick() },
+                        tint = if (bean.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
