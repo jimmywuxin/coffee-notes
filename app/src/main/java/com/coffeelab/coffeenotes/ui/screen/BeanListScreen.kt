@@ -37,8 +37,10 @@ fun BeanListScreen(
     viewModel: BeanViewModel = viewModel()
 ) {
     val beans by viewModel.activeBeans.collectAsState(initial = emptyList())
+    val archivedBeans by viewModel.archivedBeans.collectAsState(initial = emptyList())
     val mutableBeans = remember { mutableStateListOf(*beans.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
+    var showArchivedOnly by remember { mutableStateOf(false) }
 
     // 拖拽状态 — 使用 LazyListState 精确追踪位置
     val lazyListState = rememberLazyListState()
@@ -65,10 +67,15 @@ fun BeanListScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedBeans by remember { mutableStateOf(setOf<Long>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showUnarchiveDialog by remember { mutableStateOf<CoffeeBean?>(null) }
     var showFavoritesOnly by remember { mutableStateOf(false) }
 
-    // 显示的豆子（筛选收藏）
-    val displayedBeans = if (showFavoritesOnly) beans.filter { it.isFavorite } else beans
+    // 显示的豆子（三态筛选：全部 / 收藏 / 归档）
+    val displayedBeans = when {
+        showArchivedOnly -> archivedBeans
+        showFavoritesOnly -> beans.filter { it.isFavorite }
+        else -> beans
+    }
 
     // 进入多选模式
     fun enterSelectionMode(bean: CoffeeBean) {
@@ -257,22 +264,34 @@ fun BeanListScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             FilterChip(
-                                selected = !showFavoritesOnly,
-                                onClick = { showFavoritesOnly = false },
+                                selected = !showFavoritesOnly && !showArchivedOnly,
+                                onClick = {
+                                    showFavoritesOnly = false
+                                    showArchivedOnly = false
+                                },
                                 label = { Text("全部") }
                             )
                             FilterChip(
                                 selected = showFavoritesOnly,
-                                onClick = { showFavoritesOnly = true },
+                                onClick = {
+                                    showFavoritesOnly = true
+                                    showArchivedOnly = false
+                                },
                                 label = { Text("❤ 收藏") },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.errorContainer
                                 )
                             )
                             FilterChip(
-                                selected = false,
-                                onClick = { navController.navigate(Screen.ArchiveList.route) },
-                                label = { Text("📁 归档") }
+                                selected = showArchivedOnly,
+                                onClick = {
+                                    showArchivedOnly = !showArchivedOnly
+                                    if (showArchivedOnly) showFavoritesOnly = false
+                                },
+                                label = { Text("📁 归档") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
+                                )
                             )
                         }
                     }
@@ -286,7 +305,9 @@ fun BeanListScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    if (showFavoritesOnly) "还没有收藏的豆子 🫑" else "还没有咖啡豆，点击 + 添加吧 🫘",
+                                    if (showArchivedOnly) "还没有归档的豆子 🫘"
+                                else if (showFavoritesOnly) "还没有收藏的豆子 🫑"
+                                else "还没有咖啡豆，点击 + 添加吧 🫘",
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -381,7 +402,10 @@ fun BeanListScreen(
                             },
                             onFavoriteClick = {
                                 viewModel.toggleFavorite(bean)
-                            }
+                            },
+                            onUnarchiveClick = if (showArchivedOnly) {
+                                { showUnarchiveDialog = bean }
+                            } else null
                         )
                     }
                 }
@@ -412,6 +436,26 @@ fun BeanListScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+            }
+        )
+    }
+
+    // 取消归档确认弹窗
+    showUnarchiveDialog?.let { bean ->
+        AlertDialog(
+            onDismissRequest = { showUnarchiveDialog = null },
+            title = { Text("取消归档") },
+            text = { Text("将「${bean.name}」恢复到豆子列表？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.unarchiveBean(bean)
+                        showUnarchiveDialog = null
+                    }
+                ) { Text("确认") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnarchiveDialog = null }) { Text("取消") }
             }
         )
     }
