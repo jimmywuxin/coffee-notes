@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SearchScreen(
     navController: NavController,
+    searchScope: String = "all",
     beanViewModel: BeanViewModel = viewModel(),
     brewViewModel: BrewViewModel = viewModel()
 ) {
@@ -49,18 +50,22 @@ fun SearchScreen(
         }
         searchJob = scope.launch {
             delay(300) // debounce
-            val beans = allBeans.filter {
-                it.roaster.contains(query, ignoreCase = true) ||
-                it.name.contains(query, ignoreCase = true) ||
-                it.origin.contains(query, ignoreCase = true) ||
-                it.process.contains(query, ignoreCase = true) ||
-                it.variety.contains(query, ignoreCase = true)
-            }
-            val records = allRecords.filter {
-                it.equipment.contains(query, ignoreCase = true) ||
-                it.flavorNotes.contains(query, ignoreCase = true) ||
-                it.grindSize.contains(query, ignoreCase = true)
-            }
+            val beans = if (searchScope == "all" || searchScope == "beans") {
+                allBeans.filter {
+                    it.roaster.contains(query, ignoreCase = true) ||
+                    it.name.contains(query, ignoreCase = true) ||
+                    it.origin.contains(query, ignoreCase = true) ||
+                    it.process.contains(query, ignoreCase = true) ||
+                    it.variety.contains(query, ignoreCase = true)
+                }
+            } else emptyList()
+            val records = if (searchScope == "all" || searchScope == "records") {
+                allRecords.filter {
+                    it.equipment.contains(query, ignoreCase = true) ||
+                    it.flavorNotes.contains(query, ignoreCase = true) ||
+                    it.grindSize.contains(query, ignoreCase = true)
+                }
+            } else emptyList()
             searchResults = beans + records
         }
     }
@@ -92,7 +97,15 @@ fun SearchScreen(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = { Text("搜索烘焙商、豆名、产地、器具...") },
+                placeholder = {
+                    Text(
+                        when (searchScope) {
+                            "beans" -> "搜索烘焙商、豆名、产地..."
+                            "records" -> "搜索器具、风味、研磨度..."
+                            else -> "搜索烘焙商、豆名、产地、器具..."
+                        }
+                    )
+                },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
@@ -153,35 +166,39 @@ fun SearchScreen(
                 Text("按条件筛选", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                val equipmentTypes = allRecords.map { it.equipment }.distinct().filter { it.isNotEmpty() }
-                if (equipmentTypes.isNotEmpty()) {
-                    Text("按器具：", style = MaterialTheme.typography.bodyMedium)
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        equipmentTypes.forEach { equip ->
-                            SuggestionChip(
-                                onClick = { query = equip },
-                                label = { Text(equip) }
-                            )
+                if (searchScope == "all" || searchScope == "records") {
+                    val equipmentTypes = allRecords.map { it.equipment }.distinct().filter { it.isNotEmpty() }
+                    if (equipmentTypes.isNotEmpty()) {
+                        Text("按器具：", style = MaterialTheme.typography.bodyMedium)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            equipmentTypes.forEach { equip ->
+                                SuggestionChip(
+                                    onClick = { query = equip },
+                                    label = { Text(equip) }
+                                )
+                            }
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
 
-                if (allBeans.isNotEmpty()) {
-                    Text("按烘焙商：", style = MaterialTheme.typography.bodyMedium)
-                    val roasters = allBeans.map { it.roaster }.filter { it.isNotEmpty() }.distinct()
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        roasters.forEach { roaster ->
-                            SuggestionChip(
-                                onClick = { query = roaster },
-                                label = { Text(roaster) }
-                            )
+                if (searchScope == "all" || searchScope == "beans") {
+                    if (allBeans.isNotEmpty()) {
+                        Text("按烘焙商：", style = MaterialTheme.typography.bodyMedium)
+                        val roasters = allBeans.map { it.roaster }.filter { it.isNotEmpty() }.distinct()
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            roasters.forEach { roaster ->
+                                SuggestionChip(
+                                    onClick = { query = roaster },
+                                    label = { Text(roaster) }
+                                )
+                            }
                         }
                     }
                 }

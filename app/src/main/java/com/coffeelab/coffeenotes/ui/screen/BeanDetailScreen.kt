@@ -161,7 +161,7 @@ fun BeanDetailScreen(
                             color = MaterialTheme.colorScheme.secondaryContainer) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.LocalCafe, contentDescription = null,
+                                    Icon(Icons.Default.WaterDrop, contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSecondaryContainer)
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("官方萃取建议", style = MaterialTheme.typography.titleMedium,
@@ -188,6 +188,21 @@ fun BeanDetailScreen(
                     }
                 }
 
+                // Radar Chart
+                if (radarValues != null) {
+                    item {
+                        Text(
+                            "风味雷达图",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                        RadarChart(
+                            values = radarValues,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+
                 // Flavor Tags
                 if (tags.isNotEmpty()) {
                     item {
@@ -207,21 +222,6 @@ fun BeanDetailScreen(
                                 )
                             }
                         }
-                    }
-                }
-
-                // Radar Chart
-                if (radarValues != null) {
-                    item {
-                        Text(
-                            "风味雷达图",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                        RadarChart(
-                            values = radarValues,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
                     }
                 }
 

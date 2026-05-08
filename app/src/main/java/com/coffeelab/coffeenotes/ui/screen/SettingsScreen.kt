@@ -28,16 +28,16 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("设置") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Settings, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("设置")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -58,7 +58,7 @@ fun SettingsScreen(
 
             item {
                 SettingsItem(
-                    icon = Icons.Default.FileDownload,
+                    icon = Icons.Default.Download,
                     title = "备份",
                     subtitle = "导出数据到本地文件",
                     onClick = { navController.navigate(Screen.Backup.route) }
@@ -89,16 +89,16 @@ fun SettingsScreen(
 
             item {
                 SettingsItem(
-                    icon = Icons.Default.LocalCafe,
-                    title = "冲煮手法",
-                    subtitle = "管理冲煮手法",
+                    icon = Icons.Default.AccountTree,
+                    title = "冲煮手法管理",
+                    subtitle = "添加或编辑冲煮手法",
                     onClick = { navController.navigate(Screen.BrewMethodList.route) }
                 )
             }
 
             item {
                 SettingsItem(
-                    icon = Icons.Default.Build,
+                    icon = Icons.Default.LocalCafe,
                     title = "器具管理",
                     subtitle = "添加或编辑咖啡器具",
                     onClick = { navController.navigate(Screen.EquipmentManagement.route) }
@@ -107,7 +107,7 @@ fun SettingsScreen(
 
             item {
                 SettingsItem(
-                    icon = Icons.Default.Tune,
+                    icon = Icons.Default.Refresh,
                     title = "磨豆机管理",
                     subtitle = "添加或编辑磨豆机",
                     onClick = { navController.navigate(Screen.GrinderManagement.route) }
@@ -176,7 +176,7 @@ fun SettingsScreen(
                         Text("正在清空数据...")
                     }
                 } else {
-                    Text("此操作不可逆。所有咖啡豆、冲煮记录、配方和器具将被永久删除。\n\n建议先备份数据。")
+                    Text("此操作不可逆。所有咖啡豆、冲煮记录、手法和器具将被永久删除。\n\n建议先备份数据。")
                 }
             },
             confirmButton = {

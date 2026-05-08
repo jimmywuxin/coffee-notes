@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -54,16 +55,10 @@ fun BackupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("备份与恢复") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
+                title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Download, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("备份与恢复") } },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }

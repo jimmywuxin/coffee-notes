@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
@@ -173,7 +174,7 @@ fun BrewEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isEditing) "编辑冲煮记录" else "新增冲煮记录") },
+                title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Coffee, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(if (isEditing) "编辑冲煮记录" else "新增冲煮记录") } },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")

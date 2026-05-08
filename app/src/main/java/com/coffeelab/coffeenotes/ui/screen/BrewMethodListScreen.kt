@@ -67,16 +67,16 @@ fun BrewMethodListScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    if (isReorderMode) Text("冲煮手法排序") else Text("☕ 冲煮手法")
+                    if (isReorderMode) Text("冲煮手法排序") else Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.AccountTree, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("冲煮手法")
+                    }
                 },
                 navigationIcon = {
                     if (isReorderMode) {
                         IconButton(onClick = { isReorderMode = false }) {
                             Icon(Icons.Default.Close, contentDescription = "取消")
-                        }
-                    } else {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                         }
                     }
                 },
@@ -109,7 +109,7 @@ fun BrewMethodListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "还没有冲煮手法\n点击 + 新建 🧪",
+                    "还没有冲煮手法\n点击 + 新建",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
