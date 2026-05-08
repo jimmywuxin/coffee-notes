@@ -30,7 +30,7 @@ fun ArchiveListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("已归档的豆子") },
+                title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Archive, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("已归档的豆子") } },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
@@ -52,7 +52,7 @@ fun ArchiveListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "还没有归档的豆子 🫘",
+                    "还没有归档的豆子",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

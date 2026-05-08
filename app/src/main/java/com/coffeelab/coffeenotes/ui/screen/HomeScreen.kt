@@ -102,7 +102,7 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("☕ 咖啡笔记") },
                 actions = {
-                    IconButton(onClick = { navController.navigate(Screen.Search.route) }) {
+                    IconButton(onClick = { navController.navigate(Screen.Search.createRoute("all")) }) {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "搜索",

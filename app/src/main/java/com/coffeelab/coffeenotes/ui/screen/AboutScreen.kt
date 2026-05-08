@@ -22,7 +22,7 @@ fun AboutScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("关于") },
+                title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Info, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("关于咖啡笔记") } },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -157,7 +157,7 @@ fun AboutScreen() {
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Made with ❤️ by Jimmy",
+                    text = "Made with love by Jimmy",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

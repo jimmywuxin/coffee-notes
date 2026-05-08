@@ -97,7 +97,11 @@ fun BrewListScreen(
                     if (isSelectionMode) {
                         Text("${selectedRecords.size} 条已选")
                     } else {
-                        Text(if (beanId > 0) "冲煮记录" else "所有冲煮记录")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Coffee, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("冲煮记录")
+                        }
                     }
                 },
                 navigationIcon = {
@@ -105,14 +109,13 @@ fun BrewListScreen(
                         IconButton(onClick = { exitSelectionMode() }) {
                             Icon(Icons.Default.Close, contentDescription = "取消")
                         }
-                    } else {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                        }
                     }
                 },
                 actions = {
                     if (!isSelectionMode) {
+                        IconButton(onClick = { navController.navigate(Screen.Search.createRoute("records")) }) {
+                            Icon(Icons.Default.Search, contentDescription = "搜索")
+                        }
                         IconButton(onClick = { navController.navigate(Screen.BrewEdit.createRoute(beanId = beanId)) }) {
                             Icon(Icons.Default.Add, contentDescription = "记录冲煮")
                         }
@@ -181,7 +184,7 @@ fun BrewListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "还没有冲煮记录",
+                    "还没有冲煮记录\n点击 + 开始记录",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -231,13 +234,7 @@ fun BrewListScreen(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
             text = {
-                Text(
-                    if (selectedRecords.size == 1) {
-                        "确定要删除这 ${selectedRecords.size} 条冲煮记录吗？删除后无法恢复。"
-                    } else {
-                        "确定要删除这 ${selectedRecords.size} 条冲煮记录吗？删除后无法恢复。"
-                    }
-                )
+                Text("确定要删除这 ${selectedRecords.size} 条冲煮记录吗？删除后无法恢复。")
             },
             confirmButton = {
                 TextButton(
@@ -259,74 +256,3 @@ fun BrewListScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun RecordCard(
-    record: BrewRecord,
-    beanName: String,
-    isSelectionMode: Boolean,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
-        color = if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        shape = MaterialTheme.shapes.medium,
-        tonalElevation = if (isSelected) 2.dp else 1.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 多选模式下的勾选框
-            AnimatedVisibility(
-                visible = isSelectionMode,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
-            ) {
-                Checkbox(
-                    checked = isSelected,
-                    onCheckedChange = { onClick() },
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = beanName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = "${record.equipment} · ${DateUtils.formatDateTime(record.dateTime)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${record.coffeeWeight}g · 1:${String.format("%.1f", record.coffeeWaterRatio)} · ${record.waterTemp}℃",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            if (record.overallRating > 0) {
-                Text(
-                    text = "★".repeat(record.overallRating),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-        }
-    }
-}

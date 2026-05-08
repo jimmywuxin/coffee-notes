@@ -71,16 +71,12 @@ fun EquipmentManagementScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    if (isReorderMode) Text("器具排序") else Text("器具管理")
+                    if (isReorderMode) Text("器具排序") else Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.LocalCafe, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("器具管理") }
                 },
                 navigationIcon = {
                     if (isReorderMode) {
                         IconButton(onClick = { isReorderMode = false }) {
                             Icon(Icons.Default.Close, contentDescription = "取消")
-                        }
-                    } else {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                         }
                     }
                 },

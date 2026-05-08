@@ -131,7 +131,7 @@ fun BeanListScreen(
                     when {
                         isSelectionMode -> Text("${selectedBeans.size} 条已选")
                         isReorderMode -> Text("拖动排序")
-                        else -> Text("🫘 我的豆子")
+                        else -> Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Grain, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("我的豆子") }
                     }
                 },
                 navigationIcon = {
@@ -144,13 +144,14 @@ fun BeanListScreen(
                         }) {
                             Icon(Icons.Default.Close, contentDescription = "取消")
                         }
-                        else -> IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                        }
+                        else -> { /* 无返回按钮，主页由底部导航切换 */ }
                     }
                 },
                 actions = {
                     if (!isSelectionMode && !isReorderMode) {
+                        IconButton(onClick = { navController.navigate(Screen.Search.createRoute("beans")) }) {
+                            Icon(Icons.Default.Search, contentDescription = "搜索")
+                        }
                         IconButton(onClick = { isReorderMode = true }) {
                             Icon(Icons.Default.SwapVert, contentDescription = "排序")
                         }
@@ -240,7 +241,7 @@ fun BeanListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "还没有咖啡豆，点击 + 添加吧 🫘",
+                    "还没有咖啡豆\n点击 + 开始记录",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -305,9 +306,9 @@ fun BeanListScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    if (showArchivedOnly) "还没有归档的豆子 🫘"
-                                else if (showFavoritesOnly) "还没有收藏的豆子 🫑"
-                                else "还没有咖啡豆，点击 + 添加吧 🫘",
+                                    if (showArchivedOnly) "还没有归档的豆子"
+                                else if (showFavoritesOnly) "还没有收藏的豆子"
+                                else "还没有咖啡豆\n点击 + 开始记录",
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -419,7 +420,7 @@ fun BeanListScreen(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
             text = {
-                Text("确定要删除这 ${selectedBeans.size} 条豆子吗？\n该豆子的所有冲煮记录也会被删除。")
+                Text("确定要删除这 ${selectedBeans.size} 条豆子吗？\n所有冲煮记录也会被删除，且无法恢复。")
             },
             confirmButton = {
                 TextButton(

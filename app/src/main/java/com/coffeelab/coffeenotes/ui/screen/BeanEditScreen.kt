@@ -166,7 +166,7 @@ fun BeanEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isEditing) "编辑豆子" else "添加豆子") },
+                title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Edit, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(if (isEditing) "编辑豆子" else "添加豆子") } },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")

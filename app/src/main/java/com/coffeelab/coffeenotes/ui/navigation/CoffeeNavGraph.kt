@@ -94,8 +94,12 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
             BrewMethodEditScreen(navController = navController, methodId = methodId)
         }
 
-        composable(Screen.Search.route) {
-            SearchScreen(navController = navController)
+        composable(
+            route = Screen.Search.route,
+            arguments = listOf(navArgument("searchScope") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val searchScope = backStackEntry.arguments?.getString("searchScope") ?: "all"
+            SearchScreen(navController = navController, searchScope = searchScope)
         }
 
         composable(
