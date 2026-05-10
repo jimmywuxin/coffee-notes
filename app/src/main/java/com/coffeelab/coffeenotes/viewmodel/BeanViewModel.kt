@@ -11,7 +11,6 @@ import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import com.coffeelab.coffeenotes.util.ImageUtils
 import com.coffeelab.coffeenotes.util.OCRProcessor
 import com.coffeelab.coffeenotes.util.OCRResult
-import com.coffeelab.coffeenotes.util.engine.AiRecognitionEngine
 import com.coffeelab.coffeenotes.util.engine.KeywordRecognitionEngine
 import com.coffeelab.coffeenotes.util.engine.RecognitionResult
 import kotlinx.coroutines.flow.*
@@ -94,8 +93,7 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
 
     fun searchBeans(query: String): Flow<List<CoffeeBean>> = repository.searchBeans(query)
 
-    // ===== AI Recognition (pluggable engine) =====
-    private val aiEngine = AiRecognitionEngine()
+    // ===== Recognition (pluggable engine) =====
     private val keywordEngine = KeywordRecognitionEngine()
 
     private val _recognitionResult = MutableStateFlow<RecognitionResult?>(null)
@@ -103,20 +101,6 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _recognitionProcessing = MutableStateFlow(false)
     val recognitionProcessing: StateFlow<Boolean> = _recognitionProcessing.asStateFlow()
-
-    fun runAiRecognition(bitmap: Bitmap) {
-        viewModelScope.launch {
-            _recognitionProcessing.value = true
-            try {
-                val result = aiEngine.recognize(bitmap)
-                _recognitionResult.value = result
-            } catch (e: Exception) {
-                _recognitionResult.value = RecognitionResult(success = false, rawResponse = "AI识别出错: ${e.message}", engineName = "MiMo Omni")
-            } finally {
-                _recognitionProcessing.value = false
-            }
-        }
-    }
 
     fun runKeywordRecognition(bitmap: Bitmap) {
         viewModelScope.launch {

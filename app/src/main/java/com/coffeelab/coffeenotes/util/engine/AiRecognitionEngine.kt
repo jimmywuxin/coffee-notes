@@ -23,8 +23,8 @@ class AiRecognitionEngine : RecognitionEngine {
     private val gson = Gson()
 
     companion object {
-        // MiniMax VLM API
-        private const val API_URL = "https://api.minimaxi.com/v1/coding_plan/vlm"
+        // MiniMax VLM API（MiniMax Token Plan）
+        private const val API_URL = "https://token-plan-cn.xiaomimomo.com/v1/coding_plan/vlm"
 
         // API Key（从应用设置中读取，或通过 BuildConfig 注入）
         private var apiKey: String? = null
@@ -32,9 +32,9 @@ class AiRecognitionEngine : RecognitionEngine {
         // OkHttpClient 单例
         private val client: OkHttpClient by lazy {
             OkHttpClient.Builder()
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .writeTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(120, TimeUnit.SECONDS)
                 .build()
         }
 
