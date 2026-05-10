@@ -1,11 +1,8 @@
 package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,13 +14,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.coffeelab.coffeenotes.data.entity.BrewRecord
-import com.coffeelab.coffeenotes.data.entity.CoffeeBean
-import com.coffeelab.coffeenotes.ui.component.RecordCard
+import com.coffeelab.coffeenotes.data.entity.BrewMethod
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.DateUtils
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
+import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,16 +27,12 @@ import java.util.*
 fun HomeScreen(
     navController: NavController,
     beanViewModel: BeanViewModel = viewModel(),
-    brewViewModel: BrewViewModel = viewModel()
+    brewViewModel: BrewViewModel = viewModel(),
+    methodViewModel: BrewMethodViewModel = viewModel()
 ) {
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
     val recentRecords by brewViewModel.allRecords.collectAsState(initial = emptyList())
-    var selectedWeekRange by remember { mutableStateOf("全部") }
-    val weekRanges = listOf("全部", "本周", "上周", "两周前", "更早")
-
-    val filteredRecords = remember(selectedWeekRange, recentRecords) {
-        DateUtils.filterByWeekRange(recentRecords, selectedWeekRange)
-    }
+    val allMethods by methodViewModel.allMethods.collectAsState(initial = emptyList())
 
     // Time-based greeting
     val greeting = remember {
@@ -65,17 +57,6 @@ fun HomeScreen(
         recentRecords.count { it.dateTime >= todayStart }
     }
 
-    // This week count
-    val thisWeekCount = remember(recentRecords) {
-        DateUtils.filterByWeekRange(recentRecords, "本周").size
-    }
-
-    // Most recently used bean
-    val lastBean = remember(recentRecords, beans) {
-        val lastRecord = recentRecords.firstOrNull()
-        if (lastRecord != null) beans.find { it.id == lastRecord.beanId } else null
-    }
-
     // Streak days (consecutive days with at least one brew)
     val streakDays = remember(recentRecords) {
         if (recentRecords.isEmpty()) return@remember 0
@@ -92,9 +73,40 @@ fun HomeScreen(
             if (!hasBrew && streak > 0) break
             if (hasBrew) streak++
             cal.add(Calendar.DAY_OF_MONTH, -1)
-            if (streak > 365) break // safety
+            if (streak > 365) break
         }
         streak
+    }
+
+    // Total brew count
+    val totalCount = recentRecords.size
+
+    // Average brews per week (last 4 weeks)
+    val avgPerWeek = remember(recentRecords) {
+        if (recentRecords.isEmpty()) return@remember 0.0
+        val now = System.currentTimeMillis()
+        val fourWeeksAgo = now - 28L * 24 * 60 * 60 * 1000
+        val recent4w = recentRecords.count { it.dateTime >= fourWeeksAgo }
+        (recent4w / 4.0 * 10).toInt() / 10.0
+    }
+
+    // Most used brew method
+    val mostUsedMethod = remember(recentRecords, allMethods) {
+        if (recentRecords.isEmpty()) return@remember null
+        val methodCounts = recentRecords
+            .mapNotNull { record -> record.methodId?.let { id -> allMethods.find { it.id == id } } }
+            .groupingBy { it.name }
+            .eachCount()
+        if (methodCounts.isEmpty()) null else {
+            val (name, count) = methodCounts.maxByOrNull { it.value }!!
+            name to count
+        }
+    }
+
+    // Most recently used bean
+    val lastBean = remember(recentRecords, beans) {
+        val lastRecord = recentRecords.firstOrNull()
+        if (lastRecord != null) beans.find { it.id == lastRecord.beanId } else null
     }
 
     Scaffold(
@@ -126,22 +138,29 @@ fun HomeScreen(
         ) {
             // ===== Greeting =====
             item {
-                Text(
-                    text = "$greeting ☀️",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 12.dp)
-                )
-                if (recentRecords.isEmpty()) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
                     Text(
-                        text = "开始记录你的第一杯咖啡吧",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "$greeting ☀️",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
                     )
+                    if (recentRecords.isNotEmpty()) {
+                        Text(
+                            text = "今天第 $todayCount 杯" + if (streakDays > 0) "，连续 $streakDays 天 ☕" else "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Text(
+                            text = "开始记录你的第一杯咖啡吧",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
-            // ===== Quick Stats Row =====
+            // ===== Stats Row =====
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -149,15 +168,15 @@ fun HomeScreen(
                 ) {
                     StatMiniCard(
                         modifier = Modifier.weight(1f),
-                        label = "今日",
-                        value = "$todayCount",
+                        label = "总杯数",
+                        value = "$totalCount",
                         unit = "杯",
                         color = MaterialTheme.colorScheme.primary
                     )
                     StatMiniCard(
                         modifier = Modifier.weight(1f),
-                        label = "本周",
-                        value = "$thisWeekCount",
+                        label = "均/周",
+                        value = if (avgPerWeek > 0) String.format("%.1f", avgPerWeek) else "-",
                         unit = "杯",
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -168,6 +187,55 @@ fun HomeScreen(
                         unit = "天",
                         color = MaterialTheme.colorScheme.tertiary
                     )
+                }
+            }
+
+            // ===== Most Used Method =====
+            if (mostUsedMethod != null) {
+                item {
+                    val (methodName, count) = mostUsedMethod
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "最爱用的方式",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Text(
+                                    text = methodName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    text = "$count 次",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -237,65 +305,8 @@ fun HomeScreen(
                 }
             }
 
-            // ===== Recent Brews Section =====
-            if (recentRecords.isNotEmpty()) {
-                item {
-                    Column {
-                        Text(
-                            text = "最近冲煮",
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            weekRanges.forEach { range ->
-                                FilterChip(
-                                    selected = (selectedWeekRange == range),
-                                    onClick = { selectedWeekRange = range },
-                                    label = { Text(range) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (filteredRecords.isEmpty()) {
-                    item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Text(
-                                text = "暂无${selectedWeekRange}冲煮记录",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(24.dp),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                } else {
-                    items(filteredRecords.take(50), contentType = { "record" }) { record ->
-                        val beanName = beans.find { it.id == record.beanId }?.let { bean ->
-                            "${bean.roaster} - ${bean.name}"
-                        } ?: "未知豆子"
-
-                        RecordCard(
-                            record = record,
-                            beanName = beanName,
-                            onClick = {
-                                navController.navigate(Screen.BrewEdit.createRoute(record.id, record.beanId))
-                            }
-                        )
-                    }
-                }
-            } else {
+            // ===== Empty State =====
+            if (recentRecords.isEmpty()) {
                 item {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
