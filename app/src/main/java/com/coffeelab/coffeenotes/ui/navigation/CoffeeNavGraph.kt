@@ -51,18 +51,6 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
         }
 
         composable(
-            route = Screen.Camera.route,
-            arguments = listOf(
-                navArgument("beanId") { type = NavType.LongType },
-                navArgument("mode") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val beanId = backStackEntry.arguments?.getLong("beanId") ?: -1L
-            val mode = backStackEntry.arguments?.getString("mode") ?: "keyword"
-            CameraScreen(navController = navController, beanId = beanId, recognitionMode = mode)
-        }
-
-        composable(
             route = Screen.BrewList.route,
             arguments = listOf(navArgument("beanId") { type = NavType.LongType })
         ) { backStackEntry ->
