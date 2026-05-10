@@ -48,6 +48,9 @@ object DateUtils {
 
     fun formatDate(timestamp: Long): String = dateFormat.format(Date(timestamp))
     fun formatDateTime(timestamp: Long): String = dateTimeFormat.format(Date(timestamp))
+    fun parseDate(dateStr: String): Long? {
+        return try { dateFormat.parse(dateStr)?.time } catch (e: Exception) { null }
+    }
 
     // 获取某天所在周的周一（以周一为一周开始）
     fun getWeekStart(timestamp: Long): Long {

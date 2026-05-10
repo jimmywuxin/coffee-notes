@@ -24,6 +24,7 @@ import coil.compose.AsyncImage
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.BitmapLoader
+import com.coffeelab.coffeenotes.util.DateUtils
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import kotlinx.coroutines.launch
 import java.io.File
@@ -72,20 +73,6 @@ fun BeanEditScreen(
                 val bitmap = BitmapLoader.loadFromUri(context, it)
                 if (bitmap != null) {
                     viewModel.runKeywordRecognition(bitmap)
-                }
-            }
-        }
-    }
-
-    // Gallery picker - AI mode
-    val aiGalleryLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            scope.launch {
-                val bitmap = BitmapLoader.loadFromUri(context, it)
-                if (bitmap != null) {
-                    viewModel.runAiRecognition(bitmap)
                 }
             }
         }
@@ -147,7 +134,7 @@ fun BeanEditScreen(
             process = b.process
             roastLevel = b.roastLevel
             originalGrindSize = b.grindSize
-            roastDate = if (b.roastDate != null) b.roastDate.toString() else ""
+            roastDate = b.roastDate?.let { DateUtils.formatDate(it) } ?: ""
             notes = b.notes
             imageUri = b.imageUri
             // 萃取建议
@@ -192,41 +179,17 @@ fun BeanEditScreen(
             // Recognition Section
             Surface(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("拍照识别", style = MaterialTheme.typography.titleMedium,
+                    Text("图片识别", style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 8.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = {
-                                navController.navigate(Screen.Camera.createRoute(beanId, "keyword"))
-                            }, modifier = Modifier.weight(1f)) {
-                                Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("拍照", style = MaterialTheme.typography.labelMedium)
-                            }
-                            OutlinedButton(onClick = {
-                                keywordGalleryLauncher.launch("image/*")
-                            }, modifier = Modifier.weight(1f)) {
-                                Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("相册", style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = {
-                                navController.navigate(Screen.Camera.createRoute(beanId, "ai"))
-                            }, modifier = Modifier.weight(1f)) {
-                                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("AI 拍照", style = MaterialTheme.typography.labelMedium)
-                            }
-                            OutlinedButton(onClick = {
-                                aiGalleryLauncher.launch("image/*")
-                            }, modifier = Modifier.weight(1f)) {
-                                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("AI 相册", style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
+                    OutlinedButton(
+                        onClick = {
+                            keywordGalleryLauncher.launch("image/*")
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("从相册选择图片识别")
                     }
                     if (recProcessing) {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
@@ -276,7 +239,8 @@ fun BeanEditScreen(
                     label = { Text("烘焙度") }, modifier = Modifier.weight(1f), singleLine = true)
             }
             OutlinedTextField(value = roastDate, onValueChange = { roastDate = it },
-                label = { Text("烘焙日期") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                label = { Text("烘焙日期") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                placeholder = { Text("格式：2026/05/10") })
 
             // Flavor Tags
             Text("风味标签", style = MaterialTheme.typography.titleMedium)
@@ -356,7 +320,10 @@ fun BeanEditScreen(
                         roaster = roaster, name = name, origin = origin, region = region, estate = estate,
                         variety = variety, process = process, roastLevel = roastLevel,
                         grindSize = savedGrindSize,
-                        roastDate = roastDate.toLongOrNull(), notes = notes, imageUri = imageUri,
+                        roastDate = DateUtils.parseDate(roastDate),
+                        notes = notes, imageUri = imageUri,
+                        isFavorite = bean?.isFavorite ?: false,
+                        isArchived = bean?.isArchived ?: false,
                         createdAt = existingCreatedAt,
                         updatedAt = System.currentTimeMillis(),
                         dose = dose.toFloatOrNull(),
