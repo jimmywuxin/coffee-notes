@@ -38,7 +38,11 @@ fun BrewListScreen(
     } else {
         brewViewModel.allRecords.collectAsState(initial = emptyList())
     }
-    val records = if (beanId <= 0) rawRecords.take(100) else rawRecords
+    val records = rawRecords
+
+    // 分页加载
+    var visibleCount by remember { mutableIntStateOf(30) }
+    val PAGE_SIZE = 30
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
 
     // Week range filter (only for all records view)
@@ -189,7 +193,10 @@ fun BrewListScreen(
                     weekRanges.forEach { range ->
                         FilterChip(
                             selected = (selectedWeekRange == range),
-                            onClick = { selectedWeekRange = range },
+                            onClick = {
+                                selectedWeekRange = range
+                                visibleCount = PAGE_SIZE
+                            },
                             label = { Text(range) }
                         )
                     }
@@ -214,7 +221,7 @@ fun BrewListScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filteredRecords, contentType = { "record" }) { record ->
+                    items(filteredRecords.take(visibleCount), contentType = { "record" }) { record ->
                         val beanName = beans.find { it.id == record.beanId }?.let {
                             "${it.roaster} - ${it.name}"
                         } ?: "未知豆子"
@@ -240,6 +247,19 @@ fun BrewListScreen(
                                 }
                             }
                         )
+                    }
+
+                    // 加载更多
+                    if (filteredRecords.size > visibleCount) {
+                        item(contentType = { "load_more" }) {
+                            TextButton(
+                                onClick = { visibleCount += PAGE_SIZE },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !isSelectionMode
+                            ) {
+                                Text("加载更多 (${filteredRecords.size - visibleCount} 条)")
+                            }
+                        }
                     }
                 }
             }
