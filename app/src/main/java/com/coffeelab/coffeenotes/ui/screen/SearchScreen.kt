@@ -21,6 +21,7 @@ import com.coffeelab.coffeenotes.ui.component.BeanCard
 import com.coffeelab.coffeenotes.ui.component.RecordCard
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
+import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -32,10 +33,12 @@ fun SearchScreen(
     navController: NavController,
     searchScope: String = "all",
     beanViewModel: BeanViewModel = viewModel(),
-    brewViewModel: BrewViewModel = viewModel()
+    brewViewModel: BrewViewModel = viewModel(),
+    methodViewModel: BrewMethodViewModel = viewModel()
 ) {
     val allBeans by beanViewModel.allBeans.collectAsState(initial = emptyList())
     val allRecords by brewViewModel.allRecords.collectAsState(initial = emptyList())
+    val allMethods by methodViewModel.allMethods.collectAsState(initial = emptyList())
 
     var query by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<Any>>(emptyList()) }
@@ -60,10 +63,12 @@ fun SearchScreen(
                 }
             } else emptyList()
             val records = if (searchScope == "all" || searchScope == "records") {
-                allRecords.filter {
-                    it.equipment.contains(query, ignoreCase = true) ||
-                    it.flavorNotes.contains(query, ignoreCase = true) ||
-                    it.grindSize.contains(query, ignoreCase = true)
+                allRecords.filter { record ->
+                    val methodName = allMethods.find { it.id == record.methodId }?.name ?: ""
+                    record.equipment.contains(query, ignoreCase = true) ||
+                    record.flavorNotes.contains(query, ignoreCase = true) ||
+                    record.grindSize.contains(query, ignoreCase = true) ||
+                    methodName.contains(query, ignoreCase = true)
                 }
             } else emptyList()
             searchResults = beans + records
@@ -101,7 +106,7 @@ fun SearchScreen(
                     Text(
                         when (searchScope) {
                             "beans" -> "搜索烘焙商、豆名、产地..."
-                            "records" -> "搜索器具、风味、研磨度..."
+                            "records" -> "搜索器具、风味、研磨度、冲煮手法..."
                             else -> "搜索烘焙商、豆名、产地、器具..."
                         }
                     )
@@ -183,6 +188,25 @@ fun SearchScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                     }
+                    // 按冲煮手法
+                    val methodNames = allRecords.mapNotNull { record ->
+                        allMethods.find { it.id == record.methodId }?.name
+                    }.distinct().filter { it.isNotEmpty() }
+                    if (methodNames.isNotEmpty()) {
+                        Text("按冲煮手法：", style = MaterialTheme.typography.bodyMedium)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            methodNames.forEach { method ->
+                                SuggestionChip(
+                                    onClick = { query = method },
+                                    label = { Text(method) }
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
 
                 if (searchScope == "all" || searchScope == "beans") {
@@ -197,6 +221,21 @@ fun SearchScreen(
                                 SuggestionChip(
                                     onClick = { query = roaster },
                                     label = { Text(roaster) }
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text("按处理法：", style = MaterialTheme.typography.bodyMedium)
+                        val processes = allBeans.map { it.process }.filter { it.isNotEmpty() }.distinct()
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            processes.forEach { process ->
+                                SuggestionChip(
+                                    onClick = { query = process },
+                                    label = { Text(process) }
                                 )
                             }
                         }
