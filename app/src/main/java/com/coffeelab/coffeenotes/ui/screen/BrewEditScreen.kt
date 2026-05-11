@@ -63,6 +63,7 @@ fun BrewEditScreen(
     // State
     var selectedBeanId by remember { mutableStateOf(beanId) }
     var selectedMethodId by remember { mutableStateOf(-1L) }
+    var methodSelectedByUser by remember { mutableStateOf(false) } // 仅用户主动选择手法时自动填充
     var equipment by remember { mutableStateOf("") }
     var coffeeWeight by remember { mutableStateOf("") }
     var coffeeWaterRatio by remember { mutableStateOf("") }
@@ -167,6 +168,37 @@ fun BrewEditScreen(
                 )
             } else {
                 selectedBeanExtraction = null
+            }
+        }
+    }
+
+    // 当用户选择冲煮手法时（或加载已有记录时），自动填入手法参数
+    LaunchedEffect(selectedMethodId, methods) {
+        if (selectedMethodId > 0) {
+            val method = methods.find { it.id == selectedMethodId }
+            method?.let { m ->
+                val steps = com.coffeelab.coffeenotes.data.Converters.parseSteps(m.steps)
+                // 取最后一个有注水量的步骤的值
+                val lastWaterAmount = steps.lastOrNull { it.waterAmount != null }?.waterAmount
+                // 取最后一个有时长的步骤的值
+                val lastDuration = steps.lastOrNull { it.durationSeconds > 0 }?.durationSeconds
+                // 仅当字段为空时才填充（不覆盖用户已编辑的值）
+                if (coffeeWeight.isEmpty() && m.coffeeWeight != null) {
+                    coffeeWeight = m.coffeeWeight.toString()
+                }
+                if (coffeeWaterRatio.isEmpty() && m.coffeeWaterRatio != null) {
+                    val r = m.coffeeWaterRatio
+                    coffeeWaterRatio = if (r == r.toLong().toDouble()) r.toLong().toString() else r.toString()
+                }
+                if (waterTemp.isEmpty() && m.waterTemp != null) {
+                    waterTemp = m.waterTemp.toString()
+                }
+                if (waterAmount.isEmpty() && lastWaterAmount != null) {
+                    waterAmount = lastWaterAmount.toString()
+                }
+                if (extractionTime.isEmpty() && lastDuration != null) {
+                    extractionTime = lastDuration.toString()
+                }
             }
         }
     }
@@ -362,6 +394,7 @@ fun BrewEditScreen(
                             text = { Text(method.name) },
                             onClick = {
                                 selectedMethodId = method.id
+                                methodSelectedByUser = true
                                 methodExpanded = false
                             }
                         )

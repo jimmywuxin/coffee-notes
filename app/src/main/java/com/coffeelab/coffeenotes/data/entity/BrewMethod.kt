@@ -15,6 +15,10 @@ data class BrewMethod(
     // Stored as JSON string in SQLite (TypeConverter: List<BrewMethodStep> ↔ String)
     // Backup: Gson serializes as JSON array in backup JSON
     val steps: String? = null,
+    // 冲煮参数默认值
+    val coffeeWeight: Double? = null,       // 粉重（g）
+    val coffeeWaterRatio: Double? = null,    // 粉水比（存分母，如 15.0）
+    val waterTemp: Int? = null,             // 水温（℃）
     val sortOrder: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()

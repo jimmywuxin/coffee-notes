@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
         Equipment::class,
         Grinder::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -93,6 +93,15 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migration from v9 → v10: add coffeeWeight, coffeeWaterRatio, waterTemp to brew_methods
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE brew_methods ADD COLUMN coffeeWeight REAL")
+                db.execSQL("ALTER TABLE brew_methods ADD COLUMN coffeeWaterRatio REAL")
+                db.execSQL("ALTER TABLE brew_methods ADD COLUMN waterTemp INTEGER")
+            }
+        }
+
         // Migration from v7 → v8: add sortOrder to coffee_beans and brew_methods
         private val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -112,7 +121,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "coffee_notes.db"
                 )
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
