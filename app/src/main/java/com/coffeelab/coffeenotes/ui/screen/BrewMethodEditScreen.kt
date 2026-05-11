@@ -3,6 +3,7 @@ package com.coffeelab.coffeenotes.ui.screen
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -24,7 +25,7 @@ import com.coffeelab.coffeenotes.data.entity.BrewMethodStep
 import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun BrewMethodEditScreen(
     navController: NavController,
@@ -38,6 +39,14 @@ fun BrewMethodEditScreen(
     var isPreset by remember { mutableStateOf(false) }
     var steps by remember { mutableStateOf(listOf<BrewMethodStep>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    // 冲煮参数默认值
+    var coffeeWeightText by remember { mutableStateOf("") }
+    var coffeeWeight by remember { mutableStateOf<Double?>(null) }
+    var waterTempText by remember { mutableStateOf("") }
+    var waterTemp by remember { mutableStateOf<Int?>(null) }
+    var coffeeWaterRatioText by remember { mutableStateOf("") }
+    var coffeeWaterRatio by remember { mutableStateOf<Double?>(null) }
+    var showCustomRatio by remember { mutableStateOf(false) }
 
     // Load existing method
     LaunchedEffect(methodId) {
@@ -47,6 +56,15 @@ fun BrewMethodEditScreen(
                 name = it.name
                 isPreset = it.isPreset
                 steps = Converters.parseSteps(it.steps)
+                coffeeWeight = it.coffeeWeight
+                coffeeWeightText = it.coffeeWeight?.toString() ?: ""
+                waterTemp = it.waterTemp
+                waterTempText = it.waterTemp?.toString() ?: ""
+                coffeeWaterRatio = it.coffeeWaterRatio
+                coffeeWaterRatioText = it.coffeeWaterRatio?.let { r ->
+                    val s = r.toString()
+                    if (s.endsWith(".0")) s.dropLast(2) else s
+                } ?: ""
             }
         }
     }
@@ -91,6 +109,85 @@ fun BrewMethodEditScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+
+            // 冲煮参数默认值
+            Text("冲煮参数（选填，作为新建记录的默认值）", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = coffeeWeightText,
+                    onValueChange = { newVal ->
+                        coffeeWeightText = newVal
+                        coffeeWeight = newVal.toDoubleOrNull()
+                    },
+                    label = { Text("粉量 (g)") },
+                    placeholder = { Text("如 15") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                )
+                OutlinedTextField(
+                    value = waterTempText,
+                    onValueChange = { newVal ->
+                        waterTempText = newVal
+                        waterTemp = newVal.toIntOrNull()
+                    },
+                    label = { Text("水温 (℃)") },
+                    placeholder = { Text("如 93") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+            Text("粉水比", style = MaterialTheme.typography.bodyMedium)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                val ratioOptions = listOf("2", "15", "16", "17")
+                ratioOptions.forEach { ratio ->
+                    FilterChip(
+                        selected = coffeeWaterRatioText == ratio,
+                        onClick = {
+                            coffeeWaterRatio = ratio.toDoubleOrNull()
+                            coffeeWaterRatioText = ratio
+                        },
+                        label = { Text("1:$ratio") }
+                    )
+                }
+                // 自定义粉水比
+                val isCustomRatio = coffeeWaterRatioText.isNotEmpty() && !ratioOptions.contains(coffeeWaterRatioText)
+                FilterChip(
+                    selected = showCustomRatio || isCustomRatio,
+                    onClick = {
+                        coffeeWaterRatioText = ""
+                        showCustomRatio = true
+                    },
+                    label = { Text("自定义") }
+                )
+                if (showCustomRatio || isCustomRatio) {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 0.dp)
+                        ) {
+                            Text("1:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            BasicTextField(
+                                value = coffeeWaterRatioText,
+                                onValueChange = {
+                                    coffeeWaterRatioText = it
+                                    coffeeWaterRatio = it.toDoubleOrNull()
+                                    if (it.isNotEmpty()) showCustomRatio = true
+                                },
+                                textStyle = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.width(60.dp)
+                            )
+                        }
+                    }
+                }
+            }
 
             // Steps header
             Row(
@@ -159,6 +256,9 @@ fun BrewMethodEditScreen(
                             name = name,
                             isPreset = isPreset,
                             steps = Converters.serializeSteps(steps),
+                            coffeeWeight = coffeeWeight,
+                            coffeeWaterRatio = coffeeWaterRatio,
+                            waterTemp = waterTemp,
                             createdAt = if (isEditing) (viewModel.getMethod(methodId)?.createdAt ?: System.currentTimeMillis()) else System.currentTimeMillis(),
                             updatedAt = System.currentTimeMillis()
                         )
