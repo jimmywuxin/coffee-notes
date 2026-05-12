@@ -106,7 +106,7 @@ fun SearchScreen(
                     Text(
                         when (searchScope) {
                             "beans" -> "搜索烘焙商、豆名、产地..."
-                            "records" -> "搜索器具、风味、研磨度、冲煮手法..."
+                            "records" -> "搜索器具、冲煮手法..."
                             else -> "搜索烘焙商、豆名、产地、器具..."
                         }
                     )
@@ -172,71 +172,162 @@ fun SearchScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 if (searchScope == "all" || searchScope == "records") {
-                    val equipmentTypes = allRecords.map { it.equipment }.distinct().filter { it.isNotEmpty() }
-                    if (equipmentTypes.isNotEmpty()) {
-                        Text("按器具：", style = MaterialTheme.typography.bodyMedium)
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            equipmentTypes.forEach { equip ->
-                                SuggestionChip(
-                                    onClick = { query = equip },
-                                    label = { Text(equip) }
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                    // 按冲煮手法
-                    val methodNames = allRecords.mapNotNull { record ->
+                    var equipExpanded by remember { mutableStateOf(false) }
+                    var methodExpanded by remember { mutableStateOf(false) }
+                    var selectedEquipment by remember { mutableStateOf("") }
+                    var selectedMethod by remember { mutableStateOf("") }
+
+                    val equipmentTypes = listOf("全部") + allRecords.map { it.equipment }.distinct().filter { it.isNotEmpty() }
+                    val methodNames = listOf("全部") + allRecords.mapNotNull { record ->
                         allMethods.find { it.id == record.methodId }?.name
                     }.distinct().filter { it.isNotEmpty() }
-                    if (methodNames.isNotEmpty()) {
-                        Text("按冲煮手法：", style = MaterialTheme.typography.bodyMedium)
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // 器具下拉框
+                        ExposedDropdownMenuBox(
+                            expanded = equipExpanded,
+                            onExpandedChange = { equipExpanded = it },
+                            modifier = Modifier.weight(1f)
                         ) {
-                            methodNames.forEach { method ->
-                                SuggestionChip(
-                                    onClick = { query = method },
-                                    label = { Text(method) }
-                                )
+                            OutlinedTextField(
+                                value = if (selectedEquipment.isEmpty()) "器具" else selectedEquipment,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("器具") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = equipExpanded) },
+                                modifier = Modifier.menuAnchor().fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = equipExpanded,
+                                onDismissRequest = { equipExpanded = false },
+                                modifier = Modifier.heightIn(max = 250.dp)
+                            ) {
+                                equipmentTypes.forEach { equip ->
+                                    DropdownMenuItem(
+                                        text = { Text(equip) },
+                                        onClick = {
+                                            selectedEquipment = equip
+                                            query = if (equip == "全部") "" else equip
+                                            equipExpanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // 冲煮手法下拉框
+                        ExposedDropdownMenuBox(
+                            expanded = methodExpanded,
+                            onExpandedChange = { methodExpanded = it },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value = if (selectedMethod.isEmpty()) "冲煮手法" else selectedMethod,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("冲煮手法") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = methodExpanded) },
+                                modifier = Modifier.menuAnchor().fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = methodExpanded,
+                                onDismissRequest = { methodExpanded = false },
+                                modifier = Modifier.heightIn(max = 250.dp)
+                            ) {
+                                methodNames.forEach { method ->
+                                    DropdownMenuItem(
+                                        text = { Text(method) },
+                                        onClick = {
+                                            selectedMethod = method
+                                            query = if (method == "全部") "" else method
+                                            methodExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
                 if (searchScope == "all" || searchScope == "beans") {
                     if (allBeans.isNotEmpty()) {
-                        Text("按烘焙商：", style = MaterialTheme.typography.bodyMedium)
-                        val roasters = allBeans.map { it.roaster }.filter { it.isNotEmpty() }.distinct()
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            roasters.forEach { roaster ->
-                                SuggestionChip(
-                                    onClick = { query = roaster },
-                                    label = { Text(roaster) }
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        var roasterExpanded by remember { mutableStateOf(false) }
+                        var processExpanded by remember { mutableStateOf(false) }
+                        var selectedRoaster by remember { mutableStateOf("") }
+                        var selectedProcess by remember { mutableStateOf("") }
 
-                        Text("按处理法：", style = MaterialTheme.typography.bodyMedium)
-                        val processes = allBeans.map { it.process }.filter { it.isNotEmpty() }.distinct()
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        val roasters = listOf("全部") + allBeans.map { it.roaster }.filter { it.isNotEmpty() }.distinct()
+                        val processes = listOf("全部") + allBeans.map { it.process }.filter { it.isNotEmpty() }.distinct()
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            processes.forEach { process ->
-                                SuggestionChip(
-                                    onClick = { query = process },
-                                    label = { Text(process) }
+                            // 烘焙商下拉框
+                            ExposedDropdownMenuBox(
+                                expanded = roasterExpanded,
+                                onExpandedChange = { roasterExpanded = it },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                OutlinedTextField(
+                                    value = if (selectedRoaster.isEmpty()) "烘焙商" else selectedRoaster,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("烘焙商") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = roasterExpanded) },
+                                    modifier = Modifier.menuAnchor().fillMaxWidth()
                                 )
+                                ExposedDropdownMenu(
+                                    expanded = roasterExpanded,
+                                    onDismissRequest = { roasterExpanded = false },
+                                    modifier = Modifier.heightIn(max = 250.dp)
+                                ) {
+                                    roasters.forEach { roaster ->
+                                        DropdownMenuItem(
+                                            text = { Text(roaster) },
+                                            onClick = {
+                                                selectedRoaster = roaster
+                                                query = if (roaster == "全部") "" else roaster
+                                                roasterExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // 处理法下拉框
+                            ExposedDropdownMenuBox(
+                                expanded = processExpanded,
+                                onExpandedChange = { processExpanded = it },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                OutlinedTextField(
+                                    value = if (selectedProcess.isEmpty()) "处理法" else selectedProcess,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("处理法") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = processExpanded) },
+                                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = processExpanded,
+                                    onDismissRequest = { processExpanded = false },
+                                    modifier = Modifier.heightIn(max = 250.dp)
+                                ) {
+                                    processes.forEach { process ->
+                                        DropdownMenuItem(
+                                            text = { Text(process) },
+                                            onClick = {
+                                                selectedProcess = process
+                                                query = if (process == "全部") "" else process
+                                                processExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
