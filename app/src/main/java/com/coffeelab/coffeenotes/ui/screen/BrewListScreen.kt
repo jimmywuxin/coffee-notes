@@ -47,9 +47,23 @@ fun BrewListScreen(
 
     // Week range filter (only for all records view)
     var selectedWeekRange by remember { mutableStateOf("全部") }
-    val weekRanges = listOf("全部", "本周", "上周", "两周前", "更早")
-    val filteredRecords = remember(selectedWeekRange, records) {
-        if (beanId > 0) records else DateUtils.filterByWeekRange(records, selectedWeekRange)
+    var selectedRatingFilter by remember { mutableStateOf("全部") }
+    val weekRanges = listOf("全部", "本周", "上周", "更早")
+    val ratingFilters = listOf("全部", "三星以上", "四星以上", "五星")
+
+    val filteredRecords = remember(selectedWeekRange, selectedRatingFilter, records) {
+        if (beanId > 0) {
+            records
+        } else {
+            var result = DateUtils.filterByWeekRange(records, selectedWeekRange)
+            result = when (selectedRatingFilter) {
+                "三星以上" -> result.filter { it.overallRating >= 3 }
+                "四星以上" -> result.filter { it.overallRating >= 4 }
+                "五星" -> result.filter { it.overallRating >= 5 }
+                else -> result
+            }
+            result
+        }
     }
 
     // 多选状态
@@ -181,24 +195,77 @@ fun BrewListScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Filter chips (only for all records view)
+            // Filter dropdowns (only for all records view)
             if (beanId <= 0 && records.isNotEmpty()) {
+                var timeExpanded by remember { mutableStateOf(false) }
+                var ratingExpanded by remember { mutableStateOf(false) }
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .horizontalScroll(rememberScrollState()),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    weekRanges.forEach { range ->
-                        FilterChip(
-                            selected = (selectedWeekRange == range),
-                            onClick = {
-                                selectedWeekRange = range
-                                visibleCount = PAGE_SIZE
-                            },
-                            label = { Text(range) }
+                    // Time filter
+                    ExposedDropdownMenuBox(
+                        expanded = timeExpanded,
+                        onExpandedChange = { timeExpanded = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = selectedWeekRange,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("时间") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = timeExpanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
+                        ExposedDropdownMenu(
+                            expanded = timeExpanded,
+                            onDismissRequest = { timeExpanded = false }
+                        ) {
+                            weekRanges.forEach { range ->
+                                DropdownMenuItem(
+                                    text = { Text(range) },
+                                    onClick = {
+                                        selectedWeekRange = range
+                                        timeExpanded = false
+                                        visibleCount = PAGE_SIZE
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // Rating filter
+                    ExposedDropdownMenuBox(
+                        expanded = ratingExpanded,
+                        onExpandedChange = { ratingExpanded = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = selectedRatingFilter,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("星级") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = ratingExpanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = ratingExpanded,
+                            onDismissRequest = { ratingExpanded = false }
+                        ) {
+                            ratingFilters.forEach { filter ->
+                                DropdownMenuItem(
+                                    text = { Text(filter) },
+                                    onClick = {
+                                        selectedRatingFilter = filter
+                                        ratingExpanded = false
+                                        visibleCount = PAGE_SIZE
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
