@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
         Equipment::class,
         Grinder::class
     ],
-    version = 10,
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -102,6 +102,27 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migration from v10 → v11: add localPhotoPaths to coffee_beans
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE coffee_beans ADD COLUMN localPhotoPaths TEXT")
+            }
+        }
+
+        // Migration from v11 → v12: add pouringDurationSeconds to brew_records
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE brew_records ADD COLUMN pouringDurationSeconds INTEGER")
+            }
+        }
+
+        // Migration from v12 → v13: add pouringDurationSeconds to coffee_beans
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE coffee_beans ADD COLUMN pouringDurationSeconds INTEGER")
+            }
+        }
+
         // Migration from v7 → v8: add sortOrder to coffee_beans and brew_methods
         private val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -121,7 +142,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "coffee_notes.db"
                 )
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)

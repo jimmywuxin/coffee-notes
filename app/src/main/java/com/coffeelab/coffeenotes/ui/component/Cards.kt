@@ -211,6 +211,8 @@ fun RecordCard(
                         append("${record.coffeeWeight}g")
                         append(" · 1:${String.format("%.1f", record.coffeeWaterRatio)}")
                         if (record.waterTemp > 0) append(" · ${record.waterTemp}℃")
+                        if (record.pouringDurationSeconds != null) append(" · 注水${record.pouringDurationSeconds}s")
+                        if (record.extractionTime > 0) append(" · 萃取${record.extractionTime}s")
                         if (record.isIced) append(" · ❄️${record.iceAmount}g")
                         if (record.bypassAmount > 0) append(" · +${record.bypassAmount}ml bypass")
                     },

@@ -18,6 +18,7 @@ data class CoffeeBean(
     val grindSize: String = "泰摩C5",
     val roastDate: Long? = null,
     val notes: String = "",
+    val localPhotoPaths: List<String> = emptyList(),
     val imageUri: String = "",
     val isFavorite: Boolean = false,
     val isArchived: Boolean = false,
@@ -30,5 +31,6 @@ data class CoffeeBean(
     val brewRatio: String? = null,          // 粉水比，如 "1:15"
     val waterAmount: Float? = null,         // 注水量（毫升）
     val brewTime: Int? = null,               // 萃取时间（秒）
-    val waterTemp: Int? = null               // 水温（°C），可留空
+    val waterTemp: Int? = null,              // 水温（°C）
+    val pouringDurationSeconds: Int? = null  // 注水时长（秒），选填
 )

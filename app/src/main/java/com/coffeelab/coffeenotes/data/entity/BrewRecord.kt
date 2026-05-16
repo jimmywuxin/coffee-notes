@@ -31,6 +31,7 @@ data class BrewRecord(
     val grindSize: String = "",
     val grinder: String = "",
     val extractionTime: Int = 0,
+    val pouringDurationSeconds: Int? = null,
     val acidity: Int = 0,
     val sweetness: Int = 0,
     val bitterness: Int = 0,

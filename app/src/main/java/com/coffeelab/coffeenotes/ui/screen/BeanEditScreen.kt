@@ -1,8 +1,11 @@
 package com.coffeelab.coffeenotes.ui.screen
 
+import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -25,6 +28,7 @@ import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.BitmapLoader
 import com.coffeelab.coffeenotes.util.DateUtils
+import com.coffeelab.coffeenotes.util.ImageUtils
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import kotlinx.coroutines.launch
 import java.io.File
@@ -50,6 +54,7 @@ fun BeanEditScreen(
     var roastDate by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf("") }
+    var localPhotoPaths by remember { mutableStateOf<List<String>>(emptyList()) }
     var tagInput by remember { mutableStateOf("") }
     val tags = remember { mutableStateListOf<String>() }
     var originalGrindSize by remember { mutableStateOf("") }
@@ -57,6 +62,7 @@ fun BeanEditScreen(
     var dose by remember { mutableStateOf("") }
     var brewRatio by remember { mutableStateOf("") }
     var waterAmount by remember { mutableStateOf("") }
+    var pouringDurationSeconds by remember { mutableStateOf("") }
     var brewTime by remember { mutableStateOf("") }
     var waterTemp by remember { mutableStateOf("") }
 
@@ -64,7 +70,7 @@ fun BeanEditScreen(
     val recResult by viewModel.recognitionResult.collectAsState(initial = null)
     val recProcessing by viewModel.recognitionProcessing.collectAsState(initial = false)
 
-    // Gallery picker - keyword mode
+    // Gallery picker - keyword mode (for OCR)
     val keywordGalleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -77,6 +83,24 @@ fun BeanEditScreen(
             }
         }
     }
+
+    // Gallery picker for bean photos (album only, no camera)
+    val photoGalleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            if (localPhotoPaths.size < 5) {
+                scope.launch {
+                    val relativePath = ImageUtils.compressAndSaveBeanPhoto(context, it)
+                    if (relativePath != null) {
+                        localPhotoPaths = localPhotoPaths + relativePath
+                    }
+                }
+            }
+        }
+    }
+
+    var showPhotoOptions by remember { mutableStateOf(false) }
 
     // Apply recognition result with user feedback
     var statusMessage by remember { mutableStateOf<String?>(null) }
@@ -137,10 +161,12 @@ fun BeanEditScreen(
             roastDate = b.roastDate?.let { DateUtils.formatDate(it) } ?: ""
             notes = b.notes
             imageUri = b.imageUri
+            localPhotoPaths = b.localPhotoPaths
             // 萃取建议
             dose = b.dose?.toString() ?: ""
             brewRatio = b.brewRatio ?: ""
             waterAmount = b.waterAmount?.toString() ?: ""
+            pouringDurationSeconds = b.pouringDurationSeconds?.toString() ?: ""
             brewTime = b.brewTime?.toString() ?: ""
             waterTemp = b.waterTemp?.toString() ?: ""
             if (tags.isEmpty() && existingTags.isNotEmpty()) {
@@ -267,6 +293,74 @@ fun BeanEditScreen(
             OutlinedTextField(value = notes, onValueChange = { notes = it },
                 label = { Text("备注") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
 
+            // 豆子照片区块（在官方萃取建议上方）
+            if (localPhotoPaths.isNotEmpty() || localPhotoPaths.size < 5) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Text("豆子照片", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(4.dp))
+                // 已有照片 Grid
+                if (localPhotoPaths.isNotEmpty()) {
+                    androidx.compose.foundation.layout.Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val rows = localPhotoPaths.chunked(3)
+                        rows.forEach { rowPhotos ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                rowPhotos.forEach { photoPath ->
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        AsyncImage(
+                                            model = File(ImageUtils.getBeanPhotoFile(context, photoPath).absolutePath),
+                                            contentDescription = "豆子照片",
+                                            modifier = Modifier
+                                                .aspectRatio(1f)
+                                                .fillMaxWidth(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        IconButton(
+                                            onClick = {
+                                                localPhotoPaths = localPhotoPaths - photoPath
+                                                ImageUtils.deleteBeanPhoto(photoPath, context)
+                                            },
+                                            modifier = Modifier.align(Alignment.TopEnd)
+                                        ) {
+                                            Surface(
+                                                shape = MaterialTheme.shapes.small,
+                                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Close,
+                                                    contentDescription = "删除",
+                                                    modifier = Modifier.padding(2.dp),
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                repeat(3 - rowPhotos.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                // 添加照片按钮
+                if (localPhotoPaths.size < 5) {
+                    OutlinedButton(
+                        onClick = { showPhotoOptions = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.AddAPhoto, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("添加照片（${localPhotoPaths.size}/5）")
+                    }
+                }
+            }
+
             // 官方萃取建议
             Text("官方萃取建议", style = MaterialTheme.typography.titleMedium)
             // dose + waterAmount（调换后的位置）
@@ -299,17 +393,22 @@ fun BeanEditScreen(
                     }
                 }
             }
-            // brewRatio + brewTime（调换后的位置）
+            // brewRatio + waterTemp（换位置）
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(value = brewRatio, onValueChange = { brewRatio = it },
                     label = { Text("粉水比") }, modifier = Modifier.weight(1f), singleLine = true,
                     placeholder = { Text("如 1:15") })
+                OutlinedTextField(value = waterTemp, onValueChange = { waterTemp = it },
+                    label = { Text("水温(°C)") }, modifier = Modifier.weight(1f), singleLine = true,
+                    placeholder = { Text("可留空") })
+            }
+            // 注水时长 + 萃取时间
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(value = pouringDurationSeconds, onValueChange = { pouringDurationSeconds = it },
+                    label = { Text("注水时长(s)") }, modifier = Modifier.weight(1f), singleLine = true)
                 OutlinedTextField(value = brewTime, onValueChange = { brewTime = it },
                     label = { Text("萃取时间(s)") }, modifier = Modifier.weight(1f), singleLine = true)
             }
-            OutlinedTextField(value = waterTemp, onValueChange = { waterTemp = it },
-                label = { Text("水温(°C)") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
-                placeholder = { Text("可留空") })
 
             Button(onClick = {
                 scope.launch {
@@ -322,6 +421,7 @@ fun BeanEditScreen(
                         grindSize = savedGrindSize,
                         roastDate = DateUtils.parseDate(roastDate),
                         notes = notes, imageUri = imageUri,
+                        localPhotoPaths = localPhotoPaths,
                         isFavorite = bean?.isFavorite ?: false,
                         isArchived = bean?.isArchived ?: false,
                         createdAt = existingCreatedAt,
@@ -330,13 +430,42 @@ fun BeanEditScreen(
                         brewRatio = brewRatio.ifBlank { null },
                         waterAmount = waterAmount.toFloatOrNull(),
                         brewTime = brewTime.toIntOrNull(),
-                        waterTemp = waterTemp.toIntOrNull()
+                        waterTemp = waterTemp.toIntOrNull(),
+                        pouringDurationSeconds = pouringDurationSeconds.toIntOrNull()
                     )
                     if (isEditing) viewModel.updateBeanSync(beanToSave, tags.toList())
                     else viewModel.saveBeanSync(beanToSave, tags.toList())
                     navController.popBackStack()
                 }
             }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("保存") }
+
+            // Photo Options Bottom Sheet
+            if (showPhotoOptions) {
+                ModalBottomSheet(
+                    onDismissRequest = { showPhotoOptions = false }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text("添加豆子照片（最多5张）", style = MaterialTheme.typography.titleMedium)
+                        Button(
+                            onClick = {
+                                showPhotoOptions = false
+                                photoGalleryLauncher.launch("image/*")
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("从相册选择")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+            }
         }
     }
 }
