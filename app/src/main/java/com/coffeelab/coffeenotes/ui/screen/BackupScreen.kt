@@ -30,9 +30,9 @@ fun BackupScreen(
     val scope = rememberCoroutineScope()
     val backupState by viewModel.backupState.collectAsState()
 
-    // JSON Export launcher
-    val jsonExportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
+    // ZIP Export launcher
+    val zipExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip")
     ) { uri ->
         uri?.let {
             scope.launch {
@@ -41,8 +41,8 @@ fun BackupScreen(
         }
     }
 
-    // JSON Import launcher
-    val jsonImportLauncher = rememberLauncherForActivityResult(
+    // ZIP Import launcher
+    val zipImportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
@@ -72,7 +72,7 @@ fun BackupScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("导出备份", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "将所有数据导出为 JSON 文件",
+                        "将所有数据（含豆子照片）导出为 ZIP 文件",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
@@ -80,7 +80,7 @@ fun BackupScreen(
                     Button(
                         onClick = {
                             val dateStr = SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.CHINA).format(Date())
-                            jsonExportLauncher.launch("CoffeeNotes_$dateStr.json")
+                            zipExportLauncher.launch("CoffeeNotes_$dateStr.zip")
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -96,13 +96,13 @@ fun BackupScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("恢复备份", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "从 JSON 备份文件恢复全部数据",
+                        "从 ZIP 备份文件恢复全部数据（含照片）",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
                     )
                     OutlinedButton(
-                        onClick = { jsonImportLauncher.launch("application/json") },
+                        onClick = { zipImportLauncher.launch("*/*") },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null)

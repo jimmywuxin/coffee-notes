@@ -1,5 +1,7 @@
 package com.coffeelab.coffeenotes.ui.screen
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,9 +13,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -21,6 +27,7 @@ import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.ui.component.RecordCard
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.DateUtils
+import com.coffeelab.coffeenotes.util.ImageUtils
 import com.coffeelab.coffeenotes.ui.component.RadarChart
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
@@ -34,6 +41,7 @@ fun BeanDetailScreen(
     beanViewModel: BeanViewModel = viewModel(),
     brewViewModel: BrewViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     LaunchedEffect(beanId) {
         beanViewModel.loadBean(beanId)
         beanViewModel.loadTags(beanId)
@@ -67,6 +75,7 @@ fun BeanDetailScreen(
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showArchiveDialog by remember { mutableStateOf(false) }
+    var selectedPhotoPath by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -153,6 +162,47 @@ fun BeanDetailScreen(
                     }
                 }
 
+                // Bean Photos Grid (above extraction suggestion)
+                if (b.localPhotoPaths.isNotEmpty()) {
+                    item {
+                        Text(
+                            "豆子照片",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        androidx.compose.foundation.layout.Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            val rows = b.localPhotoPaths.chunked(3)
+                            rows.forEach { rowPhotos ->
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    rowPhotos.forEach { photoPath ->
+                                        val photoFile = ImageUtils.getBeanPhotoFile(context, photoPath)
+                                        AsyncImage(
+                                            model = File(photoFile.absolutePath),
+                                            contentDescription = "豆子照片",
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .fillMaxWidth()
+                                                .clickable { selectedPhotoPath = photoPath },
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                    // Fill empty slots if row has less than 3
+                                    repeat(3 - rowPhotos.size) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // 官方萃取建议卡片
                 if (b.dose != null || b.brewRatio != null ||
                     b.waterAmount != null || b.brewTime != null || b.waterTemp != null) {
@@ -168,20 +218,43 @@ fun BeanDetailScreen(
                                         color = MaterialTheme.colorScheme.onSecondaryContainer)
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
-                                if (b.dose != null) {
-                                    ExtractionInfoRow("粉量", "${b.dose}g")
+                                // 粉量 + 注水量
+                                if (b.dose != null || b.waterAmount != null) {
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        if (b.dose != null) {
+                                            ExtractionInfoRow("粉量", "${b.dose}g", modifier = Modifier.weight(1f))
+                                        }
+                                        if (b.waterAmount != null) {
+                                            ExtractionInfoRow("注水量", "${b.waterAmount}ml", modifier = Modifier.weight(1f))
+                                        }
+                                    }
                                 }
-                                if (b.brewRatio?.isNotEmpty() == true) {
-                                    ExtractionInfoRow("粉水比", b.brewRatio)
+                                // 粉水比 + 水温
+                                if (b.brewRatio?.isNotEmpty() == true || b.waterTemp != null) {
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        if (b.brewRatio?.isNotEmpty() == true) {
+                                            val ratioDisplay = if (b.brewRatio!!.startsWith("1:") || b.brewRatio!!.startsWith("1：")) {
+                                                b.brewRatio
+                                            } else {
+                                                "1:${b.brewRatio}"
+                                            }
+                                            ExtractionInfoRow("粉水比", ratioDisplay, modifier = Modifier.weight(1f))
+                                        }
+                                        if (b.waterTemp != null) {
+                                            ExtractionInfoRow("水温", "${b.waterTemp}°C", modifier = Modifier.weight(1f))
+                                        }
+                                    }
                                 }
-                                if (b.waterAmount != null) {
-                                    ExtractionInfoRow("注水量", "${b.waterAmount}ml")
-                                }
-                                if (b.brewTime != null) {
-                                    ExtractionInfoRow("萃取时间", "${b.brewTime}s")
-                                }
-                                if (b.waterTemp != null) {
-                                    ExtractionInfoRow("水温", "${b.waterTemp}°C")
+                                // 注水时长 + 萃取时间
+                                if (b.pouringDurationSeconds != null || b.brewTime != null) {
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        if (b.pouringDurationSeconds != null) {
+                                            ExtractionInfoRow("注水时长", "${b.pouringDurationSeconds}s", modifier = Modifier.weight(1f))
+                                        }
+                                        if (b.brewTime != null) {
+                                            ExtractionInfoRow("萃取时间", "${b.brewTime}s", modifier = Modifier.weight(1f))
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -363,6 +436,15 @@ fun BeanDetailScreen(
             }
         )
     }
+
+    // Full-screen photo viewer
+    if (selectedPhotoPath != null) {
+        FullScreenPhotoDialog(
+            photoPath = selectedPhotoPath!!,
+            context = context,
+            onDismiss = { selectedPhotoPath = null }
+        )
+    }
 }
 
 @Composable
@@ -384,8 +466,8 @@ fun InfoRow(label: String, value: String) {
 }
 
 @Composable
-fun ExtractionInfoRow(label: String, value: String) {
-    Row(modifier = Modifier.padding(vertical = 2.dp)) {
+fun ExtractionInfoRow(label: String, value: String, modifier: Modifier = Modifier) {
+    Row(modifier = modifier.padding(vertical = 2.dp)) {
         Text(
             text = "$label：",
             style = MaterialTheme.typography.bodyMedium,
@@ -397,5 +479,46 @@ fun ExtractionInfoRow(label: String, value: String) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSecondaryContainer
         )
+    }
+}
+
+// Full-screen photo viewer dialog
+@Composable
+fun FullScreenPhotoDialog(
+    photoPath: String,
+    context: android.content.Context,
+    onDismiss: () -> Unit
+) {
+    val photoFile = ImageUtils.getBeanPhotoFile(context, photoPath)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = File(photoFile.absolutePath),
+                contentDescription = "照片",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "关闭",
+                    tint = Color.White
+                )
+            }
+        }
     }
 }

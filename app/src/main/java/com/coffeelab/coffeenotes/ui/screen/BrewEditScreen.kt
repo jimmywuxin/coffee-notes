@@ -38,7 +38,8 @@ private data class ExtractionSuggestion(
     val brewRatio: String?,
     val waterAmount: Float?,
     val brewTime: Int?,
-    val waterTemp: Int?
+    val waterTemp: Int?,
+    val pouringDurationSeconds: Int?
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -72,6 +73,7 @@ fun BrewEditScreen(
     var grinder by remember { mutableStateOf("") }
     var grindSize by remember { mutableStateOf("") }
     var extractionTime by remember { mutableStateOf("") }
+    var pouringDurationSeconds by remember { mutableStateOf("") }
     var flavorNotes by remember { mutableStateOf("") }
     var showCustomRatio by remember { mutableStateOf(false) }
 
@@ -140,6 +142,7 @@ fun BrewEditScreen(
                 grinder = r.grinder
                 grindSize = r.grindSize
                 extractionTime = if (r.extractionTime > 0) r.extractionTime.toString() else ""
+                pouringDurationSeconds = r.pouringDurationSeconds?.toString() ?: ""
                 flavorNotes = r.flavorNotes
                 acidity = r.acidity
                 sweetness = r.sweetness
@@ -158,13 +161,14 @@ fun BrewEditScreen(
     LaunchedEffect(selectedBeanId, beans) {
         if (!isEditing) {
             val bean = beans.find { it.id == selectedBeanId }
-            if (bean != null && (bean.dose != null || bean.brewRatio != null || bean.waterAmount != null || bean.brewTime != null || bean.waterTemp != null)) {
+            if (bean != null && (bean.dose != null || bean.brewRatio != null || bean.waterAmount != null || bean.brewTime != null || bean.waterTemp != null || bean.pouringDurationSeconds != null)) {
                 selectedBeanExtraction = ExtractionSuggestion(
                     dose = bean.dose,
                     brewRatio = bean.brewRatio,
                     waterAmount = bean.waterAmount,
                     brewTime = bean.brewTime,
-                    waterTemp = bean.waterTemp
+                    waterTemp = bean.waterTemp,
+                    pouringDurationSeconds = bean.pouringDurationSeconds
                 )
             } else {
                 selectedBeanExtraction = null
@@ -292,7 +296,7 @@ fun BrewEditScreen(
             // Extraction suggestion card (display only, for reference)
             selectedBeanExtraction?.let { suggestion ->
                 val hasAny = suggestion.dose != null || suggestion.brewRatio != null ||
-                    suggestion.waterAmount != null || suggestion.brewTime != null || suggestion.waterTemp != null
+                    suggestion.waterAmount != null || suggestion.brewTime != null || suggestion.waterTemp != null || suggestion.pouringDurationSeconds != null
                 if (hasAny) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     Surface(
@@ -323,7 +327,8 @@ fun BrewEditScreen(
                                     Column {
                                         Text("比例", style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
-                                        Text(ratioVal, style = MaterialTheme.typography.bodyMedium,
+                                        val displayRatio = if (ratioVal.startsWith("1:") || ratioVal.startsWith("1：")) ratioVal else "1:$ratioVal"
+                                        Text(displayRatio, style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSecondaryContainer)
                                     }
                                 }
@@ -332,6 +337,14 @@ fun BrewEditScreen(
                                         Text("注水量", style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
                                         Text("${waterVal}ml", style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    }
+                                }
+                                suggestion.pouringDurationSeconds?.let { pourVal ->
+                                    Column {
+                                        Text("注水时长", style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
+                                        Text("${pourVal}秒", style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSecondaryContainer)
                                     }
                                 }
@@ -572,12 +585,12 @@ fun BrewEditScreen(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = waterTemp,
-                    onValueChange = { waterTemp = it },
-                    label = { Text("水温 (℃)") },
+                    value = pouringDurationSeconds,
+                    onValueChange = { pouringDurationSeconds = it },
+                    label = { Text("注水时长 (秒)") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
                     value = extractionTime,
@@ -588,6 +601,14 @@ fun BrewEditScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
+            OutlinedTextField(
+                value = waterTemp,
+                onValueChange = { waterTemp = it },
+                label = { Text("水温 (℃)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
 
             // Grinder + Grind Size
             Text("研磨", style = MaterialTheme.typography.titleMedium)
@@ -703,6 +724,7 @@ fun BrewEditScreen(
                             grinder = grinder,
                             grindSize = grindSize,
                             extractionTime = extractionTime.toIntOrNull() ?: 0,
+                            pouringDurationSeconds = pouringDurationSeconds.toIntOrNull(),
                             acidity = acidity,
                             sweetness = sweetness,
                             bitterness = bitterness,

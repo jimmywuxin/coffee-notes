@@ -12,11 +12,67 @@ import java.util.*
 object ImageUtils {
 
     private const val IMAGE_DIR = "coffee_images"
+    private const val BEAN_PHOTOS_DIR = "bean_photos"
+    private const val COMPRESS_MAX_DIM = 1920
+    private const val COMPRESS_QUALITY = 80
 
     fun getImageDir(context: Context): File {
         val dir = File(context.filesDir, IMAGE_DIR)
         if (!dir.exists()) dir.mkdirs()
         return dir
+    }
+
+    fun getBeanPhotosDir(context: Context): File {
+        val dir = File(context.filesDir, BEAN_PHOTOS_DIR)
+        if (!dir.exists()) dir.mkdirs()
+        return dir
+    }
+
+    /**
+     * Compress and save a bean photo from a Uri.
+     * Returns the relative path (uuid.jpg) on success, null on failure.
+     */
+    fun compressAndSaveBeanPhoto(context: Context, uri: Uri): String? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+            val originalBitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+            inputStream.close()
+            if (originalBitmap == null) return null
+
+            val (width, height) = originalBitmap.width to originalBitmap.height
+            val scale = if (width > height) {
+                if (width > COMPRESS_MAX_DIM) COMPRESS_MAX_DIM.toFloat() / width else 1f
+            } else {
+                if (height > COMPRESS_MAX_DIM) COMPRESS_MAX_DIM.toFloat() / height else 1f
+            }
+            val bitmap = if (scale < 1f) {
+                Bitmap.createScaledBitmap(originalBitmap, (width * scale).toInt(), (height * scale).toInt(), true).also { originalBitmap.recycle() }
+            } else {
+                originalBitmap
+            }
+
+            val uuid = UUID.randomUUID().toString()
+            val fileName = "$uuid.jpg"
+            val dir = getBeanPhotosDir(context)
+            val file = File(dir, fileName)
+            FileOutputStream(file).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, out)
+            }
+            bitmap.recycle()
+            fileName
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    fun getBeanPhotoFile(context: Context, relativePath: String): File {
+        return File(getBeanPhotosDir(context), relativePath)
+    }
+
+    fun deleteBeanPhoto(relativePath: String, context: Context) {
+        val file = getBeanPhotoFile(context, relativePath)
+        if (file.exists()) file.delete()
     }
 
     fun saveBitmapToFile(context: Context, bitmap: Bitmap): String {

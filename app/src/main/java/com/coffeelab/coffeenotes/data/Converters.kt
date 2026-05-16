@@ -25,6 +25,20 @@ class Converters {
         }
     }
 
+    @TypeConverter
+    fun fromStringList(list: List<String>?): String? = list?.let { gson.toJson(it) }
+
+    @TypeConverter
+    fun toStringList(json: String?): List<String>? {
+        if (json.isNullOrBlank()) return emptyList()
+        return try {
+            val type = object : TypeToken<List<String>>() {}.type
+            gson.fromJson(json, type) ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     companion object {
         private val gson = Gson()
 
@@ -40,7 +54,6 @@ class Converters {
             }
         }
 
-        /** Serialize List<BrewMethodStep> to JSON string (same logic as Room TypeConverter) */
         fun serializeSteps(steps: List<BrewMethodStep>): String? {
             return if (steps.isEmpty()) null else gson.toJson(steps)
         }
