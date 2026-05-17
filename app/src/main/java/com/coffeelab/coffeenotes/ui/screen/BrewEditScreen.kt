@@ -178,7 +178,7 @@ fun BrewEditScreen(
 
     // 当用户选择冲煮手法时（或加载已有记录时），自动填入手法参数
     LaunchedEffect(selectedMethodId, methods) {
-        if (selectedMethodId > 0) {
+        if (!isEditing && selectedMethodId > 0) {
             val method = methods.find { it.id == selectedMethodId }
             method?.let { m ->
                 val steps = com.coffeelab.coffeenotes.data.Converters.parseSteps(m.steps)
