@@ -176,36 +176,38 @@ fun BrewEditScreen(
         }
     }
 
+    // [备用] 选择冲煮手法时自动填入手法参数（已注释，备用）
+    // 注意：即使解除注释，也仅在新增时生效（!isEditing），编辑已有记录时不会触发
     // 当用户选择冲煮手法时（或加载已有记录时），自动填入手法参数
-    LaunchedEffect(selectedMethodId, methods) {
-        if (selectedMethodId > 0) {
-            val method = methods.find { it.id == selectedMethodId }
-            method?.let { m ->
-                val steps = com.coffeelab.coffeenotes.data.Converters.parseSteps(m.steps)
-                // 取最后一个有注水量的步骤的值
-                val lastWaterAmount = steps.lastOrNull { it.waterAmount != null }?.waterAmount
-                // 取最后一个有时长的步骤的值
-                val lastDuration = steps.lastOrNull { it.durationSeconds > 0 }?.durationSeconds
-                // 仅当字段为空时才填充（不覆盖用户已编辑的值）
-                if (coffeeWeight.isEmpty() && m.coffeeWeight != null) {
-                    coffeeWeight = m.coffeeWeight.toString()
-                }
-                if (coffeeWaterRatio.isEmpty() && m.coffeeWaterRatio != null) {
-                    val r = m.coffeeWaterRatio
-                    coffeeWaterRatio = if (r == r.toLong().toDouble()) r.toLong().toString() else r.toString()
-                }
-                if (waterTemp.isEmpty() && m.waterTemp != null) {
-                    waterTemp = m.waterTemp.toString()
-                }
-                if (waterAmount.isEmpty() && lastWaterAmount != null) {
-                    waterAmount = lastWaterAmount.toString()
-                }
-                if (extractionTime.isEmpty() && lastDuration != null) {
-                    extractionTime = lastDuration.toString()
-                }
-            }
-        }
-    }
+    // LaunchedEffect(selectedMethodId, methods) {
+    //     if (!isEditing && selectedMethodId > 0) {
+    //         val method = methods.find { it.id == selectedMethodId }
+    //         method?.let { m ->
+    //             val steps = com.coffeelab.coffeenotes.data.Converters.parseSteps(m.steps)
+    //             // 取最后一个有注水量的步骤的值
+    //             val lastWaterAmount = steps.lastOrNull { it.waterAmount != null }?.waterAmount
+    //             // 取最后一个有时长的步骤的值
+    //             val lastDuration = steps.lastOrNull { it.durationSeconds > 0 }?.durationSeconds
+    //             // 仅当字段为空时才填充（不覆盖用户已编辑的值）
+    //             if (coffeeWeight.isEmpty() && m.coffeeWeight != null) {
+    //                 coffeeWeight = m.coffeeWeight.toString()
+    //             }
+    //             if (coffeeWaterRatio.isEmpty() && m.coffeeWaterRatio != null) {
+    //                 val r = m.coffeeWaterRatio
+    //                 coffeeWaterRatio = if (r == r.toLong().toDouble()) r.toLong().toString() else r.toString()
+    //             }
+    //             if (waterTemp.isEmpty() && m.waterTemp != null) {
+    //                 waterTemp = m.waterTemp.toString()
+    //             }
+    //             if (waterAmount.isEmpty() && lastWaterAmount != null) {
+    //                 waterAmount = lastWaterAmount.toString()
+    //             }
+    //             if (extractionTime.isEmpty() && lastDuration != null) {
+    //                 extractionTime = lastDuration.toString()
+    //             }
+    //         }
+    //     }
+    // }
 
     Scaffold(
         topBar = {
