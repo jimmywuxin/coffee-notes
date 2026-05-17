@@ -245,14 +245,14 @@ fun BeanDetailScreen(
                                         }
                                     }
                                 }
-                                // 注水时长 + 萃取时间
+                                // 注水时长 + 萃取时长
                                 if (b.pouringDurationSeconds != null || b.brewTime != null) {
                                     Row(modifier = Modifier.fillMaxWidth()) {
                                         if (b.pouringDurationSeconds != null) {
                                             ExtractionInfoRow("注水时长", "${b.pouringDurationSeconds}s", modifier = Modifier.weight(1f))
                                         }
                                         if (b.brewTime != null) {
-                                            ExtractionInfoRow("萃取时间", "${b.brewTime}s", modifier = Modifier.weight(1f))
+                                            ExtractionInfoRow("萃取时长", "${b.brewTime}s", modifier = Modifier.weight(1f))
                                         }
                                     }
                                 }
