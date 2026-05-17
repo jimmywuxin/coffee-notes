@@ -89,7 +89,7 @@ fun BeanEditScreen(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            if (localPhotoPaths.size < 5) {
+            if (localPhotoPaths.size < 6) {
                 scope.launch {
                     val relativePath = ImageUtils.compressAndSaveBeanPhoto(context, it)
                     if (relativePath != null) {
@@ -294,7 +294,7 @@ fun BeanEditScreen(
                 label = { Text("备注") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
 
             // 豆子照片区块（在官方萃取建议上方）
-            if (localPhotoPaths.isNotEmpty() || localPhotoPaths.size < 5) {
+            if (localPhotoPaths.isNotEmpty() || localPhotoPaths.size < 6) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 Text("豆子照片", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(4.dp))
@@ -349,14 +349,14 @@ fun BeanEditScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 // 添加照片按钮
-                if (localPhotoPaths.size < 5) {
+                if (localPhotoPaths.size < 6) {
                     OutlinedButton(
                         onClick = { showPhotoOptions = true },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.AddAPhoto, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("添加照片（${localPhotoPaths.size}/5）")
+                        Text("添加照片（${localPhotoPaths.size}/6）")
                     }
                 }
             }
@@ -450,7 +450,7 @@ fun BeanEditScreen(
                             .padding(24.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text("添加豆子照片（最多5张）", style = MaterialTheme.typography.titleMedium)
+                        Text("添加豆子照片（最多6张）", style = MaterialTheme.typography.titleMedium)
                         Button(
                             onClick = {
                                 showPhotoOptions = false
