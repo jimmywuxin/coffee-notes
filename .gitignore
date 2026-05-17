@@ -23,3 +23,4 @@ Thumbs.db
 # Secrets
 *.jks
 *.keystore
+_last_session.json
