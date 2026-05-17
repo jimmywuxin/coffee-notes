@@ -587,7 +587,7 @@ fun BrewEditScreen(
                 OutlinedTextField(
                     value = pouringDurationSeconds,
                     onValueChange = { pouringDurationSeconds = it },
-                    label = { Text("注水时长 (秒)") },
+                    label = { Text("注水时长 (s)") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -595,7 +595,7 @@ fun BrewEditScreen(
                 OutlinedTextField(
                     value = extractionTime,
                     onValueChange = { extractionTime = it },
-                    label = { Text("萃取时长 (秒)") },
+                    label = { Text("萃取时长 (s)") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)

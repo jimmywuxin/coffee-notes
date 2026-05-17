@@ -125,7 +125,7 @@ fun BeanEditScreen(
                 result.dose?.let { d -> dose = d.toString(); filled.add("粉量") }
                 if (result.brewRatio.isNotEmpty()) { brewRatio = result.brewRatio; filled.add("粉水比") }
                 result.waterAmount?.let { w -> waterAmount = w.toString(); filled.add("注水量") }
-                result.brewTime?.let { t -> brewTime = t.toString(); filled.add("萃取时间") }
+                result.brewTime?.let { t -> brewTime = t.toString(); filled.add("萃取时长") }
                 result.waterTemp?.let { temp -> waterTemp = temp.toString(); filled.add("水温") }
                 statusMessage = if (filled.isEmpty()) {
                     "识别完成，但未提取到信息"
@@ -402,12 +402,12 @@ fun BeanEditScreen(
                     label = { Text("水温(°C)") }, modifier = Modifier.weight(1f), singleLine = true,
                     placeholder = { Text("可留空") })
             }
-            // 注水时长 + 萃取时间
+            // 注水时长 + 萃取时长
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(value = pouringDurationSeconds, onValueChange = { pouringDurationSeconds = it },
                     label = { Text("注水时长(s)") }, modifier = Modifier.weight(1f), singleLine = true)
                 OutlinedTextField(value = brewTime, onValueChange = { brewTime = it },
-                    label = { Text("萃取时间(s)") }, modifier = Modifier.weight(1f), singleLine = true)
+                    label = { Text("萃取时长(s)") }, modifier = Modifier.weight(1f), singleLine = true)
             }
 
             Button(onClick = {

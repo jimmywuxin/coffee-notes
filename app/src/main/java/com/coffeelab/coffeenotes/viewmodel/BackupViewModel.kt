@@ -328,6 +328,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         waterAmount = (beanMap["waterAmount"] as? Double)?.toFloat(),
                         brewTime = (beanMap["brewTime"] as? Double)?.toInt(),
                         waterTemp = (beanMap["waterTemp"] as? Double)?.toInt(),
+                        pouringDurationSeconds = (beanMap["pouringDurationSeconds"] as? Double)?.toInt(),
                         createdAt = (beanMap["createdAt"] as? Double)?.toLong() ?: System.currentTimeMillis(),
                         updatedAt = (beanMap["updatedAt"] as? Double)?.toLong() ?: System.currentTimeMillis()
                     )
