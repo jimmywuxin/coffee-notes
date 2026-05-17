@@ -40,7 +40,13 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
     sealed class BackupState {
         object Idle : BackupState()
         object Loading : BackupState()
-        data class Success(val message: String) : BackupState()
+        data class Success(
+        val message: String,
+        val exportDate: String,
+        val version: String,
+        val beansCount: Int,
+        val recordsCount: Int
+    ) : BackupState()
         data class Error(val message: String) : BackupState()
     }
 
@@ -159,7 +165,11 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
 
                 withContext(Dispatchers.Main) {
                     _backupState.value = BackupState.Success(
-                        "备份成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n冲煮手法: ${methods.size} 个\n器具: ${equipment.size} 个\n磨豆机: ${grinders.size} 个"
+                        message = "备份成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n冲煮手法: ${methods.size} 个\n器具: ${equipment.size} 个\n磨豆机: ${grinders.size} 个",
+                        exportDate = "刚刚",
+                        version = BACKUP_VERSION,
+                        beansCount = beans.size,
+                        recordsCount = records.size
                     )
                 }
             }
@@ -224,8 +234,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     }
 
                     val manifest = gson.fromJson(manifestContent, Map::class.java)
-                    val manifestVersion = manifest["version"] as? String ?: "unknown"
-                    val exportDate = manifest["exportDate"] as? String ?: "unknown"
+                    manifestVersion = manifest["version"] as? String ?: "unknown"
+                    exportDate = manifest["exportDate"] as? String ?: "unknown"
 
                     if (dataContent == null) {
                         withContext(Dispatchers.Main) {
@@ -426,10 +436,15 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 } else {
                     emptyMap<Any, Any>()
                 }
-                val versionStr = if (manifestContent != null) "\n版本: $manifestVersion" else ""
+                val beansCountVal = (counts["beans"] as? Double)?.toInt() ?: 0
+                val recordsCountVal = (counts["records"] as? Double)?.toInt() ?: 0
                 withContext(Dispatchers.Main) {
                     _backupState.value = BackupState.Success(
-                        "恢复成功！\n备份日期: $exportDate$versionStr\n\n豆子: ${counts["beans"] ?: 0} 个\n冲煮记录: ${counts["records"] ?: 0} 条"
+                        message = if (manifestContent != null) "恢复成功！" else "恢复成功！",
+                        exportDate = if (manifestContent != null) exportDate else "unknown",
+                        version = manifestVersion,
+                        beansCount = beansCountVal,
+                        recordsCount = recordsCountVal
                     )
                 }
             }
