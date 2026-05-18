@@ -25,6 +25,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
+import com.coffeelab.coffeenotes.data.entity.RoastDegree
+import com.coffeelab.coffeenotes.data.entity.ProcessMethod
+import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
+import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.BitmapLoader
 import com.coffeelab.coffeenotes.util.DateUtils
@@ -49,7 +53,6 @@ fun BeanEditScreen(
     var region by remember { mutableStateOf("") }
     var estate by remember { mutableStateOf("") }
     var variety by remember { mutableStateOf("") }
-    var process by remember { mutableStateOf("") }
     var roastLevel by remember { mutableStateOf("") }
     var roastDate by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
@@ -65,6 +68,19 @@ fun BeanEditScreen(
     var pouringDurationSeconds by remember { mutableStateOf("") }
     var brewTime by remember { mutableStateOf("") }
     var waterTemp by remember { mutableStateOf("") }
+    // 烘焙度/处理法下拉选状态
+    var selectedRoastDegreeId by remember { mutableStateOf<Long?>(null) }
+    var selectedProcessMethodId by remember { mutableStateOf<Long?>(null) }
+    var roastLevelDropdownExpanded by remember { mutableStateOf(false) }
+    var processDropdownExpanded by remember { mutableStateOf(false) }
+    var restDaysOverride by remember { mutableStateOf<String>("") }  // 手动覆盖养豆天数
+    var peakFlavorDaysOverride by remember { mutableStateOf<String>("") }  // 手动覆盖赏味天数
+    // 标记用户是否手动修改过（避免自动填入覆盖用户已编辑的值）
+    var userModifiedRestDays by remember { mutableStateOf(false) }
+    var userModifiedPeakFlavorDays by remember { mutableStateOf(false) }
+    // 根据烘焙度配置计算出的参考天数（只读显示）
+    var suggestedRestDays by remember { mutableStateOf<Int?>(null) }
+    var suggestedPeakFlavorDays by remember { mutableStateOf<Int?>(null) }
 
     val isEditing = beanId > 0
     val recResult by viewModel.recognitionResult.collectAsState(initial = null)
@@ -115,8 +131,8 @@ fun BeanEditScreen(
                 if (result.origin.isNotEmpty()) { origin = result.origin; filled.add("产地") }
                 if (result.estate.isNotEmpty()) { estate = result.estate; filled.add("庄园") }
                 if (result.variety.isNotEmpty()) { variety = result.variety; filled.add("品种") }
-                if (result.process.isNotEmpty()) { process = result.process; filled.add("处理法") }
-                if (result.roastLevel.isNotEmpty()) { roastLevel = result.roastLevel; filled.add("烘焙度") }
+                if (result.process.isNotEmpty()) { /* 处理法改由下拉选，这里不做OCR填充 */ }
+                if (result.roastLevel.isNotEmpty()) { /* 烘焙度改由下拉选，这里不做OCR填充 */ }
                 if (result.roastDate.isNotEmpty()) { roastDate = result.roastDate; filled.add("烘焙日期") }
                 result.flavors.forEach { f ->
                     if (!tags.contains(f)) { tags.add(f); filled.add("风味:$f") }
@@ -146,7 +162,33 @@ fun BeanEditScreen(
 
     val bean by viewModel.selectedBean.collectAsState(initial = null)
     val existingTags by viewModel.tags.collectAsState(initial = emptyList())
-    LaunchedEffect(bean, existingTags) {
+    val roastDegrees by viewModel.allRoastDegrees.collectAsState(initial = emptyList())
+    val processMethods by viewModel.allProcessMethods.collectAsState(initial = emptyList())
+
+    // 烘焙度选中时：从配置表查参考天数并自动填入
+    fun loadSuggestedDays(roastDegreeId: Long?) {
+        if (roastDegreeId == null) {
+            suggestedRestDays = null
+            suggestedPeakFlavorDays = null
+            // 清空覆盖值（仅当用户未手动修改时）
+            if (!userModifiedRestDays) restDaysOverride = ""
+            if (!userModifiedPeakFlavorDays) peakFlavorDaysOverride = ""
+            return
+        }
+        scope.launch {
+            val restConfig = viewModel.getRestPeriodConfigByRoastDegreeId(roastDegreeId)
+            val peakConfig = viewModel.getPeakFlavorConfigByRoastDegreeId(roastDegreeId)
+            val rest = restConfig?.restDays
+            val peak = peakConfig?.peakFlavorDays
+            suggestedRestDays = rest
+            suggestedPeakFlavorDays = peak
+            // 自动填入（仅当用户未手动修改时）
+            if (!userModifiedRestDays) restDaysOverride = rest?.toString() ?: ""
+            if (!userModifiedPeakFlavorDays) peakFlavorDaysOverride = peak?.toString() ?: ""
+        }
+    }
+
+    LaunchedEffect(bean, existingTags, roastDegrees, processMethods) {
         if (isEditing && bean != null) {
             val b = bean!!
             roaster = b.roaster
@@ -155,8 +197,6 @@ fun BeanEditScreen(
             region = b.region
             estate = b.estate
             variety = b.variety
-            process = b.process
-            roastLevel = b.roastLevel
             originalGrindSize = b.grindSize
             roastDate = b.roastDate?.let { DateUtils.formatDate(it) } ?: ""
             notes = b.notes
@@ -169,6 +209,21 @@ fun BeanEditScreen(
             pouringDurationSeconds = b.pouringDurationSeconds?.toString() ?: ""
             brewTime = b.brewTime?.toString() ?: ""
             waterTemp = b.waterTemp?.toString() ?: ""
+            // 养豆期/赏味期手动覆盖
+            restDaysOverride = b.restDays?.toString() ?: ""
+            peakFlavorDaysOverride = b.peakFlavorDays?.toString() ?: ""
+            userModifiedRestDays = false
+            userModifiedPeakFlavorDays = false
+            // roastLevel字符串匹配到id（兼容旧数据）
+            if (roastDegrees.isNotEmpty()) {
+                val matchedRoast = roastDegrees.find { it.name == b.roastLevel }
+                selectedRoastDegreeId = matchedRoast?.id
+                if (selectedRoastDegreeId != null) loadSuggestedDays(selectedRoastDegreeId)
+            }
+            // process字符串匹配到id
+            if (processMethods.isNotEmpty()) {
+                selectedProcessMethodId = processMethods.find { it.name == b.process }?.id
+            }
             if (tags.isEmpty() && existingTags.isNotEmpty()) {
                 tags.clear()
                 tags.addAll(existingTags)
@@ -259,14 +314,131 @@ fun BeanEditScreen(
                     label = { Text("庄园") }, modifier = Modifier.weight(1f), singleLine = true)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(value = process, onValueChange = { process = it },
-                    label = { Text("处理法") }, modifier = Modifier.weight(1f), singleLine = true)
-                OutlinedTextField(value = roastLevel, onValueChange = { roastLevel = it },
-                    label = { Text("烘焙度") }, modifier = Modifier.weight(1f), singleLine = true)
+                // 处理法下拉选
+                ExposedDropdownMenuBox(
+                    expanded = processDropdownExpanded,
+                    onExpandedChange = { processDropdownExpanded = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = processMethods.find { it.id == selectedProcessMethodId }?.name ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("处理法") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = processDropdownExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        singleLine = true
+                    )
+                    ExposedDropdownMenu(
+                        expanded = processDropdownExpanded,
+                        onDismissRequest = { processDropdownExpanded = false },
+                        modifier = Modifier.heightIn(max = 200.dp)
+                    ) {
+                        // 空选项
+                        DropdownMenuItem(
+                            text = { Text("未设置") },
+                            onClick = {
+                                selectedProcessMethodId = null
+                                processDropdownExpanded = false
+                            }
+                        )
+                        processMethods.forEach { method ->
+                            DropdownMenuItem(
+                                text = { Text(method.name) },
+                                onClick = {
+                                    selectedProcessMethodId = method.id
+                                    processDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                // 烘焙度下拉选
+                ExposedDropdownMenuBox(
+                    expanded = roastLevelDropdownExpanded,
+                    onExpandedChange = { roastLevelDropdownExpanded = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = roastDegrees.find { it.id == selectedRoastDegreeId }?.name ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("烘焙度") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = roastLevelDropdownExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        singleLine = true
+                    )
+                    ExposedDropdownMenu(
+                        expanded = roastLevelDropdownExpanded,
+                        onDismissRequest = { roastLevelDropdownExpanded = false },
+                        modifier = Modifier.heightIn(max = 200.dp)
+                    ) {
+                        // 空选项
+                        DropdownMenuItem(
+                            text = { Text("未设置") },
+                            onClick = {
+                                selectedRoastDegreeId = null
+                                suggestedRestDays = null
+                                suggestedPeakFlavorDays = null
+                                roastLevelDropdownExpanded = false
+                            }
+                        )
+                        roastDegrees.forEach { degree ->
+                            DropdownMenuItem(
+                                text = { Text(degree.name) },
+                                onClick = {
+                                    selectedRoastDegreeId = degree.id
+                                    loadSuggestedDays(degree.id)
+                                    roastLevelDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
             OutlinedTextField(value = roastDate, onValueChange = { roastDate = it },
                 label = { Text("烘焙日期") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                 placeholder = { Text("格式：2026/05/10") })
+
+            // 养豆期/赏味期（基于烘焙度配置自动计算，可手动覆盖）
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                // 养豆天数
+                OutlinedTextField(
+                    value = restDaysOverride,
+                    onValueChange = {
+                        restDaysOverride = it.filter { c -> c.isDigit() }
+                        userModifiedRestDays = true
+                    },
+                    label = { Text("养豆天数") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = {
+                        Text(suggestedRestDays?.let { "参考 $it 天" } ?: "")
+                    }
+                )
+                // 赏味天数
+                OutlinedTextField(
+                    value = peakFlavorDaysOverride,
+                    onValueChange = {
+                        peakFlavorDaysOverride = it.filter { c -> c.isDigit() }
+                        userModifiedPeakFlavorDays = true
+                    },
+                    label = { Text("赏味天数") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = {
+                        Text(suggestedPeakFlavorDays?.let { "参考 $it 天" } ?: "")
+                    }
+                )
+            }
+            // 提示文字
+            if (suggestedRestDays != null || suggestedPeakFlavorDays != null) {
+                Text(
+                    text = "提示：选择烘焙度后自动带出参考天数，可手动修改覆盖",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             // Flavor Tags
             Text("风味标签", style = MaterialTheme.typography.titleMedium)
@@ -417,7 +589,9 @@ fun BeanEditScreen(
                     val beanToSave = CoffeeBean(
                         id = if (isEditing) beanId else 0,
                         roaster = roaster, name = name, origin = origin, region = region, estate = estate,
-                        variety = variety, process = process, roastLevel = roastLevel,
+                        variety = variety,
+                        process = selectedProcessMethodId?.let { processMethods.find { m -> m.id == it }?.name } ?: "",
+                        roastLevel = selectedRoastDegreeId?.let { roastDegrees.find { d -> d.id == it }?.name } ?: "",
                         grindSize = savedGrindSize,
                         roastDate = DateUtils.parseDate(roastDate),
                         notes = notes, imageUri = imageUri,
@@ -431,7 +605,9 @@ fun BeanEditScreen(
                         waterAmount = waterAmount.toFloatOrNull(),
                         brewTime = brewTime.toIntOrNull(),
                         waterTemp = waterTemp.toIntOrNull(),
-                        pouringDurationSeconds = pouringDurationSeconds.toIntOrNull()
+                        pouringDurationSeconds = pouringDurationSeconds.toIntOrNull(),
+                        restDays = restDaysOverride.toIntOrNull(),
+                        peakFlavorDays = peakFlavorDaysOverride.toIntOrNull()
                     )
                     if (isEditing) viewModel.updateBeanSync(beanToSave, tags.toList())
                     else viewModel.saveBeanSync(beanToSave, tags.toList())

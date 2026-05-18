@@ -20,6 +20,11 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
     val equipmentViewModel: EquipmentViewModel = viewModel()
     val grinderViewModel: GrinderViewModel = viewModel()
     val statsViewModel: StatsViewModel = viewModel()
+    val roastDegreeViewModel: RoastDegreeViewModel = viewModel()
+    val processMethodViewModel: ProcessMethodViewModel = viewModel()
+    val restPeriodConfigViewModel: RestPeriodConfigViewModel = viewModel()
+    val peakFlavorConfigViewModel: PeakFlavorConfigViewModel = viewModel()
+    val purchaseRecordViewModel: PurchaseRecordViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -124,6 +129,39 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
 
         composable(Screen.About.route) {
             AboutScreen()
+        }
+
+        composable(Screen.RoastDegreeManagement.route) {
+            RoastDegreeManagementScreen(navController = navController, viewModel = roastDegreeViewModel)
+        }
+
+        composable(Screen.ProcessMethodManagement.route) {
+            ProcessMethodManagementScreen(navController = navController, viewModel = processMethodViewModel)
+        }
+
+        composable(Screen.RestPeriodConfigManagement.route) {
+            RestPeriodConfigManagementScreen(navController = navController, viewModel = restPeriodConfigViewModel)
+        }
+
+        composable(Screen.PeakFlavorConfigManagement.route) {
+            PeakFlavorConfigManagementScreen(navController = navController, viewModel = peakFlavorConfigViewModel)
+        }
+
+        composable(
+            route = Screen.PurchaseRecordManagement.route,
+            arguments = listOf(
+                navArgument("beanId") { type = NavType.LongType },
+                navArgument("beanName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val beanId = backStackEntry.arguments?.getLong("beanId") ?: 0L
+            val beanName = backStackEntry.arguments?.getString("beanName") ?: ""
+            PurchaseRecordManagementScreen(
+                navController = navController,
+                beanId = beanId,
+                beanName = beanName,
+                viewModel = purchaseRecordViewModel
+            )
         }
     }
 }

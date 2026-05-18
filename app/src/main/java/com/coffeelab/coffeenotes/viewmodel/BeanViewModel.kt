@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.data.entity.FlavorTag
+import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
+import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import com.coffeelab.coffeenotes.util.ImageUtils
 import com.coffeelab.coffeenotes.util.OCRProcessor
@@ -22,6 +24,10 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
     val allBeans = repository.allBeans
     val activeBeans = repository.activeBeans
     val archivedBeans = repository.archivedBeans
+
+    // 烘焙度/处理法列表（用于下拉选）
+    val allRoastDegrees = repository.allRoastDegrees
+    val allProcessMethods = repository.allProcessMethods
 
     private val _selectedBean = MutableStateFlow<CoffeeBean?>(null)
     val selectedBean: StateFlow<CoffeeBean?> = _selectedBean.asStateFlow()
@@ -92,6 +98,12 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun searchBeans(query: String): Flow<List<CoffeeBean>> = repository.searchBeans(query)
+
+    // 根据烘焙度ID查养豆期/赏味期配置
+    suspend fun getRestPeriodConfigByRoastDegreeId(roastDegreeId: Long): RestPeriodConfig? =
+        repository.getRestPeriodConfigByRoastDegreeId(roastDegreeId)
+    suspend fun getPeakFlavorConfigByRoastDegreeId(roastDegreeId: Long): PeakFlavorConfig? =
+        repository.getPeakFlavorConfigByRoastDegreeId(roastDegreeId)
 
     // ===== Recognition (pluggable engine) =====
     private val keywordEngine = KeywordRecognitionEngine()
