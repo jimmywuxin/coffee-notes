@@ -32,5 +32,8 @@ data class CoffeeBean(
     val waterAmount: Float? = null,         // 注水量（毫升）
     val brewTime: Int? = null,               // 萃取时间（秒）
     val waterTemp: Int? = null,              // 水温（°C）
-    val pouringDurationSeconds: Int? = null  // 注水时长（秒），选填
+    val pouringDurationSeconds: Int? = null,  // 注水时长（秒），选填
+    // 养豆/赏味期（手动覆盖，空则按烘焙度配置计算）
+    val restDays: Int? = null,
+    val peakFlavorDays: Int? = null
 )

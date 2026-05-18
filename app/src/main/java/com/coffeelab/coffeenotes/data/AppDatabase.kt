@@ -20,9 +20,14 @@ import kotlinx.coroutines.launch
         BrewRecord::class,
         BrewMethod::class,
         Equipment::class,
-        Grinder::class
+        Grinder::class,
+        RoastDegree::class,
+        ProcessMethod::class,
+        RestPeriodConfig::class,
+        PeakFlavorConfig::class,
+        PurchaseRecord::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -33,6 +38,11 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun brewMethodDao(): BrewMethodDao
     abstract fun equipmentDao(): EquipmentDao
     abstract fun grinderDao(): GrinderDao
+    abstract fun roastDegreeDao(): RoastDegreeDao
+    abstract fun processMethodDao(): ProcessMethodDao
+    abstract fun restPeriodConfigDao(): RestPeriodConfigDao
+    abstract fun peakFlavorConfigDao(): PeakFlavorConfigDao
+    abstract fun purchaseRecordDao(): PurchaseRecordDao
 
     companion object {
         @Volatile
@@ -123,6 +133,76 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migration from v13 → v14: add roast/system tables + restDays/peakFlavorDays to coffee_beans
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. roast_degrees
+                db.execSQL("""
+                    CREATE TABLE roast_degrees (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        sortOrder INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+                // 2. process_methods
+                db.execSQL("""
+                    CREATE TABLE process_methods (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        sortOrder INTEGER NOT NULL DEFAULT 0
+                    )
+                """.trimIndent())
+                // 3. rest_period_configs
+                db.execSQL("""
+                    CREATE TABLE rest_period_configs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        roastDegreeId INTEGER NOT NULL,
+                        restDays INTEGER NOT NULL,
+                        FOREIGN KEY(roastDegreeId) REFERENCES roast_degrees(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                // 4. peak_flavor_configs
+                db.execSQL("""
+                    CREATE TABLE peak_flavor_configs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        roastDegreeId INTEGER NOT NULL,
+                        peakFlavorDays INTEGER NOT NULL,
+                        FOREIGN KEY(roastDegreeId) REFERENCES roast_degrees(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                // 5. purchase_records
+                db.execSQL("""
+                    CREATE TABLE purchase_records (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        beanId INTEGER NOT NULL,
+                        date INTEGER NOT NULL,
+                        weightGrams INTEGER NOT NULL,
+                        price REAL NOT NULL,
+                        unitPrice REAL NOT NULL,
+                        FOREIGN KEY(beanId) REFERENCES coffee_beans(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                // 6. Add restDays & peakFlavorDays to coffee_beans
+                db.execSQL("ALTER TABLE coffee_beans ADD COLUMN restDays INTEGER")
+                db.execSQL("ALTER TABLE coffee_beans ADD COLUMN peakFlavorDays INTEGER")
+                // 7. Indexes
+                db.execSQL("CREATE INDEX index_rest_period_configs_roastDegreeId ON rest_period_configs(roastDegreeId)")
+                db.execSQL("CREATE INDEX index_peak_flavor_configs_roastDegreeId ON peak_flavor_configs(roastDegreeId)")
+                db.execSQL("CREATE INDEX index_purchase_records_beanId ON purchase_records(beanId)")
+
+                // 8. 预置烘焙度
+                val roastPreset = listOf("极浅烘", "浅烘", "中浅", "中烘", "中深", "深烘")
+                roastPreset.forEachIndexed { index, name ->
+                    db.execSQL("INSERT INTO roast_degrees (name, sortOrder) VALUES (?, ?)", arrayOf(name, index))
+                }
+                // 预置处理法
+                val processPreset = listOf("水洗", "日晒", "蜜处理", "厌氧", "其他")
+                processPreset.forEachIndexed { index, name ->
+                    db.execSQL("INSERT INTO process_methods (name, sortOrder) VALUES (?, ?)", arrayOf(name, index))
+                }
+            }
+        }
+
         // Migration from v7 → v8: add sortOrder to coffee_beans and brew_methods
         private val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -142,7 +222,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "coffee_notes.db"
                 )
-                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
@@ -150,6 +230,8 @@ abstract class AppDatabase : RoomDatabase() {
                             populateEquipmentSync(db)
                             populateGrindersSync(db)
                             populateBrewMethodsSync(db)
+                            populateRoastDegreesSync(db)
+                            populateProcessMethodsSync(db)
                         }
                     })
                     .build()
@@ -206,6 +288,28 @@ abstract class AppDatabase : RoomDatabase() {
                 INSERT INTO brew_methods (name, isPreset, steps, sortOrder, createdAt, updatedAt) VALUES
                 ('四六冲', 1, '[{\"waterAmount\":60.0,\"durationSeconds\":45,\"description\":\"第一段：大水流\"},{\"waterAmount\":60.0,\"durationSeconds\":30,\"description\":\"第二段：中水流\"},{\"waterAmount\":60.0,\"durationSeconds\":30,\"description\":\"第三段：小水流\"},{\"waterAmount\":null,\"durationSeconds\":30,\"description\":\"第四段：至总水量\"}]', 2, $now, $now)
             """.trimIndent())
+        }
+
+        private fun populateRoastDegreesSync(db: SupportSQLiteDatabase) {
+            val cursor = db.query("SELECT COUNT(*) FROM roast_degrees")
+            cursor.moveToFirst()
+            val count = cursor.getInt(0)
+            cursor.close()
+            if (count > 0) return
+            RoastDegree.DEFAULT_ROAST_DEGREES.forEachIndexed { index, name ->
+                db.execSQL("INSERT INTO roast_degrees (name, sortOrder) VALUES (?, ?)", arrayOf(name, index))
+            }
+        }
+
+        private fun populateProcessMethodsSync(db: SupportSQLiteDatabase) {
+            val cursor = db.query("SELECT COUNT(*) FROM process_methods")
+            cursor.moveToFirst()
+            val count = cursor.getInt(0)
+            cursor.close()
+            if (count > 0) return
+            ProcessMethod.DEFAULT_PROCESS_METHODS.forEachIndexed { index, name ->
+                db.execSQL("INSERT INTO process_methods (name, sortOrder) VALUES (?, ?)", arrayOf(name, index))
+            }
         }
 
         suspend fun populateEquipment(database: AppDatabase) {

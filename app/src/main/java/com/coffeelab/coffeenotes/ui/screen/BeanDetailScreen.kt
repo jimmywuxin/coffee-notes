@@ -24,6 +24,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
+import com.coffeelab.coffeenotes.data.entity.RoastDegree
+import com.coffeelab.coffeenotes.data.entity.ProcessMethod
+import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
+import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
+import com.coffeelab.coffeenotes.data.entity.PurchaseRecord
+import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.ui.component.RecordCard
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.DateUtils
@@ -42,15 +48,21 @@ fun BeanDetailScreen(
     brewViewModel: BrewViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    var purchaseRecords by remember { mutableStateOf<List<PurchaseRecord>>(emptyList()) }
     LaunchedEffect(beanId) {
         beanViewModel.loadBean(beanId)
         beanViewModel.loadTags(beanId)
         brewViewModel.loadRecordsForBean(beanId)
+        // 加载购买记录
+        val records = AppDatabase.getInstance(context).purchaseRecordDao().getByBeanIdOnce(beanId)
+        purchaseRecords = records
     }
 
     val bean by beanViewModel.selectedBean.collectAsState(initial = null)
     val tags by beanViewModel.tags.collectAsState(initial = emptyList())
     val records by brewViewModel.recordsForBean.collectAsState(initial = emptyList())
+    val roastDegrees by beanViewModel.allRoastDegrees.collectAsState(initial = emptyList())
+    val processMethods by beanViewModel.allProcessMethods.collectAsState(initial = emptyList())
 
     // 计算雷达图数据（取有评分记录的维度平均分）
     val radarValues = remember(records) {
@@ -148,10 +160,23 @@ fun BeanDetailScreen(
                             InfoRow("产地", b.origin)
                             InfoRow("庄园", b.estate)
                             InfoRow("品种", b.variety)
-                            InfoRow("处理法", b.process)
-                            InfoRow("烘焙度", b.roastLevel)
+                            InfoRow("处理法", processMethods.find { it.name == b.process }?.name ?: b.process)
+                            InfoRow("烘焙度", roastDegrees.find { it.name == b.roastLevel }?.name ?: b.roastLevel)
                             if (b.roastDate != null) {
                                 InfoRow("烘焙日期", DateUtils.formatDate(b.roastDate))
+                            }
+                            // 养豆期/赏味期（基于烘焙日期+天数计算）
+                            if (b.roastDate != null && (b.restDays != null || b.peakFlavorDays != null)) {
+                                // roastDate 存的是 epoch 秒，DateUtils.formatDate 需毫秒，故 ×1000
+                                val restEnd = b.restDays?.let { b.roastDate * 1000 + it.toLong() * 86400 * 1000 }
+                                val peakStart = restEnd
+                                val peakEnd = b.peakFlavorDays?.let { (peakStart ?: restEnd!!) + it.toLong() * 86400 * 1000 }
+                                if (restEnd != null) {
+                                    InfoRow("养豆期", "${DateUtils.formatDate(b.roastDate)} → ${DateUtils.formatDate(restEnd)}")
+                                }
+                                if (peakStart != null && peakEnd != null) {
+                                    InfoRow("赏味期", "${DateUtils.formatDate(peakStart)} → ${DateUtils.formatDate(peakEnd)}")
+                                }
                             }
                             if (b.notes.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -258,6 +283,38 @@ fun BeanDetailScreen(
                                 }
                             }
                         }
+                    }
+                }
+
+                // 购买记录入口
+                item {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.ShoppingCart, contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(8.dp))
+                            Text("购买记录", style = MaterialTheme.typography.titleMedium)
+                        }
+                        TextButton(onClick = {
+                            navController.navigate(Screen.PurchaseRecordManagement.createRoute(beanId, bean?.name ?: ""))
+                        }) {
+                            Text("管理")
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    if (purchaseRecords.isNotEmpty()) {
+                        val totalWeight = purchaseRecords.sumOf { it.weightGrams }
+                        Text(
+                            "${purchaseRecords.size} 条记录，共 ${totalWeight}g",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 32.dp)
+                        )
                     }
                 }
 

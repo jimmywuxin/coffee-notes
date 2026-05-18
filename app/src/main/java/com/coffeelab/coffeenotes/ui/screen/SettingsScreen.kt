@@ -152,6 +152,55 @@ fun SettingsScreen(
 
             item {
                 Text(
+                    text = "咖啡豆工具",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.LocalFireDepartment,
+                    title = "烘焙度管理",
+                    subtitle = "添加或编辑烘焙度",
+                    onClick = { navController.navigate(Screen.RoastDegreeManagement.route) }
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.WaterDrop,
+                    title = "处理法管理",
+                    subtitle = "添加或编辑处理法",
+                    onClick = { navController.navigate(Screen.ProcessMethodManagement.route) }
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Schedule,
+                    title = "养豆期管理",
+                    subtitle = "配置各烘焙度养豆天数",
+                    onClick = { navController.navigate(Screen.RestPeriodConfigManagement.route) }
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Restaurant,
+                    title = "赏味期管理",
+                    subtitle = "配置各烘焙度赏味期天数",
+                    onClick = { navController.navigate(Screen.PeakFlavorConfigManagement.route) }
+                )
+            }
+
+            item {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
+
+            item {
+                Text(
                     text = "关于",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,

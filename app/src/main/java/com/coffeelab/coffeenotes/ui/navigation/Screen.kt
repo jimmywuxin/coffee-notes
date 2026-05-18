@@ -6,6 +6,9 @@ sealed class Screen(val route: String) {
     object BeanDetail : Screen("bean_detail/{beanId}") {
         fun createRoute(beanId: Long) = "bean_detail/$beanId"
     }
+    object PurchaseRecordManagement : Screen("purchase_record_management/{beanId}/{beanName}") {
+        fun createRoute(beanId: Long, beanName: String = "") = "purchase_record_management/$beanId/$beanName"
+    }
     object BeanEdit : Screen("bean_edit/{beanId}") {
         fun createRoute(beanId: Long = -1L) = "bean_edit/$beanId"
     }
@@ -34,4 +37,8 @@ sealed class Screen(val route: String) {
     object DisplayTheme : Screen("display_theme")
     object ArchiveList : Screen("archive_list")
     object About : Screen("about")
+    object RoastDegreeManagement : Screen("roast_degree_management")
+    object ProcessMethodManagement : Screen("process_method_management")
+    object RestPeriodConfigManagement : Screen("rest_period_config_management")
+    object PeakFlavorConfigManagement : Screen("peak_flavor_config_management")
 }

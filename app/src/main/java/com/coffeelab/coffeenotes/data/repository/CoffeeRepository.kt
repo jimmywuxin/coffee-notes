@@ -111,4 +111,55 @@ class CoffeeRepository(private val db: AppDatabase) {
             }
         }
     }
+
+    // ===== Roast Degrees =====
+    val allRoastDegrees: Flow<List<RoastDegree>> = db.roastDegreeDao().getAll()
+    suspend fun getAllRoastDegreesOnce() = db.roastDegreeDao().getAllOnce()
+    suspend fun getRoastDegreeById(id: Long) = db.roastDegreeDao().getById(id)
+    suspend fun insertRoastDegree(roastDegree: RoastDegree): Long = db.roastDegreeDao().insert(roastDegree)
+    suspend fun updateRoastDegree(roastDegree: RoastDegree) = db.roastDegreeDao().update(roastDegree)
+    suspend fun deleteRoastDegree(roastDegree: RoastDegree) = db.roastDegreeDao().delete(roastDegree)
+    suspend fun getMaxRoastDegreeSortOrder() = db.roastDegreeDao().getMaxSortOrder()
+
+    @Transaction
+    suspend fun saveRoastDegreeOrder(items: List<RoastDegree>) {
+        items.forEachIndexed { index, roastDegree ->
+            if (roastDegree.id > 0) {
+                db.roastDegreeDao().update(roastDegree.copy(sortOrder = index))
+            }
+        }
+    }
+
+    // ===== Process Methods =====
+    val allProcessMethods: Flow<List<ProcessMethod>> = db.processMethodDao().getAll()
+    suspend fun getAllProcessMethodsOnce() = db.processMethodDao().getAllOnce()
+    suspend fun insertProcessMethod(processMethod: ProcessMethod): Long = db.processMethodDao().insert(processMethod)
+    suspend fun updateProcessMethod(processMethod: ProcessMethod) = db.processMethodDao().update(processMethod)
+    suspend fun deleteProcessMethod(processMethod: ProcessMethod) = db.processMethodDao().delete(processMethod)
+    suspend fun getMaxProcessMethodSortOrder() = db.processMethodDao().getMaxSortOrder()
+
+    @Transaction
+    suspend fun saveProcessMethodOrder(items: List<ProcessMethod>) {
+        items.forEachIndexed { index, processMethod ->
+            if (processMethod.id > 0) {
+                db.processMethodDao().update(processMethod.copy(sortOrder = index))
+            }
+        }
+    }
+
+    // ===== Rest Period Configs =====
+    val allRestPeriodConfigs: Flow<List<RestPeriodConfig>> = db.restPeriodConfigDao().getAll()
+    suspend fun getAllRestPeriodConfigsOnce() = db.restPeriodConfigDao().getAllOnce()
+    suspend fun getRestPeriodConfigByRoastDegreeId(roastDegreeId: Long): RestPeriodConfig? = db.restPeriodConfigDao().getByRoastDegreeId(roastDegreeId)
+    suspend fun insertRestPeriodConfig(config: RestPeriodConfig): Long = db.restPeriodConfigDao().insert(config)
+    suspend fun updateRestPeriodConfig(config: RestPeriodConfig) = db.restPeriodConfigDao().update(config)
+    suspend fun deleteRestPeriodConfig(config: RestPeriodConfig) = db.restPeriodConfigDao().delete(config)
+
+    // ===== Peak Flavor Configs =====
+    val allPeakFlavorConfigs: Flow<List<PeakFlavorConfig>> = db.peakFlavorConfigDao().getAll()
+    suspend fun getAllPeakFlavorConfigsOnce() = db.peakFlavorConfigDao().getAllOnce()
+    suspend fun getPeakFlavorConfigByRoastDegreeId(roastDegreeId: Long): PeakFlavorConfig? = db.peakFlavorConfigDao().getByRoastDegreeId(roastDegreeId)
+    suspend fun insertPeakFlavorConfig(config: PeakFlavorConfig): Long = db.peakFlavorConfigDao().insert(config)
+    suspend fun updatePeakFlavorConfig(config: PeakFlavorConfig) = db.peakFlavorConfigDao().update(config)
+    suspend fun deletePeakFlavorConfig(config: PeakFlavorConfig) = db.peakFlavorConfigDao().delete(config)
 }
