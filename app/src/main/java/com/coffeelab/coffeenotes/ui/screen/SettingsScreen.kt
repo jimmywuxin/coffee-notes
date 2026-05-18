@@ -25,6 +25,9 @@ fun SettingsScreen(
     navController: NavController
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
+    val currentMode = prefs.getString(MainActivity.KEY_THEME_MODE, "system") ?: "system"
     var showClearDataDialog by remember { mutableStateOf(false) }
     var showClearProgress by remember { mutableStateOf(false) }
 
@@ -82,7 +85,16 @@ fun SettingsScreen(
             }
 
             item {
-                ThemeModeSelector()
+                SettingsItem(
+                    icon = Icons.Default.BrightnessAuto,
+                    title = "显示模式",
+                    subtitle = when (currentMode) {
+                        "light" -> "浅色模式"
+                        "dark" -> "深色模式"
+                        else -> "跟随系统"
+                    },
+                    onClick = { navController.navigate(Screen.DisplayTheme.route) }
+                )
             }
 
             item {
