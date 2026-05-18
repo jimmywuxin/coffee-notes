@@ -1,8 +1,10 @@
 package com.coffeelab.coffeenotes
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -29,6 +31,19 @@ data class BottomNavItem(
 )
 
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        const val PREFS_NAME = "coffee_notes_prefs"
+        const val KEY_THEME_MODE = "theme_mode"
+
+        fun setThemeModeAndRestart(activity: Activity, mode: String) {
+            activity.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit()
+                .putString(KEY_THEME_MODE, mode)
+                .apply()
+            activity.recreate()
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -52,7 +67,15 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            CoffeeNotesTheme {
+            val prefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
+            val themeMode = prefs.getString(MainActivity.KEY_THEME_MODE, "system") ?: "system"
+            val darkTheme = when (themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> isSystemInDarkTheme()
+            }
+
+            CoffeeNotesTheme(darkTheme = darkTheme) {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route

@@ -1,5 +1,6 @@
 package com.coffeelab.coffeenotes.ui.screen
 
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,8 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.MainActivity
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import kotlinx.coroutines.launch
@@ -63,6 +66,23 @@ fun SettingsScreen(
                     subtitle = "导出数据到本地文件",
                     onClick = { navController.navigate(Screen.Backup.route) }
                 )
+            }
+
+            item {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
+
+            item {
+                Text(
+                    text = "显示",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+            }
+
+            item {
+                ThemeModeSelector()
             }
 
             item {
@@ -250,6 +270,130 @@ fun SettingsItem(
             imageVector = Icons.Default.ChevronRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun ThemeModeSelector() {
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
+    val currentMode = prefs.getString(MainActivity.KEY_THEME_MODE, "system") ?: "system"
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column {
+            // Header row – always visible
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (currentMode == "dark") Icons.Default.DarkMode
+                        else if (currentMode == "light") Icons.Default.LightMode
+                        else Icons.Default.BrightnessAuto,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "显示模式",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = when (currentMode) {
+                            "light" -> "浅色模式"
+                            "dark" -> "深色模式"
+                            else -> "跟随系统"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Expandable options
+            if (expanded) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                ThemeRadioItem(
+                    icon = Icons.Default.BrightnessAuto,
+                    title = "跟随系统",
+                    selected = currentMode == "system",
+                    onClick = {
+                        MainActivity.setThemeModeAndRestart(
+                            context as android.app.Activity,
+                            "system"
+                        )
+                    }
+                )
+                ThemeRadioItem(
+                    icon = Icons.Default.LightMode,
+                    title = "浅色模式",
+                    selected = currentMode == "light",
+                    onClick = {
+                        MainActivity.setThemeModeAndRestart(
+                            context as android.app.Activity,
+                            "light"
+                        )
+                    }
+                )
+                ThemeRadioItem(
+                    icon = Icons.Default.DarkMode,
+                    title = "深色模式",
+                    selected = currentMode == "dark",
+                    onClick = {
+                        MainActivity.setThemeModeAndRestart(
+                            context as android.app.Activity,
+                            "dark"
+                        )
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeRadioItem(
+    icon: ImageVector,
+    title: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(start = 56.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        RadioButton(
+            selected = selected,
+            onClick = onClick
         )
     }
 }
