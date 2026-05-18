@@ -165,17 +165,16 @@ fun BeanDetailScreen(
                             if (b.roastDate != null) {
                                 InfoRow("烘焙日期", DateUtils.formatDate(b.roastDate))
                             }
-                            // 养豆期/赏味期（基于烘焙日期+天数计算）
+                            // 养豆期/赏味期（基于烘焙日期+天数计算，截止日期）
                             if (b.roastDate != null && (b.restDays != null || b.peakFlavorDays != null)) {
-                                // roastDate 存的是 epoch 秒，DateUtils.formatDate 需毫秒，故 ×1000
-                                val restEnd = b.restDays?.let { b.roastDate * 1000 + it.toLong() * 86400 * 1000 }
-                                val peakStart = restEnd
-                                val peakEnd = b.peakFlavorDays?.let { (peakStart ?: restEnd!!) + it.toLong() * 86400 * 1000 }
+                                val DAY_MS = 86400 * 1000L
+                                val restEnd = b.restDays?.let { b.roastDate + it.toLong() * DAY_MS }
+                                val peakEnd = b.peakFlavorDays?.let { (restEnd ?: b.roastDate) + it.toLong() * DAY_MS }
                                 if (restEnd != null) {
-                                    InfoRow("养豆期", "${DateUtils.formatDate(b.roastDate)} → ${DateUtils.formatDate(restEnd)}")
+                                    InfoRow("养豆期截止", DateUtils.formatDate(restEnd))
                                 }
-                                if (peakStart != null && peakEnd != null) {
-                                    InfoRow("赏味期", "${DateUtils.formatDate(peakStart)} → ${DateUtils.formatDate(peakEnd)}")
+                                if (peakEnd != null) {
+                                    InfoRow("赏味期截止", DateUtils.formatDate(peakEnd))
                                 }
                             }
                             if (b.notes.isNotEmpty()) {

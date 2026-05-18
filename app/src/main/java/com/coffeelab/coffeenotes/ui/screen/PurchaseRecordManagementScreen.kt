@@ -252,6 +252,7 @@ private fun PurchaseRecordDialog(
     var dateStr by remember { mutableStateOf(record?.let { DateUtils.formatDate(it.date) } ?: DateUtils.formatDate(System.currentTimeMillis())) }
     var weightStr by remember { mutableStateOf(record?.weightGrams?.toString() ?: "") }
     var priceStr by remember { mutableStateOf(record?.price?.toString() ?: "") }
+    var roastDateStr by remember { mutableStateOf(record?.roastDate?.let { DateUtils.formatDate(it) } ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -282,6 +283,14 @@ private fun PurchaseRecordDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
+                OutlinedTextField(
+                    value = roastDateStr,
+                    onValueChange = { roastDateStr = it },
+                    label = { Text("烘焙日期（选填）") },
+                    placeholder = { Text("格式：2026/05/10") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
                 val weight = weightStr.toIntOrNull() ?: 0
                 val price = priceStr.toFloatOrNull() ?: 0f
                 if (weight > 0 && price > 0) {
@@ -297,6 +306,7 @@ private fun PurchaseRecordDialog(
                     val date = DateUtils.parseDate(dateStr) ?: System.currentTimeMillis()
                     val weight = weightStr.toIntOrNull() ?: 0
                     val price = priceStr.toFloatOrNull() ?: 0f
+                    val roastDate = if (roastDateStr.isNotBlank()) DateUtils.parseDate(roastDateStr) else null
                     if (weight > 0 && price > 0) {
                         onSave(PurchaseRecord(
                             id = record?.id ?: 0,
@@ -304,7 +314,8 @@ private fun PurchaseRecordDialog(
                             date = date,
                             weightGrams = weight,
                             price = price,
-                            unitPrice = price / weight
+                            unitPrice = price / weight,
+                            roastDate = roastDate
                         ))
                     }
                 },

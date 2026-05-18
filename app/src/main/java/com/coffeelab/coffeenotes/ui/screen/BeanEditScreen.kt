@@ -212,8 +212,8 @@ fun BeanEditScreen(
             // 养豆期/赏味期手动覆盖
             restDaysOverride = b.restDays?.toString() ?: ""
             peakFlavorDaysOverride = b.peakFlavorDays?.toString() ?: ""
-            userModifiedRestDays = false
-            userModifiedPeakFlavorDays = false
+            userModifiedRestDays = b.restDays != null  // 有保存值则标记为已修改，防止 loadSuggestedDays 覆盖
+            userModifiedPeakFlavorDays = b.peakFlavorDays != null
             // roastLevel字符串匹配到id（兼容旧数据）
             if (roastDegrees.isNotEmpty()) {
                 val matchedRoast = roastDegrees.find { it.name == b.roastLevel }
@@ -332,7 +332,7 @@ fun BeanEditScreen(
                     ExposedDropdownMenu(
                         expanded = processDropdownExpanded,
                         onDismissRequest = { processDropdownExpanded = false },
-                        modifier = Modifier.heightIn(max = 200.dp)
+                        modifier = Modifier.heightIn(max = 250.dp)
                     ) {
                         // 空选项
                         DropdownMenuItem(
@@ -371,7 +371,7 @@ fun BeanEditScreen(
                     ExposedDropdownMenu(
                         expanded = roastLevelDropdownExpanded,
                         onDismissRequest = { roastLevelDropdownExpanded = false },
-                        modifier = Modifier.heightIn(max = 200.dp)
+                        modifier = Modifier.heightIn(max = 250.dp)
                     ) {
                         // 空选项
                         DropdownMenuItem(
