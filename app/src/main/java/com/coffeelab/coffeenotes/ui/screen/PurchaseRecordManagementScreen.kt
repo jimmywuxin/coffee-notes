@@ -314,7 +314,6 @@ private fun PurchaseRecordDialog(
                             date = date,
                             weightGrams = weight,
                             price = price,
-                            unitPrice = price / weight,
                             roastDate = roastDate
                         ))
                     }

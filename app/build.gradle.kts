@@ -93,9 +93,6 @@ dependencies {
     implementation("com.google.mlkit:text-recognition:16.0.0")
     implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
 
-    // OkHttp (AI recognition API calls)
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
     // Coil (image loading)
     implementation("io.coil-kt:coil-compose:2.5.0")
 
@@ -116,4 +113,6 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    testImplementation("io.mockk:mockk:1.13.12")
 }

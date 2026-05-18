@@ -23,7 +23,9 @@ import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.dao.*
 import com.coffeelab.coffeenotes.viewmodel.StatsViewModel
 import kotlinx.coroutines.flow.*
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -632,11 +634,11 @@ private fun StatRow(label: String, value: String) {
  * 根据月份数量生成标签列表
  */
 private fun generateMonthLabels(count: Int): List<String> {
-    val fmt = SimpleDateFormat("MM月", Locale.CHINESE)
+    val fmt = DateTimeFormatter.ofPattern("M月")
     val cal = Calendar.getInstance()
     return (0 until count).map { i ->
         cal.timeInMillis = System.currentTimeMillis()
         cal.add(Calendar.MONTH, i - count + 1)
-        fmt.format(cal.time)
+        fmt.format(cal.time.toInstant().atZone(ZoneId.of("Asia/Shanghai")).toLocalDate())
     }
 }

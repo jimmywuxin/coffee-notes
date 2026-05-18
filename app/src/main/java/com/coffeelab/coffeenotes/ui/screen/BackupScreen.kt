@@ -23,7 +23,8 @@ import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.ui.theme.WoodPrimary
 import com.coffeelab.coffeenotes.viewmodel.BackupViewModel
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 @Composable
@@ -117,7 +118,7 @@ fun BackupScreen(
                     )
                     Button(
                         onClick = {
-                            val dateStr = SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.CHINA).format(Date())
+                            val dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss"))
                             zipExportLauncher.launch("CoffeeNotes_$dateStr.zip")
                         },
                         modifier = Modifier.fillMaxWidth()

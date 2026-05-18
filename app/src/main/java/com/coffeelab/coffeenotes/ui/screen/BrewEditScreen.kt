@@ -29,6 +29,7 @@ import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import com.coffeelab.coffeenotes.data.entity.Equipment
 import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
 import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
+import com.coffeelab.coffeenotes.ui.component.StarRatingRow
 import com.coffeelab.coffeenotes.viewmodel.GrinderViewModel
 import kotlinx.coroutines.launch
 
@@ -776,35 +777,3 @@ fun BrewEditScreen(
     }
 }
 
-@Composable
-fun StarRatingRow(
-    label: String,
-    rating: Int,
-    onRatingChange: (Int) -> Unit,
-    large: Boolean = false
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(
-            text = label,
-            style = if (large) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.width(60.dp)
-        )
-        for (i in 1..5) {
-            IconButton(
-                onClick = { onRatingChange(if (rating == i) 0 else i) },
-                modifier = Modifier.size(if (large) 40.dp else 32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "星 $i",
-                    tint = if (i <= rating) MaterialTheme.colorScheme.secondary
-                    else MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.size(if (large) 32.dp else 24.dp)
-                )
-            }
-        }
-    }
-}

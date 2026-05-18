@@ -20,7 +20,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 class ImportViewModel(application: Application) : AndroidViewModel(application) {
@@ -68,7 +69,7 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
                     val roastDate = bean.get("roastDate")?.asString
                     val roastDateTs = if (!roastDate.isNullOrEmpty()) {
                         try {
-                            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(roastDate)?.time
+                            LocalDate.parse(roastDate, DateTimeFormatter.ISO_LOCAL_DATE).atStartOfDay(java.time.ZoneId.of("Asia/Shanghai")).toInstant().toEpochMilli()
                         } catch (e: Exception) { null }
                     } else null
 

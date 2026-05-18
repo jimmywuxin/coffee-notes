@@ -4,6 +4,16 @@ import androidx.room.Transaction
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.*
 import kotlinx.coroutines.flow.Flow
+import com.coffeelab.coffeenotes.data.dao.BeanBrewCount
+import com.coffeelab.coffeenotes.data.dao.EquipmentCount
+import com.coffeelab.coffeenotes.data.dao.RatioCount
+import com.coffeelab.coffeenotes.data.dao.TempBucket
+import com.coffeelab.coffeenotes.data.dao.RatingCount
+import com.coffeelab.coffeenotes.data.dao.EquipmentRating
+import com.coffeelab.coffeenotes.data.dao.OriginCount
+import com.coffeelab.coffeenotes.data.dao.RoastLevelCount
+import com.coffeelab.coffeenotes.data.dao.TimeSlotCount
+import com.coffeelab.coffeenotes.data.dao.FlavorTagCount
 
 class CoffeeRepository(private val db: AppDatabase) {
 
@@ -162,4 +172,26 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun insertPeakFlavorConfig(config: PeakFlavorConfig): Long = db.peakFlavorConfigDao().insert(config)
     suspend fun updatePeakFlavorConfig(config: PeakFlavorConfig) = db.peakFlavorConfigDao().update(config)
     suspend fun deletePeakFlavorConfig(config: PeakFlavorConfig) = db.peakFlavorConfigDao().delete(config)
+
+    // ===== Stats queries (previously directly on DAOs in StatsViewModel) =====
+    fun getTopBrewedBeans(limit: Int) = db.coffeeBeanDao().getTopBrewedBeans(limit)
+    fun getMonthlyBrewCounts(startTime: Long) = db.brewRecordDao().getMonthlyBrewCounts(startTime)
+    fun getBrewCountThisWeek(weekStart: Long) = db.brewRecordDao().getBrewCountThisWeek(weekStart)
+    fun getBrewCountLastWeek(lastWeekStart: Long, weekStart: Long) = db.brewRecordDao().getBrewCountLastWeek(lastWeekStart, weekStart)
+    fun getBrewCountsByEquipment() = db.brewRecordDao().getBrewCountsByEquipment()
+    fun getBrewCountsByRatio() = db.brewRecordDao().getBrewCountsByRatio()
+    fun getBrewCountsByTemp() = db.brewRecordDao().getBrewCountsByTemp()
+    fun getBrewCountsByTimeSlot() = db.brewRecordDao().getBrewCountsByTimeSlot()
+    fun getBrewCountsByRating() = db.brewRecordDao().getBrewCountsByRating()
+    fun getAvgRatingByEquipment() = db.brewRecordDao().getAvgRatingByEquipment()
+    fun getBeanCountByOrigin() = db.brewRecordDao().getBeanCountByOrigin()
+    fun getBeanCountByRoastLevel() = db.brewRecordDao().getBeanCountByRoastLevel()
+    fun getTopFlavorTags(limit: Int) = db.flavorTagDao().getTopFlavorTags(limit)
+    fun getMonthlyBrewCountsForBean(beanId: Long, startTime: Long) = db.brewRecordDao().getMonthlyBrewCountsForBean(beanId, startTime)
+    fun getBrewCountsByEquipmentForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByEquipmentForBean(beanId)
+    fun getBrewCountsByRatioForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByRatioForBean(beanId)
+    fun getBrewCountsByTempForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByTempForBean(beanId)
+    fun getBrewCountsByTimeSlotForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByTimeSlotForBean(beanId)
+    fun getBrewCountsByRatingForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByRatingForBean(beanId)
+    fun getAvgRatingForBean(beanId: Long) = db.brewRecordDao().getAvgRatingForBean(beanId)
 }

@@ -6,7 +6,12 @@ import android.net.Uri
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import java.io.File
 import java.io.FileOutputStream
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.temporal.WeekFields
 import java.util.*
 
 object ImageUtils {
@@ -99,34 +104,39 @@ object ImageUtils {
 }
 
 object DateUtils {
-    private val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.CHINA)
-    private val dateTimeFormat = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.CHINA)
+    private val dateFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd")
+    private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
+    private val zoneId = ZoneId.of("Asia/Shanghai")
 
-    fun formatDate(timestamp: Long): String = dateFormat.format(Date(timestamp))
-    fun formatDateTime(timestamp: Long): String = dateTimeFormat.format(Date(timestamp))
+    fun formatDate(timestamp: Long): String {
+        val instant = Instant.ofEpochMilli(timestamp)
+        return dateFormatter.format(instant.atZone(zoneId).toLocalDate())
+    }
+
+    fun formatDateTime(timestamp: Long): String {
+        val instant = Instant.ofEpochMilli(timestamp)
+        return dateTimeFormatter.format(instant.atZone(zoneId).toLocalDateTime())
+    }
+
     fun parseDate(dateStr: String): Long? {
-        return try { dateFormat.parse(dateStr)?.time } catch (e: Exception) { null }
+        return try {
+            val localDate = LocalDate.parse(dateStr, dateFormatter)
+            localDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        } catch (e: Exception) { null }
     }
 
     // 获取某天所在周的周一（以周一为一周开始）
     fun getWeekStart(timestamp: Long): Long {
-        val cal = Calendar.getInstance()
-        cal.timeInMillis = timestamp
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
-        // 周一 = 2（在 Calendar 中，周日=1，周一=2，...）
-        val daysToMonday = if (dayOfWeek == Calendar.SUNDAY) 6 else dayOfWeek - 2
-        cal.add(Calendar.DAY_OF_MONTH, -daysToMonday)
-        return cal.timeInMillis
+        val instant = Instant.ofEpochMilli(timestamp)
+        val localDate = instant.atZone(zoneId).toLocalDate()
+        val dayOfWeek = localDate.dayOfWeek.value // 1=Mon, 7=Sun
+        val monday = localDate.minusDays((dayOfWeek - 1).toLong())
+        return monday.atStartOfDay(zoneId).toInstant().toEpochMilli()
     }
 
     fun getWeekLabel(timestamp: Long): String {
         val now = System.currentTimeMillis()
-        val weekStart = getWeekStart(now)
-        val thisWeekStart = getWeekStart(weekStart)
+        val thisWeekStart = getWeekStart(now)
         val lastWeekStart = thisWeekStart - 7 * 24 * 60 * 60 * 1000L
         val twoWeeksAgoStart = lastWeekStart - 7 * 24 * 60 * 60 * 1000L
 
@@ -141,8 +151,7 @@ object DateUtils {
 
     fun filterByWeekRange(records: List<BrewRecord>, range: String): List<BrewRecord> {
         val now = System.currentTimeMillis()
-        val weekStart = getWeekStart(now)
-        val thisWeekStart = getWeekStart(weekStart)
+        val thisWeekStart = getWeekStart(now)
         val lastWeekStart = thisWeekStart - 7 * 24 * 60 * 60 * 1000L
         val twoWeeksAgoStart = lastWeekStart - 7 * 24 * 60 * 60 * 1000L
 

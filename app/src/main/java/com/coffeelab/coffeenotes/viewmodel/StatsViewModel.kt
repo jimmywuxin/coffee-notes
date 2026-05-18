@@ -13,8 +13,7 @@ import java.util.*
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val db = AppDatabase.getInstance(application)
-    private val repository = CoffeeRepository(db)
+    private val repository = CoffeeRepository(AppDatabase.getInstance(application))
 
     // ===== Time Ranges =====
     private val twelveMonthsAgo: Long
@@ -44,9 +43,10 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         }
 
     // ===== Bean Stats =====
-    val allBeans: Flow<List<CoffeeBean>> = db.coffeeBeanDao().getAllBeans()
+    val allBeans: Flow<List<CoffeeBean>> = repository.allBeans
 
-    val beanCount: StateFlow<Int> = allBeans.map { it.size }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val beanCount: StateFlow<Int> = allBeans.map { it.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     val roasterCount: StateFlow<Int> = allBeans
         .map { beans -> beans.map { it.roaster }.filter { it.isNotEmpty() }.distinct().size }
@@ -57,42 +57,34 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     // ===== Brew Trend =====
-    val monthlyBrewCounts: Flow<List<Int>> = db.brewRecordDao().getMonthlyBrewCounts(twelveMonthsAgo)
-
-    val thisWeekCount: Flow<Int> = db.brewRecordDao().getBrewCountThisWeek(weekStart)
-
-    val lastWeekCount: Flow<Int> = db.brewRecordDao().getBrewCountLastWeek(lastWeekStart, weekStart)
+    val monthlyBrewCounts: Flow<List<Int>> = repository.getMonthlyBrewCounts(twelveMonthsAgo)
+    val thisWeekCount: Flow<Int> = repository.getBrewCountThisWeek(weekStart)
+    val lastWeekCount: Flow<Int> = repository.getBrewCountLastWeek(lastWeekStart, weekStart)
 
     // ===== Brew Habits =====
-    val equipmentCounts: Flow<List<EquipmentCount>> = db.brewRecordDao().getBrewCountsByEquipment()
-
-    val ratioCounts: Flow<List<RatioCount>> = db.brewRecordDao().getBrewCountsByRatio()
-
-    val tempCounts: Flow<List<TempBucket>> = db.brewRecordDao().getBrewCountsByTemp()
-
-    val timeSlotCounts: Flow<List<TimeSlotCount>> = db.brewRecordDao().getBrewCountsByTimeSlot()
+    val equipmentCounts: Flow<List<EquipmentCount>> = repository.getBrewCountsByEquipment()
+    val ratioCounts: Flow<List<RatioCount>> = repository.getBrewCountsByRatio()
+    val tempCounts: Flow<List<TempBucket>> = repository.getBrewCountsByTemp()
+    val timeSlotCounts: Flow<List<TimeSlotCount>> = repository.getBrewCountsByTimeSlot()
 
     // ===== Rating Analysis =====
-    val ratingCounts: Flow<List<RatingCount>> = db.brewRecordDao().getBrewCountsByRating()
+    val ratingCounts: Flow<List<RatingCount>> = repository.getBrewCountsByRating()
+    val avgRatingByEquipment: Flow<List<EquipmentRating>> = repository.getAvgRatingByEquipment()
 
-    val avgRatingByEquipment: Flow<List<EquipmentRating>> = db.brewRecordDao().getAvgRatingByEquipment()
-
-    val overallAvgRating: Flow<Double> = db.brewRecordDao().getAllRecords()
+    val overallAvgRating: Flow<Double> = repository.allRecords
         .map { records ->
             val rated = records.filter { it.overallRating > 0 }
             if (rated.isEmpty()) 0.0 else rated.map { it.overallRating }.average()
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
-    // ===== Bean Stats =====
-    val topBrewedBeans: Flow<List<BeanBrewCount>> = db.coffeeBeanDao().getTopBrewedBeans(10)
-
-    val beanCountByOrigin: Flow<List<OriginCount>> = db.brewRecordDao().getBeanCountByOrigin()
-
-    val beanCountByRoastLevel: Flow<List<RoastLevelCount>> = db.brewRecordDao().getBeanCountByRoastLevel()
+    // ===== Bean Distribution =====
+    val topBrewedBeans: Flow<List<BeanBrewCount>> = repository.getTopBrewedBeans(10)
+    val beanCountByOrigin: Flow<List<OriginCount>> = repository.getBeanCountByOrigin()
+    val beanCountByRoastLevel: Flow<List<RoastLevelCount>> = repository.getBeanCountByRoastLevel()
 
     // ===== Flavor Tags =====
-    fun getTopFlavorTags(limit: Int = 10) = db.flavorTagDao().getTopFlavorTags(limit)
+    fun getTopFlavorTags(limit: Int = 10) = repository.getTopFlavorTags(limit)
 
     // ===== All Records =====
     val allRecords = repository.allRecords
@@ -102,19 +94,15 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
 
     // ===== Per-Bean Stats =====
     fun getRecordsForBean(beanId: Long) = repository.getRecordsForBean(beanId)
-
-    fun getMonthlyBrewCountsForBean(beanId: Long) =
-        db.brewRecordDao().getMonthlyBrewCountsForBean(beanId, twelveMonthsAgo)
-
+    fun getMonthlyBrewCountsForBean(beanId: Long) = repository.getMonthlyBrewCountsForBean(beanId, twelveMonthsAgo)
     fun getBrewCountForBean(beanId: Long) = repository.getBrewCountForBean(beanId)
-
     suspend fun getBestRecordForBean(beanId: Long) = repository.getBestRecordForBean(beanId)
 
     // ===== Per-Bean Brew Habits =====
-    fun getEquipmentCountsForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByEquipmentForBean(beanId)
-    fun getRatioCountsForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByRatioForBean(beanId)
-    fun getTempCountsForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByTempForBean(beanId)
-    fun getTimeSlotCountsForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByTimeSlotForBean(beanId)
-    fun getRatingCountsForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByRatingForBean(beanId)
-    fun getAvgRatingForBean(beanId: Long) = db.brewRecordDao().getAvgRatingForBean(beanId)
+    fun getEquipmentCountsForBean(beanId: Long) = repository.getBrewCountsByEquipmentForBean(beanId)
+    fun getRatioCountsForBean(beanId: Long) = repository.getBrewCountsByRatioForBean(beanId)
+    fun getTempCountsForBean(beanId: Long) = repository.getBrewCountsByTempForBean(beanId)
+    fun getTimeSlotCountsForBean(beanId: Long) = repository.getBrewCountsByTimeSlotForBean(beanId)
+    fun getRatingCountsForBean(beanId: Long) = repository.getBrewCountsByRatingForBean(beanId)
+    fun getAvgRatingForBean(beanId: Long) = repository.getAvgRatingForBean(beanId)
 }
