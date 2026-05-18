@@ -110,6 +110,10 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
             GrinderManagementScreen(navController = navController, grinderViewModel = grinderViewModel)
         }
 
+        composable(Screen.DisplayTheme.route) {
+            DisplayThemeScreen(navController = navController)
+        }
+
         composable(Screen.Settings.route) {
             SettingsScreen(navController = navController)
         }
