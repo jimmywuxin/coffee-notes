@@ -33,6 +33,7 @@ fun HomeScreen(
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
     val recentRecords by brewViewModel.allRecords.collectAsState(initial = emptyList())
     val allMethods by methodViewModel.allMethods.collectAsState(initial = emptyList())
+    val nearingBeans by beanViewModel.beansNearingPeakFlavorEnd.collectAsState(initial = emptyList())
 
     // Time-based greeting
     val greeting = remember {
@@ -287,6 +288,51 @@ fun HomeScreen(
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
                             )
+                        }
+                    }
+                }
+            }
+
+            // 赏味期倒计时
+            if (nearingBeans.isNotEmpty()) {
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Spacer(Modifier.width(8.dp))
+                                Text("赏味期倒计时", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            nearingBeans.forEach { (bean, daysLeft) ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().clickable { navController.navigate(Screen.BeanDetail.createRoute(bean.id)) }.padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = bean.roaster + " - " + bean.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.error,
+                                        shape = MaterialTheme.shapes.small
+                                    ) {
+                                        Text(
+                                            text = if (daysLeft <= 0) "今日结束" else "剩余" + daysLeft + "天",
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onError
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

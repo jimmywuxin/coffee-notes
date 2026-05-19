@@ -35,6 +35,31 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
     private val _tags = MutableStateFlow<List<String>>(emptyList())
     val tags: StateFlow<List<String>> = _tags.asStateFlow()
 
+    // 赏味期即将结束的豆子（距离赏味期结束 <= 10天），按倒计时升序排列
+    val beansNearingPeakFlavorEnd: StateFlow<List<Pair<CoffeeBean, Int>>> = combine(
+        repository.activeBeans,
+        repository.allRoastDegrees,
+        repository.allPeakFlavorConfigs,
+        repository.allRestPeriodConfigs
+    ) { beans, roastDegrees, peakConfigs, _ ->
+        val now = System.currentTimeMillis()
+        val tenDaysFromNow = now + 10L * 24 * 60 * 60 * 1000
+        beans.filter { bean ->
+            bean.roastDate != null
+        }.mapNotNull { bean ->
+            val peakDays = bean.peakFlavorDays
+                ?: roastDegrees.find { it.name == bean.roastLevel }?.let { rd ->
+                    peakConfigs.find { it.roastDegreeId == rd.id }?.peakFlavorDays
+                }
+                ?: 14  // default 14 days
+            val peakEndDate = bean.roastDate!! + (peakDays * 86400000L)
+            if (peakEndDate in now..tenDaysFromNow) {
+                val daysLeft = ((peakEndDate - now) / (24 * 60 * 60 * 1000)).toInt()
+                bean to daysLeft
+            } else null
+        }.sortedBy { it.second }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     fun loadBean(beanId: Long) {
         viewModelScope.launch {
             val bean = repository.getBean(beanId)

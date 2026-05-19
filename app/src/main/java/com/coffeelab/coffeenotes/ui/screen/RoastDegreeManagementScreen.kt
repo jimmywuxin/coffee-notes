@@ -207,7 +207,7 @@ fun RoastDegreeManagementScreen(
             onDismissRequest = { showEditDialog = false },
             title = { Text("编辑烘焙度") },
             text = { OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("名称") }, singleLine = true, modifier = Modifier.fillMaxWidth()) },
-            confirmButton = { TextButton(onClick = { if (nameInput.isNotBlank()) { viewModel.updateRoastDegree(editingItem!!.copy(name = nameInput.trim())); showEditDialog = false } }, enabled = nameInput.isNotBlank()) { Text("保存") } },
+            confirmButton = { TextButton(onClick = { if (nameInput.isNotBlank()) { viewModel.renameRoastDegree(editingItem!!, nameInput.trim()); showEditDialog = false } }, enabled = nameInput.isNotBlank()) { Text("保存") } },
             dismissButton = { TextButton(onClick = { showEditDialog = false }) { Text("取消") } }
         )
     }

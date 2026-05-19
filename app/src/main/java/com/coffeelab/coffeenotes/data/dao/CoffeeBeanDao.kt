@@ -46,6 +46,12 @@ interface CoffeeBeanDao {
         LIMIT :limit
     """)
     fun getTopBrewedBeans(limit: Int): Flow<List<BeanBrewCount>>
+
+    @Query("UPDATE coffee_beans SET roastLevel = :newName WHERE roastLevel = :oldName")
+    suspend fun updateRoastLevelByName(oldName: String, newName: String)
+
+    @Query("UPDATE coffee_beans SET process = :newName WHERE process = :oldName")
+    suspend fun updateProcessByName(oldName: String, newName: String)
 }
 
 data class BeanBrewCount(

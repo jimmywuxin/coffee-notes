@@ -113,7 +113,7 @@ fun RestPeriodConfigManagementScreen(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
-                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.heightIn(max = 200.dp)) {
+                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.heightIn(max = 260.dp)) {
                             roastDegrees.forEach { rd ->
                                 DropdownMenuItem(
                                     text = { Text(rd.name) },
@@ -163,7 +163,7 @@ fun RestPeriodConfigManagementScreen(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
-                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.heightIn(max = 200.dp)) {
+                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.heightIn(max = 260.dp)) {
                             roastDegrees.forEach { rd ->
                                 DropdownMenuItem(
                                     text = { Text(rd.name) },

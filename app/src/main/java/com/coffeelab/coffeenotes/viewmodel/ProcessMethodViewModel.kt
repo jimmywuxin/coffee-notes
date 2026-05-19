@@ -26,6 +26,14 @@ class ProcessMethodViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch { repository.updateProcessMethod(processMethod) }
     }
 
+    fun renameProcessMethod(processMethod: ProcessMethod, newName: String) {
+        viewModelScope.launch {
+            val oldName = processMethod.name
+            repository.updateProcessMethod(processMethod.copy(name = newName))
+            repository.updateProcessOnBeans(oldName, newName)
+        }
+    }
+
     fun deleteProcessMethod(processMethod: ProcessMethod) {
         viewModelScope.launch { repository.deleteProcessMethod(processMethod) }
     }

@@ -194,4 +194,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     fun getBrewCountsByTimeSlotForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByTimeSlotForBean(beanId)
     fun getBrewCountsByRatingForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByRatingForBean(beanId)
     fun getAvgRatingForBean(beanId: Long) = db.brewRecordDao().getAvgRatingForBean(beanId)
+
+    suspend fun updateRoastLevelOnBeans(oldName: String, newName: String) = db.coffeeBeanDao().updateRoastLevelByName(oldName, newName)
+    suspend fun updateProcessOnBeans(oldName: String, newName: String) = db.coffeeBeanDao().updateProcessByName(oldName, newName)
 }

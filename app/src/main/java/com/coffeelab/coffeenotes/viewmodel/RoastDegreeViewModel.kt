@@ -23,7 +23,17 @@ class RoastDegreeViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun updateRoastDegree(roastDegree: RoastDegree) {
-        viewModelScope.launch { repository.updateRoastDegree(roastDegree) }
+        viewModelScope.launch {
+            repository.updateRoastDegree(roastDegree)
+        }
+    }
+
+    fun renameRoastDegree(roastDegree: RoastDegree, newName: String) {
+        viewModelScope.launch {
+            val oldName = roastDegree.name
+            repository.updateRoastDegree(roastDegree.copy(name = newName))
+            repository.updateRoastLevelOnBeans(oldName, newName)
+        }
     }
 
     fun deleteRoastDegree(roastDegree: RoastDegree) {

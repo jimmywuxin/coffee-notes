@@ -336,7 +336,7 @@ fun BeanEditScreen(
                     ) {
                         // 空选项
                         DropdownMenuItem(
-                            text = { Text("未设置") },
+                            text = { Text("不选择") },
                             onClick = {
                                 selectedProcessMethodId = null
                                 processDropdownExpanded = false
@@ -375,7 +375,7 @@ fun BeanEditScreen(
                     ) {
                         // 空选项
                         DropdownMenuItem(
-                            text = { Text("未设置") },
+                            text = { Text("不选择") },
                             onClick = {
                                 selectedRoastDegreeId = null
                                 suggestedRestDays = null
