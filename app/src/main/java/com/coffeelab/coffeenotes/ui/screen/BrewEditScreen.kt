@@ -1,5 +1,8 @@
 package com.coffeelab.coffeenotes.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.rememberScrollState
@@ -16,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -30,6 +35,7 @@ import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
 import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
 import com.coffeelab.coffeenotes.ui.component.StarRatingRow
 import com.coffeelab.coffeenotes.viewmodel.GrinderViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Extraction suggestion data class
@@ -92,6 +98,58 @@ fun BrewEditScreen(
 
     // New: reverse ratio calculation
     var calculatedRatio by remember { mutableStateOf("") }
+
+    // ===== Brew Timer State (two-phase) =====
+    var timerExpanded by remember { mutableStateOf(false) }
+    var timerSeconds by remember { mutableIntStateOf(0) }
+    var timerRunning by remember { mutableStateOf(false) }
+    var pourPhaseSeconds by remember { mutableIntStateOf(0) }  // 注水阶段秒数（暂停后固定）
+    var brewPhaseSeconds by remember { mutableIntStateOf(0) }  // 萃取阶段秒数（暂停后固定）
+    var currentPhase by remember { mutableIntStateOf(0) }      // 0=注水, 1=萃取
+    val haptic = LocalHapticFeedback.current
+
+    // Timer coroutine
+    LaunchedEffect(timerRunning) {
+        while (timerRunning) {
+            delay(1000L)
+            timerSeconds++
+        }
+    }
+
+    fun formatTimer(seconds: Int): String {
+        val m = seconds / 60
+        val s = seconds % 60
+        return "%d:%02d".format(m, s)
+    }
+
+    fun startTimer() {
+        timerRunning = true
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+    }
+
+    fun stopTimer() {
+        timerRunning = false
+        if (currentPhase == 0) {
+            pourPhaseSeconds = timerSeconds
+        } else {
+            brewPhaseSeconds = timerSeconds
+        }
+    }
+
+    fun nextPhase() {
+        stopTimer()
+        currentPhase = 1
+        // 继续计时（不重置，累计计时）
+        startTimer()
+    }
+
+    fun resetTimer() {
+        timerRunning = false
+        timerSeconds = 0
+        pourPhaseSeconds = 0
+        brewPhaseSeconds = 0
+        currentPhase = 0
+    }
 
     // Extraction suggestion from selected bean
     var selectedBeanExtraction by remember { mutableStateOf<ExtractionSuggestion?>(null) }
@@ -595,6 +653,167 @@ fun BrewEditScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
+            // ===== Brew Timer (two-phase, collapsible) =====
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                onClick = { timerExpanded = !timerExpanded }
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Timer,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (currentPhase == 0) "☕ 注水中" else "⏳ 萃取中",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = formatTimer(timerSeconds),
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = if (timerRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                            Icon(
+                                if (timerExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(visible = timerExpanded) {
+                        Column(modifier = Modifier.padding(top = 8.dp)) {
+                            // Phase labels
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    "注水：${formatTimer(pourPhaseSeconds)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                                Text(
+                                    "萃取：${formatTimer(brewPhaseSeconds)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Phase indicator
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(4.dp),
+                                    shape = MaterialTheme.shapes.extraSmall,
+                                    color = if (currentPhase == 0) MaterialTheme.colorScheme.secondary
+                                        else MaterialTheme.colorScheme.outlineVariant
+                                ) {}
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(4.dp),
+                                    shape = MaterialTheme.shapes.extraSmall,
+                                    color = if (currentPhase == 1) MaterialTheme.colorScheme.tertiary
+                                        else MaterialTheme.colorScheme.outlineVariant
+                                ) {}
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Control buttons
+                            if (!timerRunning) {
+                                // Stopped: show Start + Next Phase + Reset
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = { startTimer() },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("开始")
+                                    }
+
+                                    if (currentPhase == 0 && pourPhaseSeconds > 0) {
+                                        OutlinedButton(
+                                            onClick = { nextPhase() },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("下一阶段")
+                                        }
+                                    }
+
+                                    if (timerSeconds > 0) {
+                                        OutlinedButton(
+                                            onClick = { resetTimer() },
+                                            modifier = Modifier.weight(0.6f)
+                                        ) {
+                                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Running: show Pause
+                                Button(
+                                    onClick = { stopTimer() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Pause, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("暂停")
+                                }
+                            }
+
+                            // Apply buttons (always visible)
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                TextButton(
+                                    onClick = { pouringDurationSeconds = pourPhaseSeconds.toString() },
+                                    enabled = pourPhaseSeconds > 0,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("→ 填入注水时长")
+                                }
+                                TextButton(
+                                    onClick = { extractionTime = brewPhaseSeconds.toString() },
+                                    enabled = brewPhaseSeconds > 0,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("→ 填入萃取时长")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             OutlinedTextField(
                 value = waterTemp,
                 onValueChange = { waterTemp = it },
