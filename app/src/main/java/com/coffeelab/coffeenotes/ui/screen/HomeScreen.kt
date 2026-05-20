@@ -130,67 +130,72 @@ fun HomeScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // ===== Greeting =====
-            item {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
-                    Text(
-                        text = "$greeting ☀️",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    if (recentRecords.isNotEmpty()) {
-                        Text(
-                            text = "今天第 $todayCount 杯" + if (streakDays > 0) "，连续 $streakDays 天 ☕" else "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        Text(
-                            text = "开始记录你的第一杯咖啡吧",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // ===== Stats Row =====
-            item {
+            // ===== Fixed Dashboard Section =====
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "$greeting ☀️",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                // 2x2 stat grid
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     StatMiniCard(
                         modifier = Modifier.weight(1f),
-                        label = "总杯数",
-                        value = "$totalCount",
-                        unit = "杯",
+                        label = "今天", value = todayCount.toString(), unit = "杯",
                         color = MaterialTheme.colorScheme.primary
                     )
                     StatMiniCard(
                         modifier = Modifier.weight(1f),
-                        label = "均/周",
-                        value = if (avgPerWeek > 0) String.format("%.1f", avgPerWeek) else "-",
-                        unit = "杯",
+                        label = "连续天数", value = streakDays.toString(), unit = "天",
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    StatMiniCard(
+                        modifier = Modifier.weight(1f),
+                        label = "总计", value = totalCount.toString(), unit = "杯",
                         color = MaterialTheme.colorScheme.secondary
                     )
                     StatMiniCard(
                         modifier = Modifier.weight(1f),
-                        label = "连续",
-                        value = "$streakDays",
-                        unit = "天",
-                        color = MaterialTheme.colorScheme.tertiary
+                        label = "周均", value = avgPerWeek.toString(), unit = "杯",
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                     )
                 }
             }
 
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+
+            // ===== Scrollable Content Below =====
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(vertical = 12.dp)
+            ) {
             // ===== Most Used Method =====
             if (mostUsedMethod != null) {
                 item {
@@ -385,6 +390,7 @@ fun HomeScreen(
             // Bottom spacing
             item { Spacer(modifier = Modifier.height(16.dp)) }
         }
+    }
     }
 }
 
