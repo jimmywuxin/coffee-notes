@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.data.entity.RoastDegree
+import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.viewmodel.PeakFlavorConfigViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,7 +58,11 @@ fun PeakFlavorConfigManagementScreen(
     ) { padding ->
         if (configs.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("暂无配置\n点击右上角 + 添加", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                EmptyState(
+                    emoji = "🌸",
+                    message = "暂无配置",
+                    hint = "点击右上角 + 添加"
+                )
             }
         } else {
             LazyColumn(

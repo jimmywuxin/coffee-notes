@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.RoastDegree
+import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.viewmodel.RoastDegreeViewModel
 import kotlin.math.max
 import kotlin.math.min
@@ -99,7 +100,11 @@ fun RoastDegreeManagementScreen(
     ) { padding ->
         if (items.isEmpty() && !isReorderMode) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("暂无烘焙度\n点击右下角 + 添加", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                EmptyState(
+                    emoji = "🔥",
+                    message = "暂无烘焙度",
+                    hint = "点击右下角 + 添加"
+                )
             }
         } else {
             LazyColumn(

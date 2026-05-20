@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.Equipment
+import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,10 +107,10 @@ fun EquipmentManagementScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "还没有器具\n点击右下角 + 添加",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                EmptyState(
+                    emoji = "🔧",
+                    message = "还没有器具",
+                    hint = "点击右下角 + 添加"
                 )
             }
         } else {

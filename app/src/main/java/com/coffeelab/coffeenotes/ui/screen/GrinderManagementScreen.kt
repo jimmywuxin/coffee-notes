@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.Grinder
+import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.viewmodel.GrinderViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,10 +113,10 @@ fun GrinderManagementScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "还没有磨豆机\n点击右下角 + 添加",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                EmptyState(
+                    emoji = "🔄",
+                    message = "还没有磨豆机",
+                    hint = "点击右下角 + 添加"
                 )
             }
         } else {

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.ProcessMethod
+import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.viewmodel.ProcessMethodViewModel
 import kotlin.math.max
 import kotlin.math.min
@@ -87,7 +88,11 @@ fun ProcessMethodManagementScreen(
     ) { padding ->
         if (items.isEmpty() && !isReorderMode) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("暂无处理法\n点击右下角 + 添加", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                EmptyState(
+                    emoji = "💧",
+                    message = "暂无处理法",
+                    hint = "点击右下角 + 添加"
+                )
             }
         } else {
             LazyColumn(
