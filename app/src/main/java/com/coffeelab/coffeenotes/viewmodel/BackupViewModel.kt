@@ -69,6 +69,11 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 val records = repository.allRecords.first()
                 val equipment = repository.getAllEquipmentOnce()
                 val grinders = repository.getAllGrindersOnce()
+                val roastDegrees = repository.getAllRoastDegreesOnce()
+                val processMethods = repository.getAllProcessMethodsOnce()
+                val restPeriodConfigs = repository.getAllRestPeriodConfigsOnce()
+                val peakFlavorConfigs = repository.getAllPeakFlavorConfigsOnce()
+                val purchaseRecords = repository.getAllPurchaseRecordsOnce()
 
                 // Collect tags for each bean
                 val beansWithTags = beans.map { bean ->
@@ -116,7 +121,12 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     "records" to recordsData,
                     "methods" to methods,
                     "equipment" to equipment,
-                    "grinders" to grinders
+                    "grinders" to grinders,
+                    "roastDegrees" to roastDegrees,
+                    "processMethods" to processMethods,
+                    "restPeriodConfigs" to restPeriodConfigs,
+                    "peakFlavorConfigs" to peakFlavorConfigs,
+                    "purchaseRecords" to purchaseRecords
                 )
                 val dataJson = gson.toJson(dataMap)
 
@@ -426,6 +436,76 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     repository.insertGrinder(Grinder(
                         name = name,
                         sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
+                    ))
+                }
+
+                // Import roast degrees (with ID mapping for RestPeriod/PeakFlavor configs)
+                val roastDegreeIdMap = mutableMapOf<Long, Long>()
+                val roastDegreeList: List<*> = data["roastDegrees"] as? List<*> ?: emptyList<Any>()
+                for (rd in roastDegreeList) {
+                    val m = rd as Map<*, *>
+                    val oldId = (m["id"] as? Double)?.toLong() ?: continue
+                    val name = m["name"] as? String ?: continue
+                    val newId = repository.insertRoastDegree(RoastDegree(
+                        name = name,
+                        sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
+                    ))
+                    roastDegreeIdMap[oldId] = newId
+                }
+
+                // Import process methods
+                val processMethodList: List<*> = data["processMethods"] as? List<*> ?: emptyList<Any>()
+                for (pm in processMethodList) {
+                    val m = pm as Map<*, *>
+                    val name = m["name"] as? String ?: continue
+                    repository.insertProcessMethod(ProcessMethod(
+                        name = name,
+                        sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
+                    ))
+                }
+
+                // Import rest period configs (with mapped roastDegreeId)
+                val restPeriodList: List<*> = data["restPeriodConfigs"] as? List<*> ?: emptyList<Any>()
+                for (rp in restPeriodList) {
+                    val m = rp as Map<*, *>
+                    val oldRoastDegreeId = (m["roastDegreeId"] as? Double)?.toLong() ?: continue
+                    val newRoastDegreeId = roastDegreeIdMap[oldRoastDegreeId] ?: continue
+                    val restDays = (m["restDays"] as? Double)?.toInt() ?: 0
+                    repository.insertRestPeriodConfig(RestPeriodConfig(
+                        roastDegreeId = newRoastDegreeId,
+                        restDays = restDays
+                    ))
+                }
+
+                // Import peak flavor configs (with mapped roastDegreeId)
+                val peakFlavorList: List<*> = data["peakFlavorConfigs"] as? List<*> ?: emptyList<Any>()
+                for (pf in peakFlavorList) {
+                    val m = pf as Map<*, *>
+                    val oldRoastDegreeId = (m["roastDegreeId"] as? Double)?.toLong() ?: continue
+                    val newRoastDegreeId = roastDegreeIdMap[oldRoastDegreeId] ?: continue
+                    val peakDays = (m["peakFlavorDays"] as? Double)?.toInt() ?: 0
+                    repository.insertPeakFlavorConfig(PeakFlavorConfig(
+                        roastDegreeId = newRoastDegreeId,
+                        peakFlavorDays = peakDays
+                    ))
+                }
+
+                // Import purchase records (with mapped beanId)
+                val purchaseRecordList: List<*> = data["purchaseRecords"] as? List<*> ?: emptyList<Any>()
+                for (pr in purchaseRecordList) {
+                    val m = pr as Map<*, *>
+                    val oldBeanId = (m["beanId"] as? Double)?.toLong() ?: continue
+                    val newBeanId = beanIdMap[oldBeanId] ?: continue
+                    val date = (m["date"] as? Double)?.toLong() ?: System.currentTimeMillis()
+                    val price = (m["price"] as? Double)?.toFloat() ?: 0f
+                    val weightGrams = (m["weightGrams"] as? Double)?.toInt() ?: 0
+                    val roastDate = (m["roastDate"] as? Double)?.toLong()
+                    repository.insertPurchaseRecord(PurchaseRecord(
+                        beanId = newBeanId,
+                        date = date,
+                        price = price,
+                        weightGrams = weightGrams,
+                        roastDate = roastDate
                     ))
                 }
 

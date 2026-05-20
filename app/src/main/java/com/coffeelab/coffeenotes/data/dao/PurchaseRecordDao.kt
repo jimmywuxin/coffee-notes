@@ -26,4 +26,10 @@ interface PurchaseRecordDao {
 
     @Query("DELETE FROM purchase_records WHERE beanId = :beanId")
     suspend fun deleteByBeanId(beanId: Long)
+
+    @Query("SELECT * FROM purchase_records ORDER BY date DESC")
+    suspend fun getAllOnce(): List<PurchaseRecord>
+
+    @Query("DELETE FROM purchase_records")
+    suspend fun deleteAll()
 }

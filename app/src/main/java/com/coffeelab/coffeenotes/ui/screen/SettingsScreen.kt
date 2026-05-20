@@ -273,6 +273,11 @@ fun SettingsScreen(
                                     db.coffeeBeanDao().deleteAll()
                                     db.equipmentDao().deleteAll()
                                     db.grinderDao().deleteAll()
+                                    db.roastDegreeDao().deleteAll()
+                                    db.processMethodDao().deleteAll()
+                                    db.restPeriodConfigDao().deleteAll()
+                                    db.peakFlavorConfigDao().deleteAll()
+                                    db.purchaseRecordDao().deleteAll()
                                     showClearDataDialog = false
                                     showClearProgress = false
                                     navController.popBackStack()

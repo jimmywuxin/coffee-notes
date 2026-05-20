@@ -27,6 +27,9 @@ interface RoastDegreeDao {
     @Delete
     suspend fun delete(roastDegree: RoastDegree)
 
+    @Query("DELETE FROM roast_degrees")
+    suspend fun deleteAll()
+
     @Query("SELECT MAX(sortOrder) FROM roast_degrees")
     suspend fun getMaxSortOrder(): Int?
 }

@@ -27,6 +27,9 @@ interface ProcessMethodDao {
     @Delete
     suspend fun delete(processMethod: ProcessMethod)
 
+    @Query("DELETE FROM process_methods")
+    suspend fun deleteAll()
+
     @Query("SELECT MAX(sortOrder) FROM process_methods")
     suspend fun getMaxSortOrder(): Int?
 }

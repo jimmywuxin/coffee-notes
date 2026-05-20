@@ -26,4 +26,7 @@ interface PeakFlavorConfigDao {
 
     @Delete
     suspend fun delete(config: PeakFlavorConfig)
+
+    @Query("DELETE FROM peak_flavor_configs")
+    suspend fun deleteAll()
 }

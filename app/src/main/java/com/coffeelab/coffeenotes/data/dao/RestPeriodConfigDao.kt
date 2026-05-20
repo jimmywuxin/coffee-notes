@@ -26,4 +26,7 @@ interface RestPeriodConfigDao {
 
     @Delete
     suspend fun delete(config: RestPeriodConfig)
+
+    @Query("DELETE FROM rest_period_configs")
+    suspend fun deleteAll()
 }

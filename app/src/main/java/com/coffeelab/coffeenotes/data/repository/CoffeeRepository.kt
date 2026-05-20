@@ -173,6 +173,11 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun updatePeakFlavorConfig(config: PeakFlavorConfig) = db.peakFlavorConfigDao().update(config)
     suspend fun deletePeakFlavorConfig(config: PeakFlavorConfig) = db.peakFlavorConfigDao().delete(config)
 
+    // ===== Purchase Records =====
+    suspend fun getAllPurchaseRecordsOnce() = db.purchaseRecordDao().getAllOnce()
+    suspend fun insertPurchaseRecord(record: PurchaseRecord): Long = db.purchaseRecordDao().insert(record)
+    suspend fun deleteAllPurchaseRecords() = db.purchaseRecordDao().deleteAll()
+
     // ===== Stats queries (previously directly on DAOs in StatsViewModel) =====
     fun getTopBrewedBeans(limit: Int) = db.coffeeBeanDao().getTopBrewedBeans(limit)
     fun getMonthlyBrewCounts(startTime: Long) = db.brewRecordDao().getMonthlyBrewCounts(startTime)
