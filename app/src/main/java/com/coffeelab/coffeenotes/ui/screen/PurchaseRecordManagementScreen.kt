@@ -47,11 +47,6 @@ fun PurchaseRecordManagementScreen(
         topBar = {
             TopAppBar(
                 title = { Text("购买记录${if (beanName.isNotEmpty()) " - $beanName" else ""}") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,

@@ -77,13 +77,6 @@ fun RoastDegreeManagementScreen(
                         Text("烘焙度管理")
                     }
                 },
-                navigationIcon = {
-                    if (isReorderMode) {
-                        IconButton(onClick = { isReorderMode = false }) {
-                            Icon(Icons.Default.Close, "取消")
-                        }
-                    }
-                },
                 actions = {
                     if (!isReorderMode && items.isNotEmpty()) {
                         IconButton(onClick = { isReorderMode = true }) {

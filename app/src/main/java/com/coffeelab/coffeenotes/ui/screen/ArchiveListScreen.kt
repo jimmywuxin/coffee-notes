@@ -31,11 +31,6 @@ fun ArchiveListScreen(
         topBar = {
             TopAppBar(
                 title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Archive, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("已归档的豆子") } },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,

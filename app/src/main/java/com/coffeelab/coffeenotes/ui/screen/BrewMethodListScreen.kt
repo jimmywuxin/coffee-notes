@@ -73,13 +73,6 @@ fun BrewMethodListScreen(
                         Text("冲煮手法")
                     }
                 },
-                navigationIcon = {
-                    if (isReorderMode) {
-                        IconButton(onClick = { isReorderMode = false }) {
-                            Icon(Icons.Default.Close, contentDescription = "取消")
-                        }
-                    }
-                },
                 actions = {
                     if (!isReorderMode && methods.isNotEmpty()) {
                         IconButton(onClick = { isReorderMode = true }) {

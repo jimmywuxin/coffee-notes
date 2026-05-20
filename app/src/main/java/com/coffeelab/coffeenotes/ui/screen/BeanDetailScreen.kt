@@ -96,11 +96,6 @@ fun BeanDetailScreen(
         topBar = {
             TopAppBar(
                 title = { Text(bean?.name ?: "豆子详情") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
                 actions = {
                     if (bean != null) {
                         IconButton(onClick = { showArchiveDialog = true }) {

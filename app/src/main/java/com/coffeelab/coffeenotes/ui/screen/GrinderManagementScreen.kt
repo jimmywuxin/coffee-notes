@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
@@ -79,13 +78,6 @@ fun GrinderManagementScreen(
             TopAppBar(
                 title = {
                     if (isReorderMode) Text("拖动排序") else Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Refresh, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("磨豆机管理") }
-                },
-                navigationIcon = {
-                    if (isReorderMode) {
-                        IconButton(onClick = { isReorderMode = false }) {
-                            Icon(Icons.Default.Close, contentDescription = "取消")
-                        }
-                    }
                 },
                 actions = {
                     if (!isReorderMode && grinderList.isNotEmpty()) {

@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -73,11 +72,6 @@ fun BrewMethodEditScreen(
         topBar = {
             TopAppBar(
                 title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.AccountTree, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(if (isEditing) "编辑手法" else "新建手法") } },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
                 actions = {
                     if (isEditing) {
                         IconButton(onClick = { showDeleteDialog = true }) {

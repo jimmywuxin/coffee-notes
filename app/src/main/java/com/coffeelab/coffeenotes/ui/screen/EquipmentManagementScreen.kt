@@ -73,13 +73,6 @@ fun EquipmentManagementScreen(
                 title = {
                     if (isReorderMode) Text("器具排序") else Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.LocalCafe, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("器具管理") }
                 },
-                navigationIcon = {
-                    if (isReorderMode) {
-                        IconButton(onClick = { isReorderMode = false }) {
-                            Icon(Icons.Default.Close, contentDescription = "取消")
-                        }
-                    }
-                },
                 actions = {
                     if (!isReorderMode && equipmentList.isNotEmpty()) {
                         IconButton(onClick = { isReorderMode = true }) {
