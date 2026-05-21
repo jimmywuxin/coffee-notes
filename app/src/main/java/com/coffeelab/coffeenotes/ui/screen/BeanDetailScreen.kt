@@ -146,36 +146,102 @@ fun BeanDetailScreen(
                     }
                 }
 
-                // Bean Info
+                // 基础信息
                 item {
                     Surface(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
+                            Text("基础信息", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.height(8.dp))
                             InfoRow("烘焙商", b.roaster)
                             InfoRow("豆名", b.name)
                             InfoRow("产地", b.origin)
                             InfoRow("庄园", b.estate)
                             InfoRow("品种", b.variety)
-                            InfoRow("处理法", processMethods.find { it.name == b.process }?.name ?: b.process)
-                            InfoRow("烘焙度", roastDegrees.find { it.name == b.roastLevel }?.name ?: b.roastLevel)
-                            if (b.roastDate != null) {
-                                InfoRow("烘焙日期", DateUtils.formatDate(b.roastDate))
-                            }
-                            // 养豆期/赏味期（基于烘焙日期+天数计算，截止日期）
+                            // 养豆期/赏味期（没有就不显示，基于烘焙日期+天数计算）
                             if (b.roastDate != null && (b.restDays != null || b.peakFlavorDays != null)) {
                                 val DAY_MS = 86400 * 1000L
                                 val restEnd = b.restDays?.let { b.roastDate + it.toLong() * DAY_MS }
                                 val peakEnd = b.peakFlavorDays?.let { (restEnd ?: b.roastDate) + it.toLong() * DAY_MS }
                                 if (restEnd != null) {
-                                    InfoRow("养豆期截止", DateUtils.formatDate(restEnd))
+                                    InfoRow("养豆期", DateUtils.formatDate(restEnd))
                                 }
                                 if (peakEnd != null) {
-                                    InfoRow("赏味期截止", DateUtils.formatDate(peakEnd))
+                                    InfoRow("赏味期", DateUtils.formatDate(peakEnd))
                                 }
                             }
                             if (b.notes.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text("备注", style = MaterialTheme.typography.labelLarge)
                                 Text(b.notes, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+
+                // 核心信息
+                item {
+                    Surface(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("核心信息", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // 处理法 + 烘焙度
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("处理法", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(processMethods.find { it.name == b.process }?.name ?: b.process, style = MaterialTheme.typography.bodyMedium)
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("烘焙度", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(roastDegrees.find { it.name == b.roastLevel }?.name ?: b.roastLevel, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // 烘焙日期 / 养豆天数 / 赏味天数
+                            if (b.roastDate != null) {
+                                val DAY_MS = 86400 * 1000L
+                                val restEnd = b.restDays?.let { b.roastDate + it.toLong() * DAY_MS }
+                                val peakEnd = b.peakFlavorDays?.let { (restEnd ?: b.roastDate) + it.toLong() * DAY_MS }
+                                Row(modifier = Modifier.fillMaxWidth()) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("烘焙日期", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(DateUtils.formatDate(b.roastDate), style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    if (b.restDays != null) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("养豆天数", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text("${b.restDays}天", style = MaterialTheme.typography.bodyMedium)
+                                        }
+                                    }
+                                    if (b.peakFlavorDays != null) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("赏味天数", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text("${b.peakFlavorDays}天", style = MaterialTheme.typography.bodyMedium)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 风味标签
+                if (tags.isNotEmpty()) {
+                    item {
+                        Surface(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("风味标签", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    tags.forEach { tag ->
+                                        AssistChip(
+                                            onClick = {},
+                                            label = { Text(tag) }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -324,28 +390,6 @@ fun BeanDetailScreen(
                             values = radarValues,
                             modifier = Modifier.padding(top = 8.dp)
                         )
-                    }
-                }
-
-                // Flavor Tags
-                if (tags.isNotEmpty()) {
-                    item {
-                        Text(
-                            "风味标签",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            tags.forEach { tag ->
-                                AssistChip(
-                                    onClick = {},
-                                    label = { Text(tag) }
-                                )
-                            }
-                        }
                     }
                 }
 
