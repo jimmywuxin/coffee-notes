@@ -25,6 +25,14 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
     val activeBeans = repository.activeBeans
     val archivedBeans = repository.archivedBeans
 
+    // 豆子列表筛选状态
+    private val _showFavoritesOnly = MutableStateFlow(false)
+    val showFavoritesOnly: StateFlow<Boolean> = _showFavoritesOnly.asStateFlow()
+
+    fun setShowFavoritesOnly(value: Boolean) {
+        _showFavoritesOnly.value = value
+    }
+
     // 烘焙度/处理法列表（用于下拉选）
     val allRoastDegrees = repository.allRoastDegrees
     val allProcessMethods = repository.allProcessMethods

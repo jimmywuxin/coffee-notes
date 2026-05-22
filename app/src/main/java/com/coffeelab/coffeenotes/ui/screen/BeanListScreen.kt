@@ -42,6 +42,7 @@ fun BeanListScreen(
     val mutableBeans = remember { mutableStateListOf(*beans.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
     var showArchivedOnly by remember { mutableStateOf(false) }
+    val showFavoritesOnly by viewModel.showFavoritesOnly.collectAsState()
 
     // 拖拽状态 — 使用 LazyListState 精确追踪位置
     val lazyListState = rememberLazyListState()
@@ -69,7 +70,6 @@ fun BeanListScreen(
     var selectedBeans by remember { mutableStateOf(setOf<Long>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showUnarchiveDialog by remember { mutableStateOf<CoffeeBean?>(null) }
-    var showFavoritesOnly by remember { mutableStateOf(false) }
 
     // 显示的豆子（三态筛选：全部 / 收藏 / 归档）
     val displayedBeans = when {
@@ -268,7 +268,7 @@ fun BeanListScreen(
                             FilterChip(
                                 selected = !showFavoritesOnly && !showArchivedOnly,
                                 onClick = {
-                                    showFavoritesOnly = false
+                                    viewModel.setShowFavoritesOnly(false)
                                     showArchivedOnly = false
                                 },
                                 label = { Text("全部") }
@@ -276,7 +276,7 @@ fun BeanListScreen(
                             FilterChip(
                                 selected = showFavoritesOnly,
                                 onClick = {
-                                    showFavoritesOnly = true
+                                    viewModel.setShowFavoritesOnly(true)
                                     showArchivedOnly = false
                                 },
                                 label = { Text("❤ 收藏") },
@@ -288,7 +288,7 @@ fun BeanListScreen(
                                 selected = showArchivedOnly,
                                 onClick = {
                                     showArchivedOnly = !showArchivedOnly
-                                    if (showArchivedOnly) showFavoritesOnly = false
+                                    if (showArchivedOnly) viewModel.setShowFavoritesOnly(false)
                                 },
                                 label = { Text("📁 归档") },
                                 colors = FilterChipDefaults.filterChipColors(
