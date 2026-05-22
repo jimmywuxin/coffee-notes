@@ -98,6 +98,13 @@ fun BeanCard(
                             color = MaterialTheme.colorScheme.secondary
                         )
                     }
+                    if (bean.variety.isNotEmpty()) {
+                        Text(
+                            text = bean.variety,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
                     if (bean.process.isNotEmpty()) {
                         Text(
                             text = bean.process,

@@ -169,8 +169,15 @@ fun BeanDetailScreen(
                                     InfoRow("赏味期", DateUtils.formatDate(peakEnd))
                                 }
                             }
-                            if (b.notes.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                }
+
+                // 备注
+                if (b.notes.isNotEmpty()) {
+                    item {
+                        Surface(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(16.dp)) {
                                 Text("备注", style = MaterialTheme.typography.labelLarge)
                                 Text(b.notes, style = MaterialTheme.typography.bodyMedium)
                             }
@@ -278,7 +285,6 @@ fun BeanDetailScreen(
                                             contentScale = ContentScale.Crop
                                         )
                                     }
-                                    // Fill empty slots if row has less than 3
                                     repeat(3 - rowPhotos.size) {
                                         Spacer(modifier = Modifier.weight(1f))
                                     }
@@ -288,63 +294,43 @@ fun BeanDetailScreen(
                     }
                 }
 
-                // 官方萃取建议卡片
-                if (b.dose != null || b.brewRatio != null ||
-                    b.waterAmount != null || b.brewTime != null || b.waterTemp != null) {
+                // 风味标签（上移）
+                if (tags.isNotEmpty()) {
                     item {
-                        Surface(modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.secondaryContainer) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.WaterDrop, contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("官方萃取建议", style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                // 粉量 + 注水量
-                                if (b.dose != null || b.waterAmount != null) {
-                                    Row(modifier = Modifier.fillMaxWidth()) {
-                                        if (b.dose != null) {
-                                            ExtractionInfoRow("粉量", "${b.dose}g", modifier = Modifier.weight(1f))
-                                        }
-                                        if (b.waterAmount != null) {
-                                            ExtractionInfoRow("注水量", "${b.waterAmount}ml", modifier = Modifier.weight(1f))
-                                        }
-                                    }
-                                }
-                                // 粉水比 + 水温
-                                if (b.brewRatio?.isNotEmpty() == true || b.waterTemp != null) {
-                                    Row(modifier = Modifier.fillMaxWidth()) {
-                                        if (b.brewRatio?.isNotEmpty() == true) {
-                                            val ratioDisplay = if (b.brewRatio!!.startsWith("1:") || b.brewRatio!!.startsWith("1：")) {
-                                                b.brewRatio
-                                            } else {
-                                                "1:${b.brewRatio}"
-                                            }
-                                            ExtractionInfoRow("粉水比", ratioDisplay, modifier = Modifier.weight(1f))
-                                        }
-                                        if (b.waterTemp != null) {
-                                            ExtractionInfoRow("水温", "${b.waterTemp}°C", modifier = Modifier.weight(1f))
-                                        }
-                                    }
-                                }
-                                // 注水时长 + 萃取时长
-                                if (b.pouringDurationSeconds != null || b.brewTime != null) {
-                                    Row(modifier = Modifier.fillMaxWidth()) {
-                                        if (b.pouringDurationSeconds != null) {
-                                            ExtractionInfoRow("注水时长", "${b.pouringDurationSeconds}s", modifier = Modifier.weight(1f))
-                                        }
-                                        if (b.brewTime != null) {
-                                            ExtractionInfoRow("萃取时长", "${b.brewTime}s", modifier = Modifier.weight(1f))
-                                        }
-                                    }
-                                }
+                        Text(
+                            "风味标签",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            tags.forEach { tag ->
+                                AssistChip(
+                                    onClick = {},
+                                    label = { Text(tag) }
+                                )
                             }
                         }
                     }
                 }
+
+                // Radar Chart
+                if (radarValues != null) {
+                    item {
+                        Text(
+                            "风味雷达图",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                        RadarChart(
+                            values = radarValues,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+
 
                 // 购买记录入口
                 item {
@@ -378,20 +364,6 @@ fun BeanDetailScreen(
                     }
                 }
 
-                // Radar Chart
-                if (radarValues != null) {
-                    item {
-                        Text(
-                            "风味雷达图",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                        RadarChart(
-                            values = radarValues,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                }
 
                 // Action buttons
                 item {
@@ -557,25 +529,28 @@ fun InfoRow(label: String, value: String) {
                 style = MaterialTheme.typography.bodyMedium
             )
         }
+
     }
 }
 
+
 @Composable
-fun ExtractionInfoRow(label: String, value: String, modifier: Modifier = Modifier) {
-    Row(modifier = modifier.padding(vertical = 2.dp)) {
-        Text(
-            text = "$label：",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.width(80.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer
-        )
+fun InfoRowCompact(label: String, value: String, modifier: Modifier = Modifier) {
+    if (value.isNotEmpty()) {
+        Row(modifier = modifier.padding(vertical = 2.dp)) {
+            Text(
+                text = "$label：",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
+
 
 // Full-screen photo viewer dialog
 @Composable

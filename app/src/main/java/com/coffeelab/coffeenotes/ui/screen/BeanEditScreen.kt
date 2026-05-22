@@ -280,6 +280,11 @@ fun BeanEditScreen(
                 }
             }
 
+            // Form Fields
+            OutlinedTextField(value = roaster, onValueChange = { roaster = it },
+                label = { Text("烘焙商") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(value = name, onValueChange = { name = it },
+                label = { Text("豆名 *") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             // Bean Image preview
             if (imageUri.isNotEmpty()) {
                 AsyncImage(
@@ -290,11 +295,6 @@ fun BeanEditScreen(
                 )
             }
 
-            // Form Fields
-            OutlinedTextField(value = roaster, onValueChange = { roaster = it },
-                label = { Text("烘焙商") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            OutlinedTextField(value = name, onValueChange = { name = it },
-                label = { Text("豆名 *") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(value = origin, onValueChange = { origin = it },
                     label = { Text("产地") }, modifier = Modifier.weight(1f), singleLine = true)
@@ -456,9 +456,9 @@ fun BeanEditScreen(
                 }
             }
 
+
             OutlinedTextField(value = notes, onValueChange = { notes = it },
                 label = { Text("备注") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-
             // 豆子照片区块（在官方萃取建议上方）
             if (localPhotoPaths.isNotEmpty() || localPhotoPaths.size < 6) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
