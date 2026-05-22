@@ -157,22 +157,20 @@ fun BeanDetailScreen(
                             InfoRow("产地", b.origin)
                             InfoRow("庄园", b.estate)
                             InfoRow("品种", b.variety)
-                            // 养豆期/赏味期（没有就不显示，基于烘焙日期+天数计算）
-                            if (b.roastDate != null && (b.restDays != null || b.peakFlavorDays != null)) {
+                            InfoRow("处理法", processMethods.find { it.name == b.process }?.name ?: b.process)
+                            InfoRow("烘焙度", roastDegrees.find { it.name == b.roastLevel }?.name ?: b.roastLevel)
+                            // 烘焙日期 + 养豆/赏味截止
+                            if (b.roastDate != null) {
+                                InfoRow("烘焙日期", DateUtils.formatDate(b.roastDate))
                                 val DAY_MS = 86400 * 1000L
                                 val restEnd = b.restDays?.let { b.roastDate + it.toLong() * DAY_MS }
+                                if (restEnd != null) InfoRow("养豆期截止", DateUtils.formatDate(restEnd))
                                 val peakEnd = b.peakFlavorDays?.let { (restEnd ?: b.roastDate) + it.toLong() * DAY_MS }
-                                if (restEnd != null) {
-                                    InfoRow("养豆期", DateUtils.formatDate(restEnd))
-                                }
-                                if (peakEnd != null) {
-                                    InfoRow("赏味期", DateUtils.formatDate(peakEnd))
-                                }
+                                if (peakEnd != null) InfoRow("赏味期截止", DateUtils.formatDate(peakEnd))
                             }
                         }
                     }
                 }
-
                 // 备注
                 if (b.notes.isNotEmpty()) {
                     item {
@@ -180,75 +178,6 @@ fun BeanDetailScreen(
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text("备注", style = MaterialTheme.typography.labelLarge)
                                 Text(b.notes, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                    }
-                }
-
-                // 核心信息
-                item {
-                    Surface(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text("核心信息", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            // 处理法 + 烘焙度
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("处理法", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(processMethods.find { it.name == b.process }?.name ?: b.process, style = MaterialTheme.typography.bodyMedium)
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("烘焙度", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(roastDegrees.find { it.name == b.roastLevel }?.name ?: b.roastLevel, style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            // 烘焙日期 / 养豆天数 / 赏味天数
-                            if (b.roastDate != null) {
-                                val DAY_MS = 86400 * 1000L
-                                val restEnd = b.restDays?.let { b.roastDate + it.toLong() * DAY_MS }
-                                val peakEnd = b.peakFlavorDays?.let { (restEnd ?: b.roastDate) + it.toLong() * DAY_MS }
-                                Row(modifier = Modifier.fillMaxWidth()) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text("烘焙日期", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(DateUtils.formatDate(b.roastDate), style = MaterialTheme.typography.bodyMedium)
-                                    }
-                                    if (b.restDays != null) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text("养豆天数", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            Text("${b.restDays}天", style = MaterialTheme.typography.bodyMedium)
-                                        }
-                                    }
-                                    if (b.peakFlavorDays != null) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text("赏味天数", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            Text("${b.peakFlavorDays}天", style = MaterialTheme.typography.bodyMedium)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 风味标签
-                if (tags.isNotEmpty()) {
-                    item {
-                        Surface(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text("风味标签", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    tags.forEach { tag ->
-                                        AssistChip(
-                                            onClick = {},
-                                            label = { Text(tag) }
-                                        )
-                                    }
-                                }
                             }
                         }
                     }
@@ -365,6 +294,56 @@ fun BeanDetailScreen(
                 }
 
 
+
+                // 官方萃取建议
+                if (b.dose != null || b.brewRatio != null ||
+                    b.waterAmount != null || b.brewTime != null || b.waterTemp != null) {
+                    item {
+                        Surface(modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 1.dp,
+                            shape = MaterialTheme.shapes.medium) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.WaterDrop, contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("官方萃取建议", style = MaterialTheme.typography.titleMedium)
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                // 粉量 + 注水量
+                                if (b.dose != null || b.waterAmount != null) {
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        if (b.dose != null) InfoRowCompact("粉量", "${b.dose}g", Modifier.weight(1f))
+                                        else Spacer(Modifier.weight(1f))
+                                        if (b.waterAmount != null) InfoRowCompact("注水量", "${b.waterAmount}ml", Modifier.weight(1f))
+                                        else Spacer(Modifier.weight(1f))
+                                    }
+                                }
+                                // 粉水比 + 水温
+                                if (b.brewRatio?.isNotEmpty() == true || b.waterTemp != null) {
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        if (b.brewRatio?.isNotEmpty() == true) {
+                                            val ratioDisplay = if (b.brewRatio!!.startsWith("1:") || b.brewRatio!!.startsWith("1：")) b.brewRatio else "1:${b.brewRatio}"
+                                            InfoRowCompact("粉水比", ratioDisplay, Modifier.weight(1f))
+                                        } else Spacer(Modifier.weight(1f))
+                                        if (b.waterTemp != null) InfoRowCompact("水温", "${b.waterTemp}°C", Modifier.weight(1f))
+                                        else Spacer(Modifier.weight(1f))
+                                    }
+                                }
+                                // 注水时长 + 萃取时长
+                                if (b.pouringDurationSeconds != null || b.brewTime != null) {
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        if (b.pouringDurationSeconds != null) InfoRowCompact("注水时长", "${b.pouringDurationSeconds}s", Modifier.weight(1f))
+                                        else Spacer(Modifier.weight(1f))
+                                        if (b.brewTime != null) InfoRowCompact("萃取时长", "${b.brewTime}s", Modifier.weight(1f))
+                                        else Spacer(Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 // Action buttons
                 item {
                     Row(
