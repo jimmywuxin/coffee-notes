@@ -152,21 +152,50 @@ fun BeanDetailScreen(
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("基础信息", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.height(8.dp))
-                            InfoRow("烘焙商", b.roaster)
-                            InfoRow("豆名", b.name)
-                            InfoRow("产地", b.origin)
-                            InfoRow("庄园", b.estate)
-                            InfoRow("品种", b.variety)
-                            InfoRow("处理法", processMethods.find { it.name == b.process }?.name ?: b.process)
-                            InfoRow("烘焙度", roastDegrees.find { it.name == b.roastLevel }?.name ?: b.roastLevel)
-                            // 烘焙日期 + 养豆/赏味截止
-                            if (b.roastDate != null) {
-                                InfoRow("烘焙日期", DateUtils.formatDate(b.roastDate))
+                            // 豆名（突出）
+                            Text(
+                                text = b.name.ifEmpty { "未命名" },
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            // 烘焙商（小字弱化）
+                            if (b.roaster.isNotEmpty()) {
+                                Text(
+                                    text = b.roaster,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // 产地 · 产区 · 庄园
+                            if (b.origin.isNotEmpty() || b.region.isNotEmpty() || b.estate.isNotEmpty()) {
+                                Text(
+                                    text = listOfNotNull(b.origin.ifEmpty { null }, b.region.ifEmpty { null }, b.estate.ifEmpty { null }).joinToString(" · "),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                            // 品种 · 处理法 · 烘焙度
+                            val processName = processMethods.find { it.name == b.process }?.name ?: b.process
+                            val roastName = roastDegrees.find { it.name == b.roastLevel }?.name ?: b.roastLevel
+                            if (b.variety.isNotEmpty() || processName.isNotEmpty() || roastName.isNotEmpty()) {
+                                Text(
+                                    text = listOfNotNull(b.variety.ifEmpty { null }, processName.ifEmpty { null }, roastName.ifEmpty { null }).joinToString(" · "),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                            // 养豆至 · 赏味至
+                            if (b.roastDate != null && (b.restDays != null || b.peakFlavorDays != null)) {
                                 val DAY_MS = 86400 * 1000L
                                 val restEnd = b.restDays?.let { b.roastDate + it.toLong() * DAY_MS }
-                                if (restEnd != null) InfoRow("养豆期截止", DateUtils.formatDate(restEnd))
                                 val peakEnd = b.peakFlavorDays?.let { (restEnd ?: b.roastDate) + it.toLong() * DAY_MS }
-                                if (peakEnd != null) InfoRow("赏味期截止", DateUtils.formatDate(peakEnd))
+                                if (restEnd != null || peakEnd != null) {
+                                    Text(
+                                        text = listOfNotNull(
+                                            restEnd?.let { "养豆至 ${DateUtils.formatDate(it)}" },
+                                            peakEnd?.let { "赏味至 ${DateUtils.formatDate(it)}" }
+                                        ).joinToString(" · "),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
                             }
                         }
                     }
