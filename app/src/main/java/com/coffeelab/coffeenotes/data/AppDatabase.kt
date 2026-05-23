@@ -55,6 +55,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "coffee_notes.db"
                 )
                     .addMigrations(*AppDatabaseMigrations.ALL)
+                    .fallbackToDestructiveMigration()
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
