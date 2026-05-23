@@ -62,9 +62,20 @@ data class BrewRecord(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 ) {
+    /** Filled by repository from JOIN query, not a DB column */
     @Ignore
-    val equipmentName: String? = null
+    var equipmentName: String? = null
+        private set
 
+    /** Filled by repository from JOIN query, not a DB column */
     @Ignore
-    val grinderName: String? = null
+    var grinderName: String? = null
+        private set
+
+    /** Internal: used by repository to populate names from JOIN result */
+    fun withNames(eqName: String?, grName: String?): BrewRecord {
+        equipmentName = eqName
+        grinderName = grName
+        return this
+    }
 }

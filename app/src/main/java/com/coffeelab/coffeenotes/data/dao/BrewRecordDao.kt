@@ -2,6 +2,7 @@ package com.coffeelab.coffeenotes.data.dao
 
 import androidx.room.*
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
+import com.coffeelab.coffeenotes.data.entity.BrewRecordWithNames
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -16,7 +17,7 @@ interface BrewRecordDao {
         LEFT JOIN grinders g ON br.grinderId = g.id
         ORDER BY br.dateTime DESC
     """)
-    fun getAllRecords(): Flow<List<BrewRecord>>
+    fun getAllRecords(): Flow<List<BrewRecordWithNames>>
 
     /** Get single record by id with names */
     @Query("""
@@ -26,7 +27,7 @@ interface BrewRecordDao {
         LEFT JOIN grinders g ON br.grinderId = g.id
         WHERE br.id = :id
     """)
-    suspend fun getRecordById(id: Long): BrewRecord?
+    suspend fun getRecordById(id: Long): BrewRecordWithNames?
 
     /** Get records for a bean with names */
     @Query("""
@@ -37,7 +38,7 @@ interface BrewRecordDao {
         WHERE br.beanId = :beanId
         ORDER BY br.dateTime DESC
     """)
-    fun getRecordsForBean(beanId: Long): Flow<List<BrewRecord>>
+    fun getRecordsForBean(beanId: Long): Flow<List<BrewRecordWithNames>>
 
     /** Get records by equipment ID with names */
     @Query("""
@@ -48,7 +49,7 @@ interface BrewRecordDao {
         WHERE br.equipmentId = :equipmentId
         ORDER BY br.dateTime DESC
     """)
-    fun getRecordsByEquipmentId(equipmentId: Long): Flow<List<BrewRecord>>
+    fun getRecordsByEquipmentId(equipmentId: Long): Flow<List<BrewRecordWithNames>>
 
     /** Get records by grinder ID with names */
     @Query("""
@@ -59,7 +60,7 @@ interface BrewRecordDao {
         WHERE br.grinderId = :grinderId
         ORDER BY br.dateTime DESC
     """)
-    fun getRecordsByGrinderId(grinderId: Long): Flow<List<BrewRecord>>
+    fun getRecordsByGrinderId(grinderId: Long): Flow<List<BrewRecordWithNames>>
 
     /** Get records by minimum rating with names */
     @Query("""
@@ -70,7 +71,7 @@ interface BrewRecordDao {
         WHERE br.overallRating >= :minRating
         ORDER BY br.dateTime DESC
     """)
-    fun getRecordsByRating(minRating: Int): Flow<List<BrewRecord>>
+    fun getRecordsByRating(minRating: Int): Flow<List<BrewRecordWithNames>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(record: BrewRecord): Long
@@ -93,7 +94,7 @@ interface BrewRecordDao {
         WHERE br.beanId = :beanId
         ORDER BY br.overallRating DESC LIMIT 1
     """)
-    suspend fun getBestRecordForBean(beanId: Long): BrewRecord?
+    suspend fun getBestRecordForBean(beanId: Long): BrewRecordWithNames?
 
     @Query("DELETE FROM brew_records")
     suspend fun deleteAll()

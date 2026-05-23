@@ -3,7 +3,9 @@ package com.coffeelab.coffeenotes.data.repository
 import androidx.room.Transaction
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.*
+import com.coffeelab.coffeenotes.data.entity.BrewRecordWithNames
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import com.coffeelab.coffeenotes.data.dao.BeanBrewCount
 import com.coffeelab.coffeenotes.data.dao.EquipmentCount
 import com.coffeelab.coffeenotes.data.dao.RatioCount
@@ -56,13 +58,13 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun deleteTag(tag: FlavorTag) = db.flavorTagDao().delete(tag)
 
     // ===== Brew Records =====
-    val allRecords: Flow<List<BrewRecord>> = db.brewRecordDao().getAllRecords()
+    val allRecords: Flow<List<BrewRecord>> = db.brewRecordDao().getAllRecords().map { list -> list.map { it.toRecord() } }
 
-    suspend fun getRecord(id: Long) = db.brewRecordDao().getRecordById(id)
-    fun getRecordsForBean(beanId: Long) = db.brewRecordDao().getRecordsForBean(beanId)
-    fun getRecordsByEquipmentId(equipmentId: Long) = db.brewRecordDao().getRecordsByEquipmentId(equipmentId)
+    suspend fun getRecord(id: Long) = db.brewRecordDao().getRecordById(id)?.toRecord()
+    fun getRecordsForBean(beanId: Long) = db.brewRecordDao().getRecordsForBean(beanId).map { list -> list.map { it.toRecord() } }
+    fun getRecordsByEquipmentId(equipmentId: Long) = db.brewRecordDao().getRecordsByEquipmentId(equipmentId).map { list -> list.map { it.toRecord() } }
     fun getBrewCountForBean(beanId: Long) = db.brewRecordDao().getBrewCountForBean(beanId)
-    suspend fun getBestRecordForBean(beanId: Long) = db.brewRecordDao().getBestRecordForBean(beanId)
+    suspend fun getBestRecordForBean(beanId: Long) = db.brewRecordDao().getBestRecordForBean(beanId)?.record
 
     suspend fun insertRecord(record: BrewRecord): Long = db.brewRecordDao().insert(record)
     suspend fun updateRecord(record: BrewRecord) = db.brewRecordDao().update(record)
@@ -199,7 +201,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     fun getBrewCountsByTimeSlotForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByTimeSlotForBean(beanId)
     fun getBrewCountsByRatingForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByRatingForBean(beanId)
     fun getAvgRatingForBean(beanId: Long) = db.brewRecordDao().getAvgRatingForBean(beanId)
-
+private fun BrewRecordWithNames.toRecord() = record.withNames(equipmentName, grinderName)
     suspend fun updateRoastLevelOnBeans(oldName: String, newName: String) = db.coffeeBeanDao().updateRoastLevelByName(oldName, newName)
     suspend fun updateProcessOnBeans(oldName: String, newName: String) = db.coffeeBeanDao().updateProcessByName(oldName, newName)
 }
