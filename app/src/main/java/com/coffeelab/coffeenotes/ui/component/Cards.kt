@@ -216,6 +216,8 @@ fun RecordCard(
                 Text(
                     text = buildString {
                         append("${record.coffeeWeight}g")
+                        if (record.grinder.isNotEmpty()) append(" · ${record.grinder}")
+                        if (record.grindSize.isNotEmpty()) append(" ${record.grindSize}")
                         append(" · 1:${String.format("%.1f", record.coffeeWaterRatio)}")
                         if (record.waterTemp > 0) append(" · ${record.waterTemp}℃")
                         if (record.pouringDurationSeconds != null) append(" · 注水${record.pouringDurationSeconds}s")
