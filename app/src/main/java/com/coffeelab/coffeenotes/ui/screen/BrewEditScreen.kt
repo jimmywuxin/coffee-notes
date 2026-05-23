@@ -71,12 +71,12 @@ fun BrewEditScreen(
     var selectedBeanId by remember { mutableStateOf(beanId) }
     var selectedMethodId by remember { mutableStateOf(-1L) }
     var methodSelectedByUser by remember { mutableStateOf(false) } // 仅用户主动选择手法时自动填充
-    var equipment by remember { mutableStateOf("") }
+    var selectedEquipmentId by remember { mutableStateOf<Long?>(null) }
     var coffeeWeight by remember { mutableStateOf("") }
     var coffeeWaterRatio by remember { mutableStateOf("") }
     var waterAmount by remember { mutableStateOf("") }
     var waterTemp by remember { mutableStateOf("") }
-    var grinder by remember { mutableStateOf("") }
+    var selectedGrinderId by remember { mutableStateOf<Long?>(null) }
     var grindSize by remember { mutableStateOf("") }
     var extractionTime by remember { mutableStateOf("") }
     var pouringDurationSeconds by remember { mutableStateOf("") }
@@ -156,19 +156,9 @@ fun BrewEditScreen(
 
     // Equipment list
     val equipmentList by equipmentViewModel.allEquipment.collectAsState(initial = emptyList())
-    val equipmentItems = if (equipmentList.isNotEmpty()) {
-        equipmentList.map { it.name }
-    } else {
-        Equipment.DEFAULT_EQUIPMENT
-    }
 
     // Grinder list
     val grinderList by grinderViewModel.allGrinders.collectAsState(initial = emptyList())
-    val grinderItems = if (grinderList.isNotEmpty()) {
-        grinderList.map { it.name }
-    } else {
-        Grinder.DEFAULT_GRINDERS
-    }
 
     // Auto-calculate waterAmount when coffeeWeight or coffeeWaterRatio changes
     LaunchedEffect(coffeeWeight, coffeeWaterRatio) {
@@ -189,7 +179,7 @@ fun BrewEditScreen(
             record?.let { r ->
                 selectedBeanId = r.beanId
                 selectedMethodId = r.methodId ?: -1L
-                equipment = r.equipment
+                selectedEquipmentId = r.equipmentId
                 coffeeWeight = if (r.coffeeWeight > 0) r.coffeeWeight.toString() else ""
                 coffeeWaterRatio = if (r.coffeeWaterRatio > 0) {
                     val s = r.coffeeWaterRatio.toString()
@@ -197,7 +187,7 @@ fun BrewEditScreen(
                 } else ""
                 waterAmount = if (r.waterAmount > 0) r.waterAmount.toString() else ""
                 waterTemp = if (r.waterTemp > 0) r.waterTemp.toString() else ""
-                grinder = r.grinder
+                selectedGrinderId = r.grinderId
                 grindSize = r.grindSize
                 extractionTime = if (r.extractionTime > 0) r.extractionTime.toString() else ""
                 pouringDurationSeconds = r.pouringDurationSeconds?.toString() ?: ""
@@ -502,13 +492,14 @@ fun BrewEditScreen(
             // Equipment
             Text("器具", style = MaterialTheme.typography.titleMedium)
             var equipmentExpanded by remember { mutableStateOf(false) }
+            val selectedEqName = equipmentList.find { it.id == selectedEquipmentId }?.name ?: ""
             ExposedDropdownMenuBox(
                 expanded = equipmentExpanded,
                 onExpandedChange = { equipmentExpanded = it },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
-                    value = equipment.ifEmpty { "请选择器具（可选）" },
+                    value = selectedEqName.ifEmpty { "请选择器具（可选）" },
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("器具") },
@@ -523,15 +514,15 @@ fun BrewEditScreen(
                     DropdownMenuItem(
                         text = { Text("不选择") },
                         onClick = {
-                            equipment = ""
+                            selectedEquipmentId = null
                             equipmentExpanded = false
                         }
                     )
-                    equipmentItems.forEach { item ->
+                    equipmentList.forEach { eq ->
                         DropdownMenuItem(
-                            text = { Text(item) },
+                            text = { Text(eq.name) },
                             onClick = {
-                                equipment = item
+                                selectedEquipmentId = eq.id
                                 equipmentExpanded = false
                             }
                         )
@@ -828,13 +819,14 @@ fun BrewEditScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Grinder dropdown
                 var grinderExpanded by remember { mutableStateOf(false) }
+                val selectedGrName = grinderList.find { it.id == selectedGrinderId }?.name ?: ""
                 ExposedDropdownMenuBox(
                     expanded = grinderExpanded,
                     onExpandedChange = { grinderExpanded = it },
                     modifier = Modifier.weight(1f)
                 ) {
                     OutlinedTextField(
-                        value = grinder,
+                        value = selectedGrName,
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("磨豆机") },
@@ -846,11 +838,18 @@ fun BrewEditScreen(
                         onDismissRequest = { grinderExpanded = false },
                         modifier = Modifier.heightIn(max = 240.dp)
                     ) {
-                        grinderItems.forEach { item ->
+                        DropdownMenuItem(
+                            text = { Text("不选择") },
+                            onClick = {
+                                selectedGrinderId = null
+                                grinderExpanded = false
+                            }
+                        )
+                        grinderList.forEach { gr ->
                             DropdownMenuItem(
-                                text = { Text(item) },
+                                text = { Text(gr.name) },
                                 onClick = {
-                                    grinder = item
+                                    selectedGrinderId = gr.id
                                     grinderExpanded = false
                                 }
                             )
@@ -929,12 +928,12 @@ fun BrewEditScreen(
                             methodId = if (selectedMethodId > 0) selectedMethodId else null,
                             dateTime = if (isEditing) (brewViewModel.getRecord(recordId)?.dateTime
                                 ?: System.currentTimeMillis()) else System.currentTimeMillis(),
-                            equipment = equipment,
+                            equipmentId = selectedEquipmentId,
                             coffeeWeight = coffeeWeight.toDoubleOrNull() ?: 0.0,
                             coffeeWaterRatio = coffeeWaterRatio.toDoubleOrNull() ?: 0.0,
                             waterAmount = waterAmount.toDoubleOrNull() ?: 0.0,
                             waterTemp = waterTemp.toDoubleOrNull() ?: 0.0,
-                            grinder = grinder,
+                            grinderId = selectedGrinderId,
                             grindSize = grindSize,
                             extractionTime = extractionTime.toIntOrNull() ?: 0,
                             pouringDurationSeconds = pouringDurationSeconds.toIntOrNull(),

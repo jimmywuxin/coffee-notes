@@ -6,19 +6,70 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BrewRecordDao {
-    @Query("SELECT * FROM brew_records ORDER BY dateTime DESC")
+    // ===== Basic CRUD =====
+
+    /** Get all records with equipment/grinder names via JOIN */
+    @Query("""
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        FROM brew_records br
+        LEFT JOIN equipment e ON br.equipmentId = e.id
+        LEFT JOIN grinders g ON br.grinderId = g.id
+        ORDER BY br.dateTime DESC
+    """)
     fun getAllRecords(): Flow<List<BrewRecord>>
 
-    @Query("SELECT * FROM brew_records WHERE id = :id")
+    /** Get single record by id with names */
+    @Query("""
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        FROM brew_records br
+        LEFT JOIN equipment e ON br.equipmentId = e.id
+        LEFT JOIN grinders g ON br.grinderId = g.id
+        WHERE br.id = :id
+    """)
     suspend fun getRecordById(id: Long): BrewRecord?
 
-    @Query("SELECT * FROM brew_records WHERE beanId = :beanId ORDER BY dateTime DESC")
+    /** Get records for a bean with names */
+    @Query("""
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        FROM brew_records br
+        LEFT JOIN equipment e ON br.equipmentId = e.id
+        LEFT JOIN grinders g ON br.grinderId = g.id
+        WHERE br.beanId = :beanId
+        ORDER BY br.dateTime DESC
+    """)
     fun getRecordsForBean(beanId: Long): Flow<List<BrewRecord>>
 
-    @Query("SELECT * FROM brew_records WHERE equipment = :equipment ORDER BY dateTime DESC")
-    fun getRecordsByEquipment(equipment: String): Flow<List<BrewRecord>>
+    /** Get records by equipment ID with names */
+    @Query("""
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        FROM brew_records br
+        LEFT JOIN equipment e ON br.equipmentId = e.id
+        LEFT JOIN grinders g ON br.grinderId = g.id
+        WHERE br.equipmentId = :equipmentId
+        ORDER BY br.dateTime DESC
+    """)
+    fun getRecordsByEquipmentId(equipmentId: Long): Flow<List<BrewRecord>>
 
-    @Query("SELECT * FROM brew_records WHERE overallRating >= :minRating ORDER BY dateTime DESC")
+    /** Get records by grinder ID with names */
+    @Query("""
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        FROM brew_records br
+        LEFT JOIN equipment e ON br.equipmentId = e.id
+        LEFT JOIN grinders g ON br.grinderId = g.id
+        WHERE br.grinderId = :grinderId
+        ORDER BY br.dateTime DESC
+    """)
+    fun getRecordsByGrinderId(grinderId: Long): Flow<List<BrewRecord>>
+
+    /** Get records by minimum rating with names */
+    @Query("""
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        FROM brew_records br
+        LEFT JOIN equipment e ON br.equipmentId = e.id
+        LEFT JOIN grinders g ON br.grinderId = g.id
+        WHERE br.overallRating >= :minRating
+        ORDER BY br.dateTime DESC
+    """)
     fun getRecordsByRating(minRating: Int): Flow<List<BrewRecord>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -33,7 +84,15 @@ interface BrewRecordDao {
     @Query("SELECT COUNT(*) FROM brew_records WHERE beanId = :beanId")
     fun getBrewCountForBean(beanId: Long): Flow<Int>
 
-    @Query("SELECT * FROM brew_records WHERE beanId = :beanId ORDER BY overallRating DESC LIMIT 1")
+    /** Get best record for a bean with names */
+    @Query("""
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        FROM brew_records br
+        LEFT JOIN equipment e ON br.equipmentId = e.id
+        LEFT JOIN grinders g ON br.grinderId = g.id
+        WHERE br.beanId = :beanId
+        ORDER BY br.overallRating DESC LIMIT 1
+    """)
     suspend fun getBestRecordForBean(beanId: Long): BrewRecord?
 
     @Query("DELETE FROM brew_records")
@@ -51,7 +110,13 @@ interface BrewRecordDao {
     fun getMonthlyBrewCounts(startTime: Long): Flow<List<Int>>
 
     /** 按器具分组统计冲煮次数 */
-    @Query("SELECT equipment, COUNT(*) as cnt FROM brew_records GROUP BY equipment ORDER BY cnt DESC")
+    @Query("""
+        SELECT e.name AS equipmentName, COUNT(*) as cnt
+        FROM brew_records br
+        JOIN equipment e ON br.equipmentId = e.id
+        GROUP BY br.equipmentId
+        ORDER BY cnt DESC
+    """)
     fun getBrewCountsByEquipment(): Flow<List<EquipmentCount>>
 
     /** 按粉水比分段统计 */
@@ -86,7 +151,14 @@ interface BrewRecordDao {
     fun getBrewCountsByRatingForBean(beanId: Long): Flow<List<RatingCount>>
 
     /** 某器具的冲煮次数 */
-    @Query("SELECT equipment, COUNT(*) as cnt FROM brew_records WHERE beanId = :beanId AND equipment != '' GROUP BY equipment ORDER BY cnt DESC")
+    @Query("""
+        SELECT e.name AS equipmentName, COUNT(*) as cnt
+        FROM brew_records br
+        JOIN equipment e ON br.equipmentId = e.id
+        WHERE br.beanId = :beanId
+        GROUP BY br.equipmentId
+        ORDER BY cnt DESC
+    """)
     fun getBrewCountsByEquipmentForBean(beanId: Long): Flow<List<EquipmentCount>>
 
     /** 某豆子的粉水比分布 */
@@ -151,7 +223,14 @@ interface BrewRecordDao {
     fun getMonthlyBrewCountsForBean(beanId: Long, startTime: Long): Flow<List<Int>>
 
     /** 器具平均评分 */
-    @Query("SELECT equipment, AVG(overallRating * 1.0) as avgRating FROM brew_records WHERE overallRating > 0 GROUP BY equipment ORDER BY avgRating DESC")
+    @Query("""
+        SELECT e.name AS equipmentName, AVG(br.overallRating * 1.0) as avgRating
+        FROM brew_records br
+        JOIN equipment e ON br.equipmentId = e.id
+        WHERE br.overallRating > 0
+        GROUP BY br.equipmentId
+        ORDER BY avgRating DESC
+    """)
     fun getAvgRatingByEquipment(): Flow<List<EquipmentRating>>
 
     /** 本周冲煮次数 */
@@ -198,10 +277,10 @@ interface BrewRecordDao {
 
 data class TimeSlotCount(val slot: String, val cnt: Int)
 
-data class EquipmentCount(val equipment: String, val cnt: Int)
+data class EquipmentCount(val equipmentName: String, val cnt: Int)
 data class RatioCount(val coffeeWaterRatio: Double, val cnt: Int)
 data class TempBucket(val bucket: Int, val cnt: Int)
 data class RatingCount(val overallRating: Int, val cnt: Int)
-data class EquipmentRating(val equipment: String, val avgRating: Double)
+data class EquipmentRating(val equipmentName: String, val avgRating: Double)
 data class OriginCount(val origin: String, val cnt: Int)
 data class RoastLevelCount(val roastLevel: String, val cnt: Int)

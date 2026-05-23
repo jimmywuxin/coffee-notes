@@ -60,7 +60,7 @@ class CoffeeRepository(private val db: AppDatabase) {
 
     suspend fun getRecord(id: Long) = db.brewRecordDao().getRecordById(id)
     fun getRecordsForBean(beanId: Long) = db.brewRecordDao().getRecordsForBean(beanId)
-    fun getRecordsByEquipment(equipment: String) = db.brewRecordDao().getRecordsByEquipment(equipment)
+    fun getRecordsByEquipmentId(equipmentId: Long) = db.brewRecordDao().getRecordsByEquipmentId(equipmentId)
     fun getBrewCountForBean(beanId: Long) = db.brewRecordDao().getBrewCountForBean(beanId)
     suspend fun getBestRecordForBean(beanId: Long) = db.brewRecordDao().getBestRecordForBean(beanId)
 

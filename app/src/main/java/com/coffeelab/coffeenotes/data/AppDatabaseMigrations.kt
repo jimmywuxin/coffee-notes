@@ -1,5 +1,6 @@
 package com.coffeelab.coffeenotes.data
 
+import android.database.Cursor
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
@@ -181,10 +182,60 @@ object AppDatabaseMigrations {
         }
     }
 
+    // Migration from v15 → v16: convert brew_records.equipment/grinder (String) to equipmentId/grinderId (Long FK)
+    private val MIGRATION_15_16 = object : Migration(15, 16) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // 1. Add new nullable FK columns
+            db.execSQL("ALTER TABLE brew_records ADD COLUMN equipmentId INTEGER REFERENCES equipment(id) ON DELETE SET NULL")
+            db.execSQL("ALTER TABLE brew_records ADD COLUMN grinderId INTEGER REFERENCES grinders(id) ON DELETE SET NULL")
+
+            // 2. Migrate data: map old equipment name string to equipment.id
+            // Use a cursor to iterate and update row by row since SQLite doesn't support UPDATE with JOIN
+            val recordsCursor: Cursor = db.query("SELECT rowid, equipment, grinder FROM brew_records")
+            while (recordsCursor.moveToNext()) {
+                val rowId = recordsCursor.getLong(0)
+                val oldEq = recordsCursor.getString(1) ?: ""
+                val oldGr = recordsCursor.getString(2) ?: ""
+
+                if (oldEq.isNotEmpty()) {
+                    val eqCursor: Cursor = db.query(
+                        "SELECT id FROM equipment WHERE name = ?", arrayOf(oldEq)
+                    )
+                    if (eqCursor.moveToFirst()) {
+                        val eqId = eqCursor.getLong(0)
+                        db.execSQL("UPDATE brew_records SET equipmentId = $eqId WHERE rowid = $rowId")
+                    }
+                    eqCursor.close()
+                }
+
+                if (oldGr.isNotEmpty()) {
+                    val grCursor: Cursor = db.query(
+                        "SELECT id FROM grinders WHERE name = ?", arrayOf(oldGr)
+                    )
+                    if (grCursor.moveToFirst()) {
+                        val grId = grCursor.getLong(0)
+                        db.execSQL("UPDATE brew_records SET grinderId = $grId WHERE rowid = $rowId")
+                    }
+                    grCursor.close()
+                }
+            }
+            recordsCursor.close()
+
+            // 3. Create indexes on new columns
+            db.execSQL("CREATE INDEX index_brew_records_equipmentId ON brew_records(equipmentId)")
+            db.execSQL("CREATE INDEX index_brew_records_grinderId ON brew_records(grinderId)")
+            
+            // Note: SQLite does not support DROP COLUMN in older versions.
+            // Room uses a table-recreation strategy for column drops, but in raw migrations
+            // we leave old columns in place. Room's codegen will ignore them since the entity
+            // no longer has 'equipment' and 'grinder' fields.
+            // The old columns simply become dead columns that Room ignores.
+        }
+    }
 
     val ALL = arrayOf(
         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
         MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
-        MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15
+        MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16
     )
 }

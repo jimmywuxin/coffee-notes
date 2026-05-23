@@ -210,7 +210,7 @@ fun RecordCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${record.equipment} · ${DateUtils.formatDateTime(record.dateTime)}",
+                    text = "${record.equipmentName ?: ""} · ${DateUtils.formatDateTime(record.dateTime)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -220,9 +220,9 @@ fun RecordCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (record.grinder.isNotEmpty()) {
+                    if (!record.grinderName.isNullOrEmpty()) {
                         Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(record.grinder, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(record.grinderName ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (record.grindSize.isNotEmpty()) {
                         Text(record.grindSize, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

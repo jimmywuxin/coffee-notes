@@ -64,7 +64,7 @@ fun SearchScreen(
             val records = if (searchScope == "all" || searchScope == "records") {
                 allRecords.filter { record ->
                     val methodName = allMethods.find { it.id == record.methodId }?.name ?: ""
-                    record.equipment.contains(query, ignoreCase = true) ||
+                    (record.equipmentName ?: "").contains(query, ignoreCase = true) ||
                     record.flavorNotes.contains(query, ignoreCase = true) ||
                     record.grindSize.contains(query, ignoreCase = true) ||
                     methodName.contains(query, ignoreCase = true)
@@ -171,7 +171,7 @@ fun SearchScreen(
                     var selectedEquipment by remember { mutableStateOf("") }
                     var selectedMethod by remember { mutableStateOf("") }
 
-                    val equipmentTypes = listOf("全部") + allRecords.map { it.equipment }.distinct().filter { it.isNotEmpty() }
+                    val equipmentTypes = listOf("全部") + allRecords.map { it.equipmentName ?: "" }.distinct().filter { it.isNotEmpty() }
                     val methodNames = listOf("全部") + allRecords.mapNotNull { record ->
                         allMethods.find { it.id == record.methodId }?.name
                     }.distinct().filter { it.isNotEmpty() }

@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
         PeakFlavorConfig::class,
         PurchaseRecord::class
     ],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

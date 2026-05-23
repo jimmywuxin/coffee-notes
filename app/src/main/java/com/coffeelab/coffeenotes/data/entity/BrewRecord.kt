@@ -1,7 +1,9 @@
 package com.coffeelab.coffeenotes.data.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Ignore
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -13,9 +15,21 @@ import androidx.room.PrimaryKey
             parentColumns = ["id"],
             childColumns = ["beanId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = Equipment::class,
+            parentColumns = ["id"],
+            childColumns = ["equipmentId"],
+            onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = Grinder::class,
+            parentColumns = ["id"],
+            childColumns = ["grinderId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("beanId")]
+    indices = [Index("beanId"), Index("equipmentId"), Index("grinderId")]
 )
 data class BrewRecord(
     @PrimaryKey(autoGenerate = true)
@@ -23,13 +37,15 @@ data class BrewRecord(
     val beanId: Long,
     val methodId: Long? = null,
     val dateTime: Long = System.currentTimeMillis(),
-    val equipment: String = "",
+    @ColumnInfo(name = "equipmentId")
+    val equipmentId: Long? = null,
     val coffeeWeight: Double = 0.0,
     val coffeeWaterRatio: Double = 0.0,
     val waterAmount: Double = 0.0,
     val waterTemp: Double = 0.0,
     val grindSize: String = "",
-    val grinder: String = "",
+    @ColumnInfo(name = "grinderId")
+    val grinderId: Long? = null,
     val extractionTime: Int = 0,
     val pouringDurationSeconds: Int? = null,
     val acidity: Int = 0,
@@ -45,4 +61,10 @@ data class BrewRecord(
     val bypassAmount: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
-)
+) {
+    @Ignore
+    val equipmentName: String? = null
+
+    @Ignore
+    val grinderName: String? = null
+}

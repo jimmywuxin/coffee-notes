@@ -144,7 +144,7 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
                     val record = BrewRecord(
                         beanId = beanNewId,
                         dateTime = note.get("timestamp")?.asLong ?: System.currentTimeMillis(),
-                        equipment = note.get("equipment")?.asString ?: "",
+                        equipmentId = null,
                         coffeeWeight = coffeeWeight,
                         coffeeWaterRatio = coffeeWaterRatio,
                         waterTemp = waterTemp,

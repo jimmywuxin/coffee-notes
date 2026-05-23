@@ -90,12 +90,12 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         "beanId" to record.beanId,
                         "methodId" to record.methodId,
                         "dateTime" to record.dateTime,
-                        "equipment" to record.equipment,
+                        "equipmentId" to record.equipmentId,
                         "coffeeWeight" to record.coffeeWeight,
                         "coffeeWaterRatio" to record.coffeeWaterRatio,
                         "waterAmount" to record.waterAmount,
                         "waterTemp" to record.waterTemp,
-                        "grinder" to record.grinder,
+                        "grinderId" to record.grinderId,
                         "grindSize" to record.grindSize,
                         "extractionTime" to record.extractionTime,
                         "pouringDurationSeconds" to record.pouringDurationSeconds,
@@ -391,12 +391,28 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         beanId = newBeanId,
                         methodId = newMethodId,
                         dateTime = (r["dateTime"] as? Double)?.toLong() ?: System.currentTimeMillis(),
-                        equipment = r["equipment"] as? String ?: "",
+                        equipmentId = (r["equipmentId"] as? Double)?.toLong()
+                            // Legacy support: if old backup has equipment name string, match by name
+                            ?: (r["equipment"] as? String)?.takeIf { it.isNotEmpty() }?.let { name ->
+                                val eqId = repository.getAllEquipmentOnce().find { it.name == name }?.id
+                                if (eqId == null) {
+                                    repository.insertEquipment(Equipment(name = name, sortOrder = 0))
+                                }
+                                eqId ?: repository.getAllEquipmentOnce().find { it.name == name }?.id
+                            },
                         coffeeWeight = (r["coffeeWeight"] as? Double) ?: 0.0,
                         coffeeWaterRatio = (r["coffeeWaterRatio"] as? Double) ?: 0.0,
                         waterAmount = (r["waterAmount"] as? Double) ?: 0.0,
                         waterTemp = (r["waterTemp"] as? Double) ?: 0.0,
-                        grinder = r["grinder"] as? String ?: "",
+                        grinderId = (r["grinderId"] as? Double)?.toLong()
+                            // Legacy support: if old backup has grinder name string, match by name
+                            ?: (r["grinder"] as? String)?.takeIf { it.isNotEmpty() }?.let { name ->
+                                val grId = repository.getAllGrindersOnce().find { it.name == name }?.id
+                                if (grId == null) {
+                                    repository.insertGrinder(Grinder(name = name, sortOrder = 0))
+                                }
+                                grId ?: repository.getAllGrindersOnce().find { it.name == name }?.id
+                            },
                         grindSize = r["grindSize"] as? String ?: "",
                         extractionTime = (r["extractionTime"] as? Double)?.toInt() ?: 0,
                         pouringDurationSeconds = (r["pouringDurationSeconds"] as? Double)?.toInt(),
