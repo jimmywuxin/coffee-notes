@@ -71,6 +71,8 @@ fun BeanEditScreen(
     // 烘焙度/处理法下拉选状态
     var selectedRoastDegreeId by remember { mutableStateOf<Long?>(null) }
     var selectedProcessMethodId by remember { mutableStateOf<Long?>(null) }
+    var customProcessName by remember { mutableStateOf("") }
+    var customRoastLevel by remember { mutableStateOf("") }
     var roastLevelDropdownExpanded by remember { mutableStateOf(false) }
     var processDropdownExpanded by remember { mutableStateOf(false) }
     var restDaysOverride by remember { mutableStateOf<String>("") }  // 手动覆盖养豆天数
@@ -217,12 +219,21 @@ fun BeanEditScreen(
             // roastLevel字符串匹配到id（兼容旧数据）
             if (roastDegrees.isNotEmpty()) {
                 val matchedRoast = roastDegrees.find { it.name == b.roastLevel }
-                selectedRoastDegreeId = matchedRoast?.id
-                if (selectedRoastDegreeId != null) loadSuggestedDays(selectedRoastDegreeId)
+                if (matchedRoast != null) {
+                    selectedRoastDegreeId = matchedRoast.id
+                    if (selectedRoastDegreeId != null) loadSuggestedDays(selectedRoastDegreeId)
+                } else if (b.roastLevel.isNotEmpty()) {
+                    customRoastLevel = b.roastLevel
+                }
             }
             // process字符串匹配到id
             if (processMethods.isNotEmpty()) {
-                selectedProcessMethodId = processMethods.find { it.name == b.process }?.id
+                val matchedProcess = processMethods.find { it.name == b.process }
+                if (matchedProcess != null) {
+                    selectedProcessMethodId = matchedProcess.id
+                } else if (b.process.isNotEmpty()) {
+                    customProcessName = b.process
+                }
             }
             if (tags.isEmpty() && existingTags.isNotEmpty()) {
                 tags.clear()
@@ -308,31 +319,34 @@ fun BeanEditScreen(
                     label = { Text("庄园") }, modifier = Modifier.weight(1f), singleLine = true)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                // 处理法下拉选
+                // 处理法（可自定义）
                 ExposedDropdownMenuBox(
                     expanded = processDropdownExpanded,
                     onExpandedChange = { processDropdownExpanded = it },
                     modifier = Modifier.weight(1f)
                 ) {
                     OutlinedTextField(
-                        value = processMethods.find { it.id == selectedProcessMethodId }?.name ?: "",
-                        onValueChange = {},
-                        readOnly = true,
+                        value = customProcessName.ifEmpty { processMethods.find { it.id == selectedProcessMethodId }?.name ?: "" },
+                        onValueChange = {
+                            customProcessName = it
+                            selectedProcessMethodId = null
+                        },
                         label = { Text("处理法") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = processDropdownExpanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        placeholder = { Text("输入或选择") }
                     )
                     ExposedDropdownMenu(
                         expanded = processDropdownExpanded,
                         onDismissRequest = { processDropdownExpanded = false },
                         modifier = Modifier.heightIn(max = 250.dp)
                     ) {
-                        // 空选项
                         DropdownMenuItem(
                             text = { Text("不选择") },
                             onClick = {
                                 selectedProcessMethodId = null
+                                customProcessName = ""
                                 processDropdownExpanded = false
                             }
                         )
@@ -341,37 +355,43 @@ fun BeanEditScreen(
                                 text = { Text(method.name) },
                                 onClick = {
                                     selectedProcessMethodId = method.id
+                                    customProcessName = ""
                                     processDropdownExpanded = false
                                 }
                             )
                         }
                     }
                 }
-                // 烘焙度下拉选
+                // 烘焙度（可自定义）
                 ExposedDropdownMenuBox(
                     expanded = roastLevelDropdownExpanded,
                     onExpandedChange = { roastLevelDropdownExpanded = it },
                     modifier = Modifier.weight(1f)
                 ) {
                     OutlinedTextField(
-                        value = roastDegrees.find { it.id == selectedRoastDegreeId }?.name ?: "",
-                        onValueChange = {},
-                        readOnly = true,
+                        value = customRoastLevel.ifEmpty { roastDegrees.find { it.id == selectedRoastDegreeId }?.name ?: "" },
+                        onValueChange = {
+                            customRoastLevel = it
+                            selectedRoastDegreeId = null
+                            suggestedRestDays = null
+                            suggestedPeakFlavorDays = null
+                        },
                         label = { Text("烘焙度") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = roastLevelDropdownExpanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        placeholder = { Text("输入或选择") }
                     )
                     ExposedDropdownMenu(
                         expanded = roastLevelDropdownExpanded,
                         onDismissRequest = { roastLevelDropdownExpanded = false },
                         modifier = Modifier.heightIn(max = 250.dp)
                     ) {
-                        // 空选项
                         DropdownMenuItem(
                             text = { Text("不选择") },
                             onClick = {
                                 selectedRoastDegreeId = null
+                                customRoastLevel = ""
                                 suggestedRestDays = null
                                 suggestedPeakFlavorDays = null
                                 roastLevelDropdownExpanded = false
@@ -382,6 +402,7 @@ fun BeanEditScreen(
                                 text = { Text(degree.name) },
                                 onClick = {
                                     selectedRoastDegreeId = degree.id
+                                    customRoastLevel = ""
                                     loadSuggestedDays(degree.id)
                                     roastLevelDropdownExpanded = false
                                 }
@@ -393,7 +414,6 @@ fun BeanEditScreen(
             OutlinedTextField(value = roastDate, onValueChange = { roastDate = it },
                 label = { Text("烘焙日期") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
                 placeholder = { Text("格式：2026/05/10") })
-
             // 养豆期/赏味期（基于烘焙度配置自动计算，可手动覆盖）
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 // 养豆天数
@@ -584,8 +604,8 @@ fun BeanEditScreen(
                         id = if (isEditing) beanId else 0,
                         roaster = roaster, name = name, origin = origin, region = region, estate = estate,
                         variety = variety,
-                        process = selectedProcessMethodId?.let { processMethods.find { m -> m.id == it }?.name } ?: "",
-                        roastLevel = selectedRoastDegreeId?.let { roastDegrees.find { d -> d.id == it }?.name } ?: "",
+                        process = customProcessName.ifEmpty { selectedProcessMethodId?.let { processMethods.find { m -> m.id == it }?.name } ?: "" },
+                        roastLevel = customRoastLevel.ifEmpty { selectedRoastDegreeId?.let { roastDegrees.find { d -> d.id == it }?.name } ?: "" },
                         grindSize = savedGrindSize,
                         roastDate = DateUtils.parseDate(roastDate),
                         notes = notes, imageUri = imageUri,
