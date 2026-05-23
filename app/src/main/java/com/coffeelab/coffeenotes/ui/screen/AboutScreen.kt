@@ -86,7 +86,7 @@ fun AboutScreen() {
 
             // Description
             Text(
-                text = "一款专注于精品咖啡冲煮记录的 Android 应用，\n帮你记录每一杯咖啡的风味与成长。",
+                text = "一款专注于精品咖啡冲煮记录的 Android 应用，\n记录豆子风味、萃取参数与品鉴体验。",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurface
@@ -108,12 +108,12 @@ fun AboutScreen() {
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    FeatureItem("☕", "豆子管理", "记录烘焙商、产地、品种、处理法")
-                    FeatureItem("📝", "冲煮记录", "记录粉量、水温、研磨度、萃取时间")
-                    FeatureItem("📋", "冲煮手法", "保存常用冲煮手法")
-                    FeatureItem("🏷️", "风味标签", "预置 + 自定义风味标签")
-                    FeatureItem("🤖", "AI 识别", "MiniMax-M2.7 智能识别咖啡信息")
+                    FeatureItem("🫘", "豆子管理", "烘焙商、产地、品种、处理法、烘焙度等完整信息")
+                    FeatureItem("📝", "冲煮记录", "粉量、水温、研磨度、注水时长、萃取时间")
+                    FeatureItem("🏷️", "风味标签", "预置 + 自定义，品鉴评分 + 雷达图")
+                    FeatureItem("🤖", "AI 识别", "ML Kit + MiniMax-M2.7 智能识别咖啡信息")
                     FeatureItem("📊", "统计分析", "全量统计 + 单豆统计，水温三段式分布")
+                    FeatureItem("💾", "数据管理", "备份/恢复 + 购买记录，养豆/赏味期配置")
                 }
             }
 
