@@ -214,20 +214,42 @@ fun RecordCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    text = buildString {
-                        append("${record.coffeeWeight}g")
-                        if (record.grinder.isNotEmpty()) append(" · ${record.grinder}")
-                        if (record.grindSize.isNotEmpty()) append(" ${record.grindSize}")
-                        append(" · 1:${String.format("%.1f", record.coffeeWaterRatio)}")
-                        if (record.waterTemp > 0) append(" · ${record.waterTemp}℃")
-                        if (record.pouringDurationSeconds != null) append(" · 注水${record.pouringDurationSeconds}s")
-                        if (record.extractionTime > 0) append(" · 萃取${record.extractionTime}s")
-                        if (record.isIced) append(" · ❄️${record.iceAmount}g")
-                        if (record.bypassAmount > 0) append(" · +${record.bypassAmount}ml bypass")
-                    },
-                    style = MaterialTheme.typography.bodySmall
-                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "${record.coffeeWeight}g",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (record.grinder.isNotEmpty()) {
+                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(record.grinder, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (record.grindSize.isNotEmpty()) {
+                        Text(record.grindSize, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("1:${String.format("%.1f", record.coffeeWaterRatio)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (record.waterTemp > 0) {
+                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${record.waterTemp}℃", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (record.pouringDurationSeconds != null) {
+                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("注水${record.pouringDurationSeconds}s", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (record.extractionTime > 0) {
+                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("萃取${record.extractionTime}s", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (record.isIced) {
+                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("❄️${record.iceAmount}g", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (record.bypassAmount > 0) {
+                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("+${record.bypassAmount}ml bypass", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
             if (record.overallRating > 0) {
                 Text(
