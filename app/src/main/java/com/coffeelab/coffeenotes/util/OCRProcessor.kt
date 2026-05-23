@@ -6,6 +6,7 @@ import android.graphics.ImageFormat
 import android.graphics.Rect
 import android.graphics.YuvImage
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import kotlinx.coroutines.tasks.await
@@ -19,6 +20,8 @@ data class OCRResult(
     val variety: String = "",
     val process: String = "",
     val roastLevel: String = "",
+    val estate: String = "",
+    val region: String = "",
     val flavors: List<String> = emptyList(),
     val fullText: String = ""
 )
@@ -27,206 +30,166 @@ object OCRProcessor {
 
     private val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
 
-    // Flavor keyword dictionary - comprehensive list grouped by category
-    // Multi-word entries MUST come before their sub-components (e.g., "dark chocolate" before "chocolate")
     private val flavorKeywords = FlavorKeywords.keywords
 
-    // Roast level keywords (order matters - longer/more specific first)
-    private val roastLevels = listOf(
-        "浅度烘焙", "中度烘焙", "中深度烘焙", "深度烘焙",
-        "浅烘焙", "中烘焙", "深烘焙",
-        "light roast", "medium roast", "dark roast",
-        "light", "medium", "dark",
-        "浅烘", "中烘", "深烘", "浅中烘", "中深烘",
-        "浅", "中", "深"
+    // ── 标签词典 ──
+
+    private val roasterLabels = listOf(
+        "烘焙商", "烘培商", "烘培", "烘焙", "品牌", "出品", "制造", "公司",
+        "Roaster", "roaster", "ROASTER", "Roasted by", "roasted by",
+        "Brand", "brand", "BRAND", "Producer", "producer", "Company"
     )
 
-    // Process keywords (order matters)
-    private val processKeywords = listOf(
-        "厌氧发酵", "厌氧日晒", "厌氧水洗", "酒桶发酵", "橡木桶发酵",
-        "蜜处理", "黑蜜", "红蜜", "黄蜜", "白蜜",
-        "水洗", "washed", "wet process",
-        "日晒", "natural", "dry process",
-        "半水洗", "湿刨法", "湿刨",
-        "honey", "anaerobic", "wine", "barrel"
-    )
-
-    // Roaster label patterns
-    private val roasterPatterns = listOf(
-        "烘焙商", "烘焙", "品牌", "Roaster", "roaster", "ROASTER",
-        "Brand", "brand", "BRAND", "Producer", "producer"
-    )
-
-    // Origin label patterns
     private val originLabels = listOf(
-        "产地", "产区", "国家", "Origin", "origin", "Country", "country",
-        "Region", "region"
+        "原料产地", "生豆产地", "原产地", "原产国", "产地", "产自", "来自",
+        "国家", "Origin", "origin", "Country", "country", "From", "from", "Source", "source"
     )
 
-    // All common coffee origins (for direct mention without label)
-    private val commonOrigins = listOf(
-        "埃塞俄比亚", "Ethiopia", "耶加雪菲", "西达摩", "古吉", "科契尔",
-        "哥伦比亚", "Colombia", "娜玲峡谷",
-        "巴西", "Brazil", "喜拉多", "圣保罗",
-        "肯尼亚", "Kenya", "涅里", "麒麟区",
-        "哥斯达黎加", "Costa Rica", "塔拉珠", "赫尔德",
-        "巴拿马", "Panama", "波奎特", "翡翠庄园",
-        "危地马拉", "Guatemala", "安提瓜", "薇薇特南果",
-        "印尼", "Indonesia", "曼特宁", "爪哇", "苏门答腊",
-        "云南", "Yunnan", "中国云南",
-        "卢旺达", "Rwanda", "布隆迪", "Burundi",
-        "秘鲁", "Peru", "洪都拉斯", "Honduras",
-        "墨西哥", "Mexico", "牙买加", "Jamaica", "蓝山",
-        "危地马拉", "坦桑尼亚", "Tanzania", "厄瓜多尔", "Ecuador"
+    private val regionLabels = listOf(
+        "产区", "区域", "Region", "region"
     )
 
-    // Coffee name keywords (line should contain one of these)
+    private val varietyLabels = listOf(
+        "豆种", "品种", "Variety", "variety", "Varietal", "varietal", "Cultivar", "cultivar"
+    )
+
+    private val processLabels = listOf(
+        "处理方式", "处理", "精制", "Process", "process"
+    )
+
+    private val roastLevelLabels = listOf(
+        "烘焙程度", "烘焙度", "烘焙", "烘培", "Roast Level", "Roast level", "Roast", "roast"
+    )
+
+    private val estateLabels = listOf(
+        "庄园", "处理站", "农庄", "农场", "合作社", "Estate", "estate", "Farm", "farm"
+    )
+
+    private val knownVarieties = listOf(
+        "瑰夏", "Geisha", "gesha", "波旁", "Bourbon", "bourbon",
+        "卡杜拉", "Caturra", "caturra", "卡杜艾", "Catuai", "catuai",
+        "铁皮卡", "Typica", "typica", "帕卡玛拉", "Pacamara", "pacamara",
+        "SL28", "SL34", "SL14", "SL24", "74158", "74112",
+        "黄波旁", "红波旁", "粉波旁", "黄卡杜艾", "艺伎"
+    )
+
     private val coffeeNameKeywords = listOf(
         "咖啡", "coffee", "豆", "bean", "Blend", "blend", "单品"
     )
+
+    private val commonOrigins = listOf(
+        "埃塞俄比亚", "Ethiopia", "耶加雪菲", "西达摩", "古吉",
+        "哥伦比亚", "Colombia", "巴西", "Brazil",
+        "肯尼亚", "Kenya", "哥斯达黎加", "Costa Rica",
+        "巴拿马", "Panama", "危地马拉", "Guatemala",
+        "印尼", "Indonesia", "曼特宁", "苏门答腊", "Sumatra",
+        "爪哇", "Java", "云南", "卢旺达", "Rwanda",
+        "布隆迪", "Burundi", "秘鲁", "Peru", "洪都拉斯", "Honduras",
+        "墨西哥", "Mexico", "牙买加", "Jamaica", "蓝山",
+        "坦桑尼亚", "Tanzania", "厄瓜多尔", "Ecuador",
+        "萨尔瓦多", "El Salvador", "尼加拉瓜", "Nicaragua",
+        "巴布亚新几内亚", "PNG", "乌干达", "Uganda",
+        "东帝汶", "Timor", "玻利维亚", "Bolivia",
+        "赞比亚", "Zambia", "印度", "India"
+    )
+
+    // ── 核心识别 ──
 
     suspend fun processBitmap(bitmap: Bitmap): OCRResult {
         val image = InputImage.fromBitmap(bitmap, 0)
         return try {
             val result = recognizer.process(image).await()
             val fullText = result.text
-            parseText(fullText)
+            parseWithBoundingBox(result, fullText)
         } catch (e: Exception) {
             OCRResult(fullText = "识别失败: ${e.message}")
         }
     }
 
     /**
-     * 解析文本，提取咖啡豆信息
-     * 采用多行综合分析策略：
-     * 1. 将文本按行/文本块拆分
-     * 2. 先识别所有标签-值对
-     * 3. 再做模糊匹配（无标签的产地、豆名等）
+     * 基于 bounding box 的空间分析：
+     * 将所有 TextElement 配对，检查垂直距离和 X 重叠，判断标签-值关系。
+     * 同时保留原有规则匹配作为兜底。
      */
-    private fun parseText(text: String): OCRResult {
-        // 获取所有识别的文本块（ML Kit 支持检测段落/行）
-        val blocks = text.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+    private fun parseWithBoundingBox(text: Text, rawText: String): OCRResult {
+        // ── 提取所有 elements（带 pos + 文本）──
+        data class Elem(val text: String, val rect: Rect)
+        val elements = mutableListOf<Elem>()
+        for (block in text.textBlocks) {
+            for (line in block.lines) {
+                for (elem in line.elements) {
+                    val t = elem.text.trim()
+                    if (t.isNotEmpty()) {
+                        elements.add(Elem(t, elem.boundingBox ?: Rect()))
+                    }
+                }
+            }
+        }
 
         var roaster = ""
         var name = ""
         var origin = ""
+        var region = ""
         var variety = ""
         var process = ""
         var roastLevel = ""
+        var estate = ""
         val flavors = mutableListOf<String>()
 
-        // 用于暂存可能的豆名候选（当没有明确标签时）
-        val nameCandidates = mutableListOf<String>()
+        // ── 用 bounding box 空间分析配对标签-值 ──
+        // 判断两个 element 是否在同一列：X 区间中心点接近 或 bounding box 水平重叠 > 30%
+        fun isSameColumn(a: Rect, b: Rect): Boolean {
+            val aL = a.left; val aR = a.right
+            val bL = b.left; val bR = b.right
+            val overlap = maxOf(0, minOf(aR, bR) - maxOf(aL, bL))
+            val aW = aR - aL; val bW = bR - bL
+            return overlap.toFloat() / maxOf(aW, bW) > 0.3f
+        }
 
-        // ==========================================
-        // 第一轮：精确标签匹配
-        // ==========================================
-        for (line in blocks) {
-            val hasColon = line.contains(":") || line.contains("：")
+        // 检查 elem 文本是否匹配某个标签列表
+        fun matchesLabel(elemText: String, labels: List<String>): Boolean {
+            return labels.any { elemText.equals(it, ignoreCase = true) || elemText.contains(it, ignoreCase = true) }
+        }
 
-            // 烘焙商检测
-            if (roaster.isEmpty() && hasColon && roasterPatterns.any { line.contains(it, ignoreCase = true) }) {
-                roaster = extractAfterColon(line)
-            }
+        // 标签到字段的映射 + 关键词排除
+        data class LabelMapping(
+            val labels: List<String>,
+            val setter: (String) -> Unit,
+            val getter: () -> String
+        )
 
-            // 产地标签检测
-            if (origin.isEmpty() && hasColon && originLabels.any { line.contains(it, ignoreCase = true) }) {
-                origin = extractAfterColon(line)
-            }
+        val mappings = listOf(
+            LabelMapping(roasterLabels, { roaster = it }, { roaster }),
+            LabelMapping(originLabels, { origin = it }, { origin }),
+            LabelMapping(regionLabels, { region = it }, { region }),
+            LabelMapping(varietyLabels, { variety = it }, { variety }),
+            LabelMapping(processLabels, { process = it }, { process }),
+            LabelMapping(roastLevelLabels, { roastLevel = it }, { roastLevel }),
+            LabelMapping(estateLabels, { estate = it }, { estate })
+        )
 
-            // 品种标签检测
-            if (variety.isEmpty() && line.contains("品种", ignoreCase = true)) {
-                variety = extractAfterColon(line)
-            }
-
-            // 处理法标签检测
-            if (process.isEmpty() && (line.contains("处理", ignoreCase = true) || line.contains("process", ignoreCase = true))) {
-                val value = extractAfterColon(line)
-                if (value.isNotEmpty()) {
-                    process = value
-                }
-            }
-
-            // 烘焙度标签检测
-            if (roastLevel.isEmpty() && (line.contains("烘焙度", ignoreCase = true) || line.contains("Roast", ignoreCase = true))) {
-                roastLevel = extractAfterColon(line)
-            }
-
-            // 风味标签检测
-            if (line.contains("风味", ignoreCase = true) || line.contains("flavor", ignoreCase = true) || line.contains("tasting", ignoreCase = true)) {
-                val flavorText = extractAfterColon(line)
-                if (flavorText.isEmpty()) {
-                    // 风味标签后没有冒号，直接从整行提取风味词
-                    extractFlavorFromLine(line, flavors)
-                } else {
-                    extractFlavorFromLine(flavorText, flavors)
+        for ((idx, elem) in elements.withIndex()) {
+            if (idx >= elements.size - 1) continue
+            val next = elements[idx + 1]
+            if (!isSameColumn(elem.rect, next.rect)) continue
+            // 检查 elem 是否是某一个标签
+            for (mapping in mappings) {
+                if (mapping.getter().isEmpty() && matchesLabel(elem.text, mapping.labels)) {
+                    mapping.setter(next.text)
+                    break
                 }
             }
         }
 
-        // ==========================================
-        // 第二轮：处理法关键词匹配（无标签）
-        // ==========================================
-        if (process.isEmpty()) {
-            for (line in blocks) {
-                if (line.length > 30) continue  // 处理法通常是短词
-                for (kw in processKeywords) {
-                    if (line.contains(kw, ignoreCase = true)) {
-                        process = kw
-                        break
-                    }
-                }
-                if (process.isNotEmpty()) break
-            }
-        }
+        // ── 兜底：原有文本规则 ──
+        val blocks = rawText.split("\n".toRegex()).map { it.trim() }.filter { it.isNotEmpty() }
 
-        // ==========================================
-        // 第三轮：烘焙度关键词匹配（无标签）
-        // ==========================================
-        if (roastLevel.isEmpty()) {
-            for (line in blocks) {
-                if (line.length > 30) continue
-                for (rl in roastLevels) {
-                    if (line.contains(rl, ignoreCase = true)) {
-                        roastLevel = rl
-                        break
-                    }
-                }
-                if (roastLevel.isNotEmpty()) break
-            }
-        }
-
-        // ==========================================
-        // 第四轮：产地模糊匹配（无标签）
-        // ==========================================
-        if (origin.isEmpty()) {
-            for (line in blocks) {
-                if (line.length > 40) continue
-                for (o in commonOrigins) {
-                    if (line.contains(o, ignoreCase = true)) {
-                        // 如果行中没有冒号/等号，直接取匹配词前后几个字
-                        origin = extractAroundMatch(line, o)
-                        break
-                    }
-                }
-                if (origin.isNotEmpty()) break
-            }
-        }
-
-        // ==========================================
-        // 第五轮：品种模糊匹配（无标签）
-        // ==========================================
+        // 品种模糊匹配
         if (variety.isEmpty()) {
-            val varietyPatterns = listOf(
-                "瑰夏", "Geisha", "gesha", "SL28", "SL34", "74158", "74112",
-                "波旁", "Bourbon", "bourbon", "卡杜拉", "Caturra", "catuai",
-                "铁皮卡", "Typica", "typica", "帕卡斯", "Pacas", "pacamara",
-                "黄波旁", "黄卡杜艾", "卡杜艾", "艺伎"
-            )
             for (line in blocks) {
-                for (vp in varietyPatterns) {
+                for (vp in knownVarieties) {
                     if (line.contains(vp, ignoreCase = true)) {
-                        variety = vp
+                        variety = line.trim()
                         break
                     }
                 }
@@ -234,131 +197,108 @@ object OCRProcessor {
             }
         }
 
-        // ==========================================
-        // 第六轮：豆名识别
-        // ==========================================
-        if (name.isEmpty()) {
-            // 策略1：包含咖啡/豆/bean 关键词的行
+        // 产地模糊匹配
+        if (origin.isEmpty()) {
             for (line in blocks) {
-                if (line.length < 3 || line.length > 50) continue
-                if (line.contains("http", ignoreCase = true)) continue
-                if (coffeeNameKeywords.any { line.contains(it, ignoreCase = true) }) {
+                for (o in commonOrigins) {
+                    if (o.length < 2) continue
+                    if (line.contains(o, ignoreCase = true)) {
+                        origin = o
+                        val rest = line.replace(o, "").trim()
+                        if (rest.isNotEmpty() && region.isEmpty()) region = rest
+                        break
+                    }
+                }
+                if (origin.isNotEmpty()) break
+            }
+        }
+
+        // 处理法模糊匹配
+        if (process.isEmpty()) {
+            val knownProcesses = listOf(
+                "水洗", "日晒", "蜜处理", "厌氧", "湿刨", "washed", "natural", "honey"
+            )
+            for (line in blocks) {
+                for (kp in knownProcesses) {
+                    if (line.contains(kp, ignoreCase = true)) { process = kp; break }
+                }
+                if (process.isNotEmpty()) break
+            }
+        }
+
+        // 烘焙度模糊匹配
+        if (roastLevel.isEmpty()) {
+            val roastLevels = listOf("浅度烘焙","中度烘焙","深度烘焙","中深度烘焙","浅烘焙","中烘焙","深烘焙","浅烘","中烘","深烘","浅","中","深")
+            for (line in blocks) {
+                for (rl in roastLevels) {
+                    if (line.contains(rl, ignoreCase = true)) { roastLevel = rl; break }
+                }
+                if (roastLevel.isNotEmpty()) break
+            }
+        }
+
+        // 豆名
+        val nameCandidates = mutableListOf<String>()
+        if (name.isEmpty()) {
+            for (line in blocks) {
+                if (line.length in 3..50 && coffeeNameKeywords.any { line.contains(it, ignoreCase = true) }) {
                     nameCandidates.add(line)
                 }
             }
-
-            // 选择最短的候选（最可能是豆名）
             if (nameCandidates.isNotEmpty()) {
                 name = nameCandidates.minByOrNull { it.length } ?: nameCandidates.first()
-                name = name.replace(Regex("咖啡豆?|豆|coffee|Bean"), "").trim()
+                name = name.replace(Regex("咖啡豆?|豆|coffee|Bean", RegexOption.IGNORE_CASE), "").trim()
             }
         }
-
-        // 策略2：如果还没找到，取第一行短文本（排除已知标签行）
         if (name.isEmpty() && blocks.isNotEmpty()) {
             for (line in blocks) {
                 if (line.length in 2..30 &&
-                    !line.contains("http", ignoreCase = true) &&
-                    !roasterPatterns.any { line.contains(it, ignoreCase = true) } &&
+                    !roasterLabels.any { line.contains(it, ignoreCase = true) } &&
                     !originLabels.any { line.contains(it, ignoreCase = true) } &&
-                    !line.contains("处理", ignoreCase = true) &&
-                    !line.contains("烘焙", ignoreCase = true) &&
-                    !line.contains("品种", ignoreCase = true) &&
-                    !line.contains("风味", ignoreCase = true) &&
-                    !line.contains("产地", ignoreCase = true) &&
-                    !containsFlavorKeyword(line)
-                ) {
-                    name = line
-                    break
-                }
+                    !line.contains("处理") && !line.contains("烘焙") &&
+                    !line.contains("品种") && !line.contains("风味")
+                ) { name = line; break }
             }
         }
 
-        // ==========================================
-        // 第七轮：风味词全局搜索（跨行）
-        // ==========================================
-        extractFlavorFromLine(text, flavors)
+        // 风味词
+        extractFlavors(rawText, flavors)
+
+        // 烘焙度标准化
+        roastLevel = when {
+            roastLevel.contains("浅") -> "浅烘"
+            roastLevel.contains("深") -> "深烘"
+            roastLevel.contains("中") -> "中烘"
+            else -> roastLevel
+        }
 
         return OCRResult(
-            roaster = roaster,
-            name = name,
-            origin = origin,
-            variety = variety,
-            process = process,
-            roastLevel = normalizeRoastLevel(roastLevel),
-            flavors = flavors.distinct(),
-            fullText = text
+            roaster = roaster, name = name,
+            origin = origin, region = region,
+            variety = variety, process = process,
+            roastLevel = roastLevel, estate = estate,
+            flavors = flavors.distinct(), fullText = rawText
         )
     }
 
-    // 从文本中提取所有匹配的风味词（贪婪最长匹配，不重叠）
-    private fun extractFlavorFromLine(text: String, flavors: MutableList<String>) {
-        // 1. 找出所有匹配的关键词及其位置
-        val sortedKeywords = flavorKeywords.sortedByDescending { it.length }
-        val matches = mutableListOf<Triple<Int, Int, String>>() // (start, end, keyword)
-
-        for (kw in sortedKeywords) {
+    private fun extractFlavors(text: String, flavors: MutableList<String>) {
+        val sorted = flavorKeywords.sortedByDescending { it.length }
+        val matches = mutableListOf<Triple<Int, Int, String>>()
+        for (kw in sorted) {
             if (kw.length < 2) continue
-            var searchStart = 0
+            var pos = 0
             while (true) {
-                val idx = text.indexOf(kw, searchStart, ignoreCase = true)
+                val idx = text.indexOf(kw, pos, ignoreCase = true)
                 if (idx < 0) break
-                matches.add(Triple(idx, idx + kw.length, kw))
-                searchStart = idx + 1
+                matches.add(Triple(idx, idx + kw.length, kw)); pos = idx + 1
             }
         }
-
-        // 2. 按长度降序，贪婪选取不重叠的最佳匹配
         val selected = mutableListOf<Triple<Int, Int, String>>()
-        for (match in matches.sortedByDescending { it.second - it.first }) {
-            val start = match.first
-            val end = match.second
-            // 检查是否与已选中的区间重叠
-            val overlaps = selected.any { existing -> start < existing.second && end > existing.first }
-            if (!overlaps) {
-                selected.add(match)
-            }
+        for (m in matches.sortedByDescending { it.second - it.first }) {
+            if (selected.none { m.first < it.second && m.second > it.first }) selected.add(m)
         }
-
-        // 3. 加入结果（按原文顺序排列）
-        for (match in selected.sortedBy { it.first }) {
-            val kw = match.third
-            if (!flavors.contains(kw)) {
-                flavors.add(kw)
-            }
-        }
-    }
-
-    // 检查行中是否包含风味关键词
-    private fun containsFlavorKeyword(line: String): Boolean {
-        return flavorKeywords.any { line.contains(it, ignoreCase = true) }
-    }
-
-    // 提取冒号后的值
-    private fun extractAfterColon(line: String): String {
-        val parts = line.split(Regex("[:：]"), limit = 2)
-        return if (parts.size >= 2) parts[1].trim() else ""
-    }
-
-    // 在匹配词周围提取上下文
-    private fun extractAroundMatch(line: String, match: String): String {
-        val idx = line.indexOf(match, ignoreCase = true)
-        if (idx < 0) return match
-        val start = maxOf(0, idx - 5)
-        val end = minOf(line.length, idx + match.length + 10)
-        return line.substring(start, end).trim()
-    }
-
-    // 标准化烘焙度
-    private fun normalizeRoastLevel(level: String): String {
-        val l = level.lowercase()
-        return when {
-            l.contains("浅烘") || l.contains("light") -> "浅烘"
-            l.contains("深烘") || l.contains("dark") -> "深烘"
-            l.contains("中烘") || l.contains("medium") -> "中烘"
-            l.contains("浅中") -> "浅中烘"
-            l.contains("中深") -> "中深烘"
-            else -> level
+        for (m in selected.sortedBy { it.first }) {
+            if (!flavors.contains(m.third)) flavors.add(m.third)
         }
     }
 }

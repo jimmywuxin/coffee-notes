@@ -17,7 +17,7 @@ class KeywordRecognitionEngine : RecognitionEngine {
                 roaster = ocrResult.roaster,
                 name = ocrResult.name,
                 origin = ocrResult.origin,
-                estate = "",
+                estate = ocrResult.estate,
                 variety = ocrResult.variety,
                 process = ocrResult.process,
                 roastLevel = ocrResult.roastLevel,
