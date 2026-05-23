@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -23,7 +24,7 @@ import com.coffeelab.coffeenotes.util.DateUtils
 
 // ==================== BeanCard ====================
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun BeanCard(
     bean: CoffeeBean,
@@ -57,7 +58,7 @@ fun BeanCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             AnimatedVisibility(
                 visible = isSelectionMode,
@@ -83,7 +84,7 @@ fun BeanCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (bean.origin.isNotEmpty()) {
                         Text(
                             text = bean.origin,
@@ -154,7 +155,7 @@ fun BeanCard(
 
 // ==================== RecordCard ====================
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun RecordCard(
     record: BrewRecord,
