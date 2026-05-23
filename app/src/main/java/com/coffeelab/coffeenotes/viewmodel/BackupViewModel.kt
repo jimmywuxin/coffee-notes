@@ -433,32 +433,26 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     repository.insertRecord(record)
                 }
 
-                // Import equipment (skip duplicates)
+                // Import equipment
                 val equipmentList: List<*> = data["equipment"] as? List<*> ?: emptyList<Any>()
-                val existingEquipmentNames = repository.getAllEquipmentOnce().map { it.name }.toSet()
                 for (eq in equipmentList) {
                     val m = eq as Map<*, *>
                     val name = m["name"] as? String ?: continue
-                    if (name !in existingEquipmentNames) {
-                        repository.insertEquipment(Equipment(
-                            name = name,
-                            sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
-                        ))
-                    }
+                    repository.insertEquipment(Equipment(
+                        name = name,
+                        sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
+                    ))
                 }
 
-                // Import grinders (skip duplicates)
+                // Import grinders
                 val grinderList: List<*> = data["grinders"] as? List<*> ?: emptyList<Any>()
-                val existingGrinderNames = repository.getAllGrindersOnce().map { it.name }.toSet()
                 for (gr in grinderList) {
                     val m = gr as Map<*, *>
                     val name = m["name"] as? String ?: continue
-                    if (name !in existingGrinderNames) {
-                        repository.insertGrinder(Grinder(
-                            name = name,
-                            sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
-                        ))
-                    }
+                    repository.insertGrinder(Grinder(
+                        name = name,
+                        sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
+                    ))
                 }
 
                 // Import roast degrees (with ID mapping for RestPeriod/PeakFlavor configs)
