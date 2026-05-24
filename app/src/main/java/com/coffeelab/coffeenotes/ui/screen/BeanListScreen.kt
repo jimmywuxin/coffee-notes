@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.ui.component.BeanCard
 import com.coffeelab.coffeenotes.ui.component.EmptyState
@@ -37,12 +39,27 @@ fun BeanListScreen(
     navController: NavController,
     viewModel: BeanViewModel = viewModel()
 ) {
-    val beans by viewModel.activeBeans.collectAsState(initial = emptyList())
+val beans by viewModel.activeBeans.collectAsState(initial = emptyList())
     val archivedBeans by viewModel.archivedBeans.collectAsState(initial = emptyList())
     val mutableBeans = remember { mutableStateListOf(*beans.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
     var showArchivedOnly by remember { mutableStateOf(false) }
     val showFavoritesOnly by viewModel.showFavoritesOnly.collectAsState()
+
+    // Load impression tags for all displayed beans
+    val context = LocalContext.current
+    var beanImpressionTagsMap by remember { mutableStateOf<Map<Long, List<String>>>(emptyMap()) }
+    LaunchedEffect(beans) {
+        val dao = AppDatabase.getInstance(context).impressionTagDao()
+        val map = mutableMapOf<Long, List<String>>()
+        for (bean in beans) {
+            val tags = dao.getTagsForBeanOnce(bean.id)
+            if (tags.isNotEmpty()) {
+                map[bean.id] = tags.map { it.name }
+            }
+        }
+        beanImpressionTagsMap = map
+    }
 
     // 拖拽状态 — 使用 LazyListState 精确追踪位置
     val lazyListState = rememberLazyListState()
@@ -407,7 +424,8 @@ fun BeanListScreen(
                             },
                             onUnarchiveClick = if (showArchivedOnly) {
                                 { showUnarchiveDialog = bean }
-                            } else null
+                            } else null,
+                            impressionTags = beanImpressionTagsMap[bean.id] ?: emptyList()
                         )
                     }
                 }

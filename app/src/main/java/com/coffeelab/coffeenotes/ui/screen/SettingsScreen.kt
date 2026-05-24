@@ -161,6 +161,15 @@ fun SettingsScreen(
 
             item {
                 SettingsItem(
+                    icon = Icons.Default.Label,
+                    title = "印象标签管理",
+                    subtitle = "添加或编辑印象标签",
+                    onClick = { navController.navigate(Screen.ImpressionTagManagement.route) }
+                )
+            }
+
+            item {
+                SettingsItem(
                     icon = Icons.Default.LocalFireDepartment,
                     title = "烘焙度管理",
                     subtitle = "添加或编辑烘焙度",
@@ -278,6 +287,7 @@ fun SettingsScreen(
                                     db.restPeriodConfigDao().deleteAll()
                                     db.peakFlavorConfigDao().deleteAll()
                                     db.purchaseRecordDao().deleteAll()
+                                    db.impressionTagDao().deleteAll()
                                     showClearDataDialog = false
                                     showClearProgress = false
                                     navController.popBackStack()

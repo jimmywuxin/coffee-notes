@@ -33,7 +33,8 @@ fun BeanCard(
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
     onFavoriteClick: () -> Unit = {},
-    onUnarchiveClick: (() -> Unit)? = null
+    onUnarchiveClick: (() -> Unit)? = null,
+    impressionTags: List<String> = emptyList()
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -118,6 +119,33 @@ fun BeanCard(
                             text = bean.roastLevel,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
+            }
+            // Impression tags
+            if (impressionTags.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    impressionTags.take(3).forEach { tag ->
+                        Surface(
+                            shape = MaterialTheme.shapes.extraSmall,
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.padding(0.dp)
+                        ) {
+                            Text(
+                                text = tag,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    if (impressionTags.size > 3) {
+                        Text(
+                            text = "+${impressionTags.size - 3}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

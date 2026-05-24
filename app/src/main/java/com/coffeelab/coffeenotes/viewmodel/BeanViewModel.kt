@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
+import com.coffeelab.coffeenotes.data.entity.ImpressionTag
 import com.coffeelab.coffeenotes.data.entity.FlavorTag
 import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
@@ -43,6 +44,12 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
     private val _tags = MutableStateFlow<List<String>>(emptyList())
     val tags: StateFlow<List<String>> = _tags.asStateFlow()
 
+    private val _impressionTags = MutableStateFlow<List<ImpressionTag>>(emptyList())
+    val impressionTags: StateFlow<List<ImpressionTag>> = _impressionTags.asStateFlow()
+
+    val allImpressionTags: StateFlow<List<ImpressionTag>> = repository.allImpressionTags
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     // 赏味期即将结束的豆子（距离赏味期结束 <= 10天），按倒计时升序排列
     val beansNearingPeakFlavorEnd: StateFlow<List<Pair<CoffeeBean, Int>>> = combine(
         repository.activeBeans,
@@ -79,6 +86,14 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun loadImpressionTags(beanId: Long) {
+        viewModelScope.launch {
+            repository.getImpressionTagsForBean(beanId).collect { tags ->
+                _impressionTags.value = tags
+            }
+        }
+    }
+
     fun loadTags(beanId: Long) {
         viewModelScope.launch {
             repository.getTagsForBean(beanId).collect { tagEntities ->
@@ -87,17 +102,19 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    suspend fun saveBeanSync(bean: CoffeeBean, tagList: List<String>): Long {
+    suspend fun saveBeanSync(bean: CoffeeBean, tagList: List<String>, impressionTagIds: List<Long>): Long {
         val id = repository.insertBean(bean)
         if (id > 0) {
             repository.saveTagsForBean(id, tagList)
+            repository.saveImpressionTagsForBean(id, impressionTagIds)
         }
         return id
     }
 
-    suspend fun updateBeanSync(bean: CoffeeBean, tagList: List<String>) {
+    suspend fun updateBeanSync(bean: CoffeeBean, tagList: List<String>, impressionTagIds: List<Long>) {
         repository.updateBean(bean)
         repository.saveTagsForBean(bean.id, tagList)
+        repository.saveImpressionTagsForBean(bean.id, impressionTagIds)
     }
 
     fun deleteBean(bean: CoffeeBean) {

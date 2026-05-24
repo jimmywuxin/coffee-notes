@@ -74,13 +74,16 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 val restPeriodConfigs = repository.getAllRestPeriodConfigsOnce()
                 val peakFlavorConfigs = repository.getAllPeakFlavorConfigsOnce()
                 val purchaseRecords = repository.getAllPurchaseRecordsOnce()
+                val impressionTags = repository.getAllImpressionTagsOnce()
 
                 // Collect tags for each bean
                 val beansWithTags = beans.map { bean ->
                     val tags = repository.getTagsForBeanOnce(bean.id)
+                    val impTags = repository.getImpressionTagsForBeanOnce(bean.id)
                     mapOf(
                         "bean" to bean,
-                        "tags" to tags.map { it.name }
+                        "tags" to tags.map { it.name },
+                        "impressionTagIds" to impTags.map { it.id }
                     )
                 }
 
@@ -126,7 +129,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     "processMethods" to processMethods,
                     "restPeriodConfigs" to restPeriodConfigs,
                     "peakFlavorConfigs" to peakFlavorConfigs,
-                    "purchaseRecords" to purchaseRecords
+                    "purchaseRecords" to purchaseRecords,
+                    "impressionTags" to impressionTags
                 )
                 val dataJson = gson.toJson(dataMap)
 
@@ -140,7 +144,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         "records" to records.size,
                         "methods" to methods.size,
                         "equipment" to equipment.size,
-                        "grinders" to grinders.size
+                        "grinders" to grinders.size,
+                        "impressionTags" to impressionTags.size
                     )
                 )
                 val manifestJson = gson.toJson(manifest)
@@ -457,6 +462,25 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         name = name,
                         sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
                     ))
+                }
+
+                // Import impression tags (before bean records since beans reference tag IDs)
+                val impressionTagIdMap = mutableMapOf<Long, Long>()
+                val impressionTagList: List<*> = data["impressionTags"] as? List<*> ?: emptyList<Any>()
+                val existingImps = repository.getAllImpressionTagsOnce().associateBy { it.name }
+                for (it in impressionTagList) {
+                    val m = it as Map<*, *>
+                    val oldId = (m["id"] as? Double)?.toLong() ?: continue
+                    val name = m["name"] as? String ?: continue
+                    val newId = if (name in existingImps) {
+                        existingImps[name]!!.id
+                    } else {
+                        repository.insertImpressionTag(ImpressionTag(
+                            name = name,
+                            sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
+                        ))
+                    }
+                    impressionTagIdMap[oldId] = newId
                 }
 
                 // Import roast degrees (with ID mapping for RestPeriod/PeakFlavor configs)

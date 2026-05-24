@@ -60,6 +60,7 @@ fun BeanEditScreen(
     var localPhotoPaths by remember { mutableStateOf<List<String>>(emptyList()) }
     var tagInput by remember { mutableStateOf("") }
     val tags = remember { mutableStateListOf<String>() }
+    val selectedImpressionTagIds = remember { mutableStateListOf<Long>() }
     var originalGrindSize by remember { mutableStateOf("") }
     // 官方萃取建议
     var dose by remember { mutableStateOf("") }
@@ -118,6 +119,7 @@ fun BeanEditScreen(
         }
     }
 
+    val allImpressionTags by viewModel.allImpressionTags.collectAsState(initial = emptyList())
     var showPhotoOptions by remember { mutableStateOf(false) }
 
     // Apply recognition result with user feedback
@@ -159,11 +161,20 @@ fun BeanEditScreen(
         if (isEditing) {
             viewModel.loadBean(beanId)
             viewModel.loadTags(beanId)
+            viewModel.loadImpressionTags(beanId)
         }
     }
 
     val bean by viewModel.selectedBean.collectAsState(initial = null)
     val existingTags by viewModel.tags.collectAsState(initial = emptyList())
+    val existingImpressionTags by viewModel.impressionTags.collectAsState(initial = emptyList())
+    LaunchedEffect(existingImpressionTags) {
+        if (isEditing && existingImpressionTags.isNotEmpty() && selectedImpressionTagIds.isEmpty()) {
+            selectedImpressionTagIds.clear()
+            selectedImpressionTagIds.addAll(existingImpressionTags.map { it.id })
+        }
+    }
+
     val roastDegrees by viewModel.allRoastDegrees.collectAsState(initial = emptyList())
     val processMethods by viewModel.allProcessMethods.collectAsState(initial = emptyList())
 
@@ -454,6 +465,35 @@ fun BeanEditScreen(
                 )
             }
 
+            // Impression Tags
+            Text("印象标签", style = MaterialTheme.typography.titleMedium)
+            if (allImpressionTags.isEmpty()) {
+                Text("暂无印象标签，可在设置中添加", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    allImpressionTags.forEach { tag ->
+                        val isSelected = selectedImpressionTagIds.contains(tag.id)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                if (isSelected) {
+                                    selectedImpressionTagIds.remove(tag.id)
+                                } else if (selectedImpressionTagIds.size < 5) {
+                                    selectedImpressionTagIds.add(tag.id)
+                                }
+                            },
+                            label = { Text(tag.name, style = MaterialTheme.typography.labelSmall) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             // Flavor Tags
             Text("风味标签", style = MaterialTheme.typography.titleMedium)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -623,8 +663,8 @@ fun BeanEditScreen(
                         restDays = restDaysOverride.toIntOrNull(),
                         peakFlavorDays = peakFlavorDaysOverride.toIntOrNull()
                     )
-                    if (isEditing) viewModel.updateBeanSync(beanToSave, tags.toList())
-                    else viewModel.saveBeanSync(beanToSave, tags.toList())
+                    if (isEditing) viewModel.updateBeanSync(beanToSave, tags.toList(), selectedImpressionTagIds.toList())
+                    else viewModel.saveBeanSync(beanToSave, tags.toList(), selectedImpressionTagIds.toList())
                     navController.popBackStack()
                 }
             }, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("保存") }

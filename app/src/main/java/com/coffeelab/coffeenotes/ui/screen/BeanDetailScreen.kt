@@ -52,6 +52,7 @@ fun BeanDetailScreen(
     LaunchedEffect(beanId) {
         beanViewModel.loadBean(beanId)
         beanViewModel.loadTags(beanId)
+        beanViewModel.loadImpressionTags(beanId)
         brewViewModel.loadRecordsForBean(beanId)
         // 加载购买记录
         val records = AppDatabase.getInstance(context).purchaseRecordDao().getByBeanIdOnce(beanId)
@@ -60,6 +61,7 @@ fun BeanDetailScreen(
 
     val bean by beanViewModel.selectedBean.collectAsState(initial = null)
     val tags by beanViewModel.tags.collectAsState(initial = emptyList())
+    val impressionTags by beanViewModel.impressionTags.collectAsState(initial = emptyList())
     val records by brewViewModel.recordsForBean.collectAsState(initial = emptyList())
     val roastDegrees by beanViewModel.allRoastDegrees.collectAsState(initial = emptyList())
     val processMethods by beanViewModel.allProcessMethods.collectAsState(initial = emptyList())

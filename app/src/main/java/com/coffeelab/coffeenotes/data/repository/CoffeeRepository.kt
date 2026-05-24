@@ -201,7 +201,31 @@ class CoffeeRepository(private val db: AppDatabase) {
     fun getBrewCountsByTimeSlotForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByTimeSlotForBean(beanId)
     fun getBrewCountsByRatingForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByRatingForBean(beanId)
     fun getAvgRatingForBean(beanId: Long) = db.brewRecordDao().getAvgRatingForBean(beanId)
-private fun BrewRecordWithNames.toRecord() = record.withNames(equipmentName, grinderName)
+    // ===== Impression Tags =====
+    val allImpressionTags: Flow<List<ImpressionTag>> = db.impressionTagDao().getAll()
+    suspend fun getAllImpressionTagsOnce() = db.impressionTagDao().getAllOnce()
+    suspend fun insertImpressionTag(tag: ImpressionTag): Long = db.impressionTagDao().insert(tag)
+    suspend fun updateImpressionTag(tag: ImpressionTag) = db.impressionTagDao().update(tag)
+    suspend fun deleteImpressionTag(tag: ImpressionTag) = db.impressionTagDao().delete(tag)
+    fun getImpressionTagsForBean(beanId: Long) = db.impressionTagDao().getTagsForBean(beanId)
+    suspend fun getImpressionTagsForBeanOnce(beanId: Long) = db.impressionTagDao().getTagsForBeanOnce(beanId)
+    suspend fun getMaxImpressionTagSortOrder() = db.impressionTagDao().getMaxSortOrder()
+
+    @Transaction
+    suspend fun saveImpressionTagsForBean(beanId: Long, tagIds: List<Long>) {
+        db.impressionTagDao().saveTagsForBean(beanId, tagIds)
+    }
+
+    @Transaction
+    suspend fun saveImpressionTagOrder(items: List<ImpressionTag>) {
+        items.forEachIndexed { index, tag ->
+            if (tag.id > 0) {
+                db.impressionTagDao().update(tag.copy(sortOrder = index))
+            }
+        }
+    }
+
+    private fun BrewRecordWithNames.toRecord() = record.withNames(equipmentName, grinderName)
     suspend fun updateRoastLevelOnBeans(oldName: String, newName: String) = db.coffeeBeanDao().updateRoastLevelByName(oldName, newName)
     suspend fun updateProcessOnBeans(oldName: String, newName: String) = db.coffeeBeanDao().updateProcessByName(oldName, newName)
 }
