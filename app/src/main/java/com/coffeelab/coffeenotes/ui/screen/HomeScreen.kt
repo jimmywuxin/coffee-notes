@@ -1,26 +1,33 @@
 package com.coffeelab.coffeenotes.ui.screen
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.coffeelab.coffeenotes.data.entity.BrewMethod
+import com.coffeelab.coffeenotes.data.entity.BrewRecord
+import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.ui.navigation.Screen
+import com.coffeelab.coffeenotes.ui.component.BeanCard
+import com.coffeelab.coffeenotes.ui.component.RecordCard
 import com.coffeelab.coffeenotes.ui.component.EmptyState
-import com.coffeelab.coffeenotes.util.DateUtils
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
+import com.coffeelab.coffeenotes.viewmodel.HomeViewModel
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,12 +36,28 @@ fun HomeScreen(
     navController: NavController,
     beanViewModel: BeanViewModel = viewModel(),
     brewViewModel: BrewViewModel = viewModel(),
-    methodViewModel: BrewMethodViewModel = viewModel()
+    methodViewModel: BrewMethodViewModel = viewModel(),
+    homeViewModel: HomeViewModel = viewModel()
 ) {
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
     val recentRecords by brewViewModel.allRecords.collectAsState(initial = emptyList())
     val allMethods by methodViewModel.allMethods.collectAsState(initial = emptyList())
     val nearingBeans by beanViewModel.beansNearingPeakFlavorEnd.collectAsState(initial = emptyList())
+
+    // ===== Search state =====
+    var isSearchMode by remember { mutableStateOf(false) }
+    val searchQuery by homeViewModel.searchQuery.collectAsState()
+    val isSearching by homeViewModel.isSearching.collectAsState(initial = false)
+    val mixedResults by homeViewModel.mixedResults.collectAsState(initial = emptyList())
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(isSearchMode) {
+        if (isSearchMode) {
+            try { focusRequester.requestFocus() } catch (_: Exception) {}
+        } else {
+            homeViewModel.clearSearch()
+        }
+    }
 
     // Time-based greeting
     val greeting = remember {
@@ -48,25 +71,18 @@ fun HomeScreen(
         }
     }
 
-    // Today's brew count
+    // Stats (computed from recentRecords)
     val todayCount = remember(recentRecords) {
         val todayStart = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }.timeInMillis
         recentRecords.count { it.dateTime >= todayStart }
     }
 
-    // Streak days (consecutive days with at least one brew)
     val streakDays = remember(recentRecords) {
         if (recentRecords.isEmpty()) return@remember 0
         val cal = Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
+        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
         var streak = 0
         while (true) {
             val dayStart = cal.timeInMillis
@@ -80,10 +96,8 @@ fun HomeScreen(
         streak
     }
 
-    // Total brew count
     val totalCount = recentRecords.size
 
-    // Average brews per week (last 4 weeks)
     val avgPerWeek = remember(recentRecords) {
         if (recentRecords.isEmpty()) return@remember 0.0
         val now = System.currentTimeMillis()
@@ -92,20 +106,17 @@ fun HomeScreen(
         (recent4w / 4.0 * 10).toInt() / 10.0
     }
 
-    // Most used brew method
     val mostUsedMethod = remember(recentRecords, allMethods) {
         if (recentRecords.isEmpty()) return@remember null
         val methodCounts = recentRecords
             .mapNotNull { record -> record.methodId?.let { id -> allMethods.find { it.id == id } } }
-            .groupingBy { it.name }
-            .eachCount()
+            .groupingBy { it.name }.eachCount()
         if (methodCounts.isEmpty()) null else {
             val (name, count) = methodCounts.maxByOrNull { it.value }!!
             name to count
         }
     }
 
-    // Most recently used bean
     val lastBean = remember(recentRecords, beans) {
         val lastRecord = recentRecords.firstOrNull()
         if (lastRecord != null) beans.find { it.id == lastRecord.beanId } else null
@@ -114,264 +125,303 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("☕ 咖啡笔记") },
+                title = { Text(if (isSearchMode) "搜索" else "☕ 咖啡笔记") },
                 actions = {
-                    IconButton(onClick = { navController.navigate(Screen.Search.createRoute("all")) }) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "搜索",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
+                    if (isSearchMode) {
+                        TextButton(onClick = {
+                            isSearchMode = false
+                            homeViewModel.clearSearch()
+                        }) {
+                            Text("取消", color = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    } else {
+                        IconButton(onClick = { isSearchMode = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "搜索",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+            modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            // ===== Fixed Dashboard Section =====
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            // ===== Search bar =====
+            AnimatedVisibility(
+                visible = isSearchMode,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
             ) {
-                Text(
-                    text = "$greeting ☀️",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                // 2x2 stat grid
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    StatMiniCard(
-                        modifier = Modifier.weight(1f),
-                        label = "今天", value = todayCount.toString(), unit = "杯",
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    StatMiniCard(
-                        modifier = Modifier.weight(1f),
-                        label = "连续天数", value = streakDays.toString(), unit = "天",
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    StatMiniCard(
-                        modifier = Modifier.weight(1f),
-                        label = "总计", value = totalCount.toString(), unit = "杯",
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    StatMiniCard(
-                        modifier = Modifier.weight(1f),
-                        label = "周均", value = avgPerWeek.toString(), unit = "杯",
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                    )
-                }
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
-
-            // ===== Scrollable Content Below =====
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(vertical = 12.dp)
-            ) {
-            // ===== Most Used Method =====
-            if (mostUsedMethod != null) {
-                item {
-                    val (methodName, count) = mostUsedMethod
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.LocalFireDepartment,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "最爱用的方式",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                                Text(
-                                    text = methodName,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                            }
-                            Surface(
-                                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text(
-                                    text = "$count 次",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { homeViewModel.setSearchQuery(it) },
+                    placeholder = { Text("搜索烘焙商、豆名、产地、器具、冲煮手法...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { homeViewModel.clearSearch() }) {
+                                Icon(Icons.Default.Close, contentDescription = "清除")
                             }
                         }
-                    }
-                }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .focusRequester(focusRequester),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
+                )
             }
 
-            // ===== Last Bean Card =====
-            if (lastBean != null) {
-                item {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                navController.navigate(Screen.BeanDetail.createRoute(lastBean!!.id))
-                            },
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        shape = MaterialTheme.shapes.medium
+            if (isSearchMode) {
+                // ===== Search Results =====
+                if (searchQuery.isBlank()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Grain,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "最近在喝",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                                Text(
-                                    text = "${lastBean!!.roaster} - ${lastBean!!.name}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                                if (lastBean!!.origin.isNotEmpty()) {
-                                    Text(
-                                        text = lastBean!!.origin,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                        Text(
+                            "输入关键词开始搜索",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else if (mixedResults.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "没有找到匹配的结果",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(mixedResults, contentType = { item ->
+                            when (item) {
+                                is CoffeeBean -> "bean"
+                                is BrewRecord -> "record"
+                                else -> "unknown"
+                            }
+                        }) { item ->
+                            when (item) {
+                                is CoffeeBean -> {
+                                    BeanCard(
+                                        bean = item,
+                                        onClick = { navController.navigate(Screen.BeanDetail.createRoute(item.id)) },
+                                        impressionTags = emptyList()
+                                    )
+                                }
+                                is BrewRecord -> {
+                                    val bn = item.beanRoaster.let {
+                                        if (it.isNotEmpty()) "$it - ${item.beanName}" else "未知豆子"
+                                    }
+                                    RecordCard(
+                                        record = item,
+                                        beanName = bn,
+                                        onClick = {
+                                            navController.navigate(Screen.BrewEdit.createRoute(item.id, item.beanId))
+                                        }
                                     )
                                 }
                             }
-                            Icon(
-                                Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
-                            )
                         }
                     }
                 }
-            }
+            } else {
+                // ===== Normal home content =====
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    // Greeting
+                    item {
+                        Text(
+                            text = "$greeting，今天 $todayCount 杯 ☕",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
-            // 赏味期倒计时
-            if (nearingBeans.isNotEmpty()) {
-                item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                                Spacer(Modifier.width(8.dp))
-                                Text("赏味期倒计时", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            nearingBeans.forEach { (bean, daysLeft) ->
+                    // Stats cards
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            StatMiniCard(
+                                modifier = Modifier.weight(1f),
+                                label = "连续冲煮",
+                                value = "$streakDays",
+                                unit = "天",
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            StatMiniCard(
+                                modifier = Modifier.weight(1f),
+                                label = "总冲煮",
+                                value = "$totalCount",
+                                unit = "次",
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                            StatMiniCard(
+                                modifier = Modifier.weight(1f),
+                                label = "周均",
+                                value = if (avgPerWeek == avgPerWeek.toInt().toDouble()) "${avgPerWeek.toInt()}" else "$avgPerWeek",
+                                unit = "杯",
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+
+                    // Most used method
+                    if (mostUsedMethod != null) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = MaterialTheme.shapes.medium
+                            ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().clickable { navController.navigate(Screen.BeanDetail.createRoute(bean.id)) }.padding(vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    Text("🍳 最爱手法：", style = MaterialTheme.typography.bodyMedium)
                                     Text(
-                                        text = bean.roaster + " - " + bean.name,
+                                        text = "${mostUsedMethod.first} (${mostUsedMethod.second}次)",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                        modifier = Modifier.weight(1f)
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.error,
-                                        shape = MaterialTheme.shapes.small
-                                    ) {
+                                }
+                            }
+                        }
+                    }
+
+                    // Last bean
+                    if (lastBean != null) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(
+                                        text = "最近在喝",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = "${lastBean!!.roaster} - ${lastBean!!.name}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    if (lastBean!!.origin.isNotEmpty()) {
                                         Text(
-                                            text = if (daysLeft <= 0) "今日结束" else "剩余" + daysLeft + "天",
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onError
+                                            text = lastBean!!.origin,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                                         )
                                     }
                                 }
                             }
                         }
                     }
+
+                    // Peak flavor countdown
+                    if (nearingBeans.isNotEmpty()) {
+                        item {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("赏味期倒计时", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    nearingBeans.forEach { (bean, daysLeft) ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().clickable { navController.navigate(Screen.BeanDetail.createRoute(bean.id)) }.padding(vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = "${bean.roaster} - ${bean.name}",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Surface(
+                                                color = MaterialTheme.colorScheme.error,
+                                                shape = MaterialTheme.shapes.small
+                                            ) {
+                                                Text(
+                                                    text = if (daysLeft <= 0) "今日结束" else "剩余${daysLeft}天",
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onError
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Quick start button
+                    item {
+                        Button(
+                            onClick = { navController.navigate(Screen.BrewEdit.createRoute()) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Icon(Icons.Default.Coffee, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("开始冲煮", style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+
+                    if (recentRecords.isEmpty()) {
+                        item {
+                            EmptyState(
+                                emoji = "☕",
+                                message = "还没有冲煮记录",
+                                hint = "点击上方按钮开始第一杯吧"
+                            )
+                        }
+                    }
+
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
             }
-
-            // ===== Quick Start Button =====
-            item {
-                Button(
-                    onClick = { navController.navigate(Screen.BrewEdit.createRoute()) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Icon(Icons.Default.Coffee, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("开始冲煮", style = MaterialTheme.typography.titleMedium)
-                }
-            }
-
-            // ===== Empty State =====
-            if (recentRecords.isEmpty()) {
-                item {
-                    EmptyState(
-                        emoji = "☕",
-                        message = "还没有冲煮记录",
-                        hint = "点击上方按钮开始第一杯吧"
-                    )
-                }
-            }
-
-            // Bottom spacing
-            item { Spacer(modifier = Modifier.height(16.dp)) }
         }
-    }
     }
 }
 

@@ -14,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -33,27 +36,43 @@ fun BrewListScreen(
     brewViewModel: BrewViewModel = viewModel(),
     beanViewModel: BeanViewModel = viewModel()
 ) {
+    // ===== Search state =====
+    var isSearchMode by remember { mutableStateOf(false) }
+    val searchQuery by brewViewModel.searchQuery.collectAsState()
+    val searchResults by brewViewModel.searchResults.collectAsState(initial = emptyList())
+    val isSearching by brewViewModel.isSearching.collectAsState(initial = false)
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(isSearchMode) {
+        if (isSearchMode) {
+            try { focusRequester.requestFocus() } catch (_: Exception) {}
+        } else {
+            brewViewModel.clearSearch()
+        }
+    }
+
     val rawRecords by if (beanId > 0) {
         brewViewModel.loadRecordsForBean(beanId)
         brewViewModel.recordsForBean.collectAsState(initial = emptyList())
     } else {
         brewViewModel.allRecords.collectAsState(initial = emptyList())
     }
-    val records = rawRecords
+    val records = if (isSearching) searchResults else rawRecords
 
-    // 分页加载
+    // Paging
     var visibleCount by remember { mutableIntStateOf(30) }
     val PAGE_SIZE = 30
     val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
 
-    // Week range filter (only for all records view)
+    // Week range filter (only for all records view, hidden when searching)
     var selectedWeekRange by remember { mutableStateOf("全部") }
     var selectedRatingFilter by remember { mutableStateOf("全部") }
     val weekRanges = listOf("全部", "本周", "上周", "更早")
     val ratingFilters = listOf("全部", "三星以上", "四星以上", "五星")
 
     val filteredRecords = remember(selectedWeekRange, selectedRatingFilter, records) {
-        if (beanId > 0) {
+        if (beanId > 0 || isSearching) {
             records
         } else {
             var result = DateUtils.filterByWeekRange(records, selectedWeekRange)
@@ -67,7 +86,7 @@ fun BrewListScreen(
         }
     }
 
-    // 多选状态
+    // Multi-select state
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedRecords by remember { mutableStateOf(setOf<Long>()) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -129,7 +148,7 @@ fun BrewListScreen(
                 },
                 actions = {
                     if (!isSelectionMode) {
-                        IconButton(onClick = { navController.navigate(Screen.Search.createRoute("records")) }) {
+                        IconButton(onClick = { isSearchMode = !isSearchMode }) {
                             Icon(Icons.Default.Search, contentDescription = "搜索")
                         }
                         IconButton(onClick = { navController.navigate(Screen.BrewEdit.createRoute(beanId = beanId)) }) {
@@ -157,9 +176,7 @@ fun BrewListScreen(
                     tonalElevation = 4.dp
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -178,9 +195,7 @@ fun BrewListScreen(
                         }
                         Button(
                             onClick = { deleteSelected() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            )
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = null)
                             Spacer(Modifier.width(4.dp))
@@ -192,57 +207,83 @@ fun BrewListScreen(
         }
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+            modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            // Filter dropdowns (only for all records view)
-            if (beanId <= 0 && records.isNotEmpty()) {
-                var timeExpanded by remember { mutableStateOf(false) }
-                var ratingExpanded by remember { mutableStateOf(false) }
+            // ===== Search bar =====
+            AnimatedVisibility(
+                visible = isSearchMode,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { brewViewModel.setSearchQuery(it) },
+                    placeholder = { Text("搜索豆子、器具、冲煮参数...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { brewViewModel.clearSearch() }) {
+                                Icon(Icons.Default.Close, contentDescription = "清除")
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .focusRequester(focusRequester),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
+                )
+            }
 
+            // Filter dropdowns (only for all records view, not bean-specific and not when searching)
+            if (beanId <= 0 && rawRecords.isNotEmpty() && !isSearching) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Time filter
+                    var weekExpanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(
-                        expanded = timeExpanded,
-                        onExpandedChange = { timeExpanded = it },
-                        modifier = Modifier.weight(1f)
+                        expanded = weekExpanded,
+                        onExpandedChange = { weekExpanded = it },
+                        modifier = Modifier.width(140.dp)
                     ) {
                         OutlinedTextField(
                             value = selectedWeekRange,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("时间") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = timeExpanded) },
+                            label = { Text("时间段") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = weekExpanded) },
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
                         ExposedDropdownMenu(
-                            expanded = timeExpanded,
-                            onDismissRequest = { timeExpanded = false }
+                            expanded = weekExpanded,
+                            onDismissRequest = { weekExpanded = false }
                         ) {
                             weekRanges.forEach { range ->
                                 DropdownMenuItem(
                                     text = { Text(range) },
                                     onClick = {
                                         selectedWeekRange = range
-                                        timeExpanded = false
                                         visibleCount = PAGE_SIZE
+                                        weekExpanded = false
                                     }
                                 )
                             }
                         }
                     }
 
-                    // Rating filter
+                    var ratingExpanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(
                         expanded = ratingExpanded,
                         onExpandedChange = { ratingExpanded = it },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.width(140.dp)
                     ) {
                         OutlinedTextField(
                             value = selectedRatingFilter,
@@ -277,22 +318,21 @@ fun BrewListScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "还没有冲煮记录\n点击 + 开始记录",
+                        if (isSearching) "没有找到匹配的记录" else "还没有冲煮记录\n点击 + 开始记录",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(filteredRecords.take(visibleCount), contentType = { "record" }) { record ->
                         val beanName = beans.find { it.id == record.beanId }?.let {
                             "${it.roaster} - ${it.name}"
-                        } ?: "未知豆子"
+                        } ?: record.beanRoaster.let { if (it.isNotEmpty()) "$it - ${record.beanName}" else "未知豆子" }
+
                         val isSelected = selectedRecords.contains(record.id)
 
                         RecordCard(
@@ -304,9 +344,7 @@ fun BrewListScreen(
                                 if (isSelectionMode) {
                                     toggleSelection(record.id)
                                 } else {
-                                    navController.navigate(
-                                        Screen.BrewEdit.createRoute(record.id, record.beanId)
-                                    )
+                                    navController.navigate(Screen.BrewEdit.createRoute(record.id, record.beanId))
                                 }
                             },
                             onLongClick = {
@@ -317,7 +355,6 @@ fun BrewListScreen(
                         )
                     }
 
-                    // 加载更多
                     if (filteredRecords.size > visibleCount) {
                         item(contentType = { "load_more" }) {
                             TextButton(
@@ -334,14 +371,11 @@ fun BrewListScreen(
         }
     }
 
-    // 批量删除确认弹窗
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
-            text = {
-                Text("确定要删除这 ${selectedRecords.size} 条冲煮记录吗？删除后无法恢复。")
-            },
+            text = { Text("确定要删除这 ${selectedRecords.size} 条冲煮记录吗？删除后无法恢复。") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -351,9 +385,7 @@ fun BrewListScreen(
                         showDeleteDialog = false
                         exitSelectionMode()
                     }
-                ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
-                }
+                ) { Text("删除", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }

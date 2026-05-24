@@ -33,10 +33,29 @@ interface CoffeeBeanDao {
     @Query("SELECT * FROM coffee_beans WHERE name LIKE '%' || :query || '%' OR roaster LIKE '%' || :query || '%' OR origin LIKE '%' || :query || '%'")
     fun searchBeans(query: String): Flow<List<CoffeeBean>>
 
+    /** Full-text search across bean fields + impression tags */
+    @Query("""
+        SELECT DISTINCT cb.* FROM coffee_beans cb
+        LEFT JOIN bean_impression_tags bit ON cb.id = bit.beanId
+        LEFT JOIN impression_tags it ON bit.tagId = it.id
+        WHERE cb.roaster LIKE '%' || :query || '%'
+           OR cb.name LIKE '%' || :query || '%'
+           OR cb.origin LIKE '%' || :query || '%'
+           OR cb.region LIKE '%' || :query || '%'
+           OR cb.estate LIKE '%' || :query || '%'
+           OR cb.variety LIKE '%' || :query || '%'
+           OR cb.process LIKE '%' || :query || '%'
+           OR cb.roastLevel LIKE '%' || :query || '%'
+           OR cb.notes LIKE '%' || :query || '%'
+           OR it.name LIKE '%' || :query || '%'
+        ORDER BY cb.updatedAt DESC
+    """)
+    fun searchBeansFull(query: String): Flow<List<CoffeeBean>>
+
     @Query("DELETE FROM coffee_beans")
     suspend fun deleteAll()
 
-    /** 冲煮次数最多的豆子 Top N */
+    /** Top brewed beans */
     @Query("""
         SELECT cb.id, cb.roaster, cb.name, cb.origin, COUNT(br.id) as brewCount
         FROM coffee_beans cb

@@ -34,6 +34,32 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         _showFavoritesOnly.value = value
     }
 
+    // ===== Search =====
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    val isSearching: StateFlow<Boolean> = _searchQuery.map { it.isNotBlank() }
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+
+    val searchResults: StateFlow<List<CoffeeBean>> = _searchQuery
+        .debounce(200)
+        .flatMapLatest { query ->
+            if (query.isBlank()) {
+                repository.activeBeans
+            } else {
+                repository.searchBeansFull(query)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun clearSearch() {
+        _searchQuery.value = ""
+    }
+
     // 烘焙度/处理法列表（用于下拉选）
     val allRoastDegrees = repository.allRoastDegrees
     val allProcessMethods = repository.allProcessMethods

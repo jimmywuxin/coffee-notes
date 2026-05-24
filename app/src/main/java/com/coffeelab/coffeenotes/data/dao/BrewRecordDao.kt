@@ -9,32 +9,35 @@ import kotlinx.coroutines.flow.Flow
 interface BrewRecordDao {
     // ===== Basic CRUD =====
 
-    /** Get all records with equipment/grinder names via JOIN */
+    /** Get all records with equipment/grinder/bean names via JOIN */
     @Query("""
-        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName, cb.name AS beanName, cb.roaster AS beanRoaster
         FROM brew_records br
         LEFT JOIN equipment e ON br.equipmentId = e.id
         LEFT JOIN grinders g ON br.grinderId = g.id
+        LEFT JOIN coffee_beans cb ON br.beanId = cb.id
         ORDER BY br.dateTime DESC
     """)
     fun getAllRecords(): Flow<List<BrewRecordWithNames>>
 
     /** Get single record by id with names */
     @Query("""
-        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName, cb.name AS beanName, cb.roaster AS beanRoaster
         FROM brew_records br
         LEFT JOIN equipment e ON br.equipmentId = e.id
         LEFT JOIN grinders g ON br.grinderId = g.id
+        LEFT JOIN coffee_beans cb ON br.beanId = cb.id
         WHERE br.id = :id
     """)
     suspend fun getRecordById(id: Long): BrewRecordWithNames?
 
     /** Get records for a bean with names */
     @Query("""
-        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName, cb.name AS beanName, cb.roaster AS beanRoaster
         FROM brew_records br
         LEFT JOIN equipment e ON br.equipmentId = e.id
         LEFT JOIN grinders g ON br.grinderId = g.id
+        LEFT JOIN coffee_beans cb ON br.beanId = cb.id
         WHERE br.beanId = :beanId
         ORDER BY br.dateTime DESC
     """)
@@ -42,10 +45,11 @@ interface BrewRecordDao {
 
     /** Get records by equipment ID with names */
     @Query("""
-        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName, cb.name AS beanName, cb.roaster AS beanRoaster
         FROM brew_records br
         LEFT JOIN equipment e ON br.equipmentId = e.id
         LEFT JOIN grinders g ON br.grinderId = g.id
+        LEFT JOIN coffee_beans cb ON br.beanId = cb.id
         WHERE br.equipmentId = :equipmentId
         ORDER BY br.dateTime DESC
     """)
@@ -53,10 +57,11 @@ interface BrewRecordDao {
 
     /** Get records by grinder ID with names */
     @Query("""
-        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName, cb.name AS beanName, cb.roaster AS beanRoaster
         FROM brew_records br
         LEFT JOIN equipment e ON br.equipmentId = e.id
         LEFT JOIN grinders g ON br.grinderId = g.id
+        LEFT JOIN coffee_beans cb ON br.beanId = cb.id
         WHERE br.grinderId = :grinderId
         ORDER BY br.dateTime DESC
     """)
@@ -64,10 +69,11 @@ interface BrewRecordDao {
 
     /** Get records by minimum rating with names */
     @Query("""
-        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName, cb.name AS beanName, cb.roaster AS beanRoaster
         FROM brew_records br
         LEFT JOIN equipment e ON br.equipmentId = e.id
         LEFT JOIN grinders g ON br.grinderId = g.id
+        LEFT JOIN coffee_beans cb ON br.beanId = cb.id
         WHERE br.overallRating >= :minRating
         ORDER BY br.dateTime DESC
     """)
@@ -87,10 +93,11 @@ interface BrewRecordDao {
 
     /** Get best record for a bean with names */
     @Query("""
-        SELECT br.*, e.name AS equipmentName, g.name AS grinderName
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName, cb.name AS beanName, cb.roaster AS beanRoaster
         FROM brew_records br
         LEFT JOIN equipment e ON br.equipmentId = e.id
         LEFT JOIN grinders g ON br.grinderId = g.id
+        LEFT JOIN coffee_beans cb ON br.beanId = cb.id
         WHERE br.beanId = :beanId
         ORDER BY br.overallRating DESC LIMIT 1
     """)
@@ -99,9 +106,29 @@ interface BrewRecordDao {
     @Query("DELETE FROM brew_records")
     suspend fun deleteAll()
 
+    // ===== Search =====
+
+    /** Full-text search across records + joined bean/equipment/grinder/method names */
+    @Query("""
+        SELECT br.*, e.name AS equipmentName, g.name AS grinderName, cb.name AS beanName, cb.roaster AS beanRoaster
+        FROM brew_records br
+        LEFT JOIN equipment e ON br.equipmentId = e.id
+        LEFT JOIN grinders g ON br.grinderId = g.id
+        LEFT JOIN coffee_beans cb ON br.beanId = cb.id
+        LEFT JOIN brew_methods bm ON br.methodId = bm.id
+        WHERE cb.name LIKE '%' || :query || '%'
+           OR cb.roaster LIKE '%' || :query || '%'
+           OR br.grindSize LIKE '%' || :query || '%'
+           OR br.flavorNotes LIKE '%' || :query || '%'
+           OR e.name LIKE '%' || :query || '%'
+           OR g.name LIKE '%' || :query || '%'
+           OR bm.name LIKE '%' || :query || '%'
+        ORDER BY br.dateTime DESC
+    """)
+    fun searchRecords(query: String): Flow<List<BrewRecordWithNames>>
+
     // ===== Statistical Queries =====
 
-    /** 按月分组统计冲煮次数（近12个月） */
     @Query("""
         SELECT COUNT(*) FROM brew_records
         WHERE dateTime >= :startTime
@@ -110,7 +137,6 @@ interface BrewRecordDao {
     """)
     fun getMonthlyBrewCounts(startTime: Long): Flow<List<Int>>
 
-    /** 按器具分组统计冲煮次数 */
     @Query("""
         SELECT e.name AS equipmentName, COUNT(*) as cnt
         FROM brew_records br
@@ -120,7 +146,6 @@ interface BrewRecordDao {
     """)
     fun getBrewCountsByEquipment(): Flow<List<EquipmentCount>>
 
-    /** 按粉水比分段统计 */
     @Query("""
         SELECT coffeeWaterRatio, COUNT(*) as cnt FROM brew_records
         WHERE coffeeWaterRatio > 0
@@ -129,7 +154,6 @@ interface BrewRecordDao {
     """)
     fun getBrewCountsByRatio(): Flow<List<RatioCount>>
 
-    /** 按水温分段统计（固定三段：88°C以下 / 88-91°C / 92-95°C） */
     @Query("""
         SELECT
             CASE
@@ -143,26 +167,15 @@ interface BrewRecordDao {
     """)
     fun getBrewCountsByTemp(): Flow<List<TempBucket>>
 
-    /** 按评分分组统计 */
-    @Query("SELECT overallRating, COUNT(*) as cnt FROM brew_records WHERE overallRating > 0 GROUP BY overallRating ORDER BY overallRating")
+    @Query("""
+        SELECT overallRating, COUNT(*) as cnt FROM brew_records
+        WHERE overallRating > 0
+        GROUP BY overallRating ORDER BY overallRating
+    """)
     fun getBrewCountsByRating(): Flow<List<RatingCount>>
 
-    /** 某豆子的按评分分组统计 */
-    @Query("SELECT overallRating, COUNT(*) as cnt FROM brew_records WHERE beanId = :beanId AND overallRating > 0 GROUP BY overallRating ORDER BY overallRating")
-    fun getBrewCountsByRatingForBean(beanId: Long): Flow<List<RatingCount>>
+    // ===== Bean-Specific Stats =====
 
-    /** 某器具的冲煮次数 */
-    @Query("""
-        SELECT e.name AS equipmentName, COUNT(*) as cnt
-        FROM brew_records br
-        JOIN equipment e ON br.equipmentId = e.id
-        WHERE br.beanId = :beanId
-        GROUP BY br.equipmentId
-        ORDER BY cnt DESC
-    """)
-    fun getBrewCountsByEquipmentForBean(beanId: Long): Flow<List<EquipmentCount>>
-
-    /** 某豆子的粉水比分布 */
     @Query("""
         SELECT coffeeWaterRatio, COUNT(*) as cnt FROM brew_records
         WHERE beanId = :beanId AND coffeeWaterRatio > 0
@@ -171,7 +184,6 @@ interface BrewRecordDao {
     """)
     fun getBrewCountsByRatioForBean(beanId: Long): Flow<List<RatioCount>>
 
-    /** 某豆子的水温分布 */
     @Query("""
         SELECT
             CASE
@@ -185,7 +197,23 @@ interface BrewRecordDao {
     """)
     fun getBrewCountsByTempForBean(beanId: Long): Flow<List<TempBucket>>
 
-    /** 某豆子的冲煮时段 */
+    @Query("""
+        SELECT e.name AS equipmentName, COUNT(*) as cnt
+        FROM brew_records br
+        JOIN equipment e ON br.equipmentId = e.id
+        WHERE br.beanId = :beanId
+        GROUP BY br.equipmentId
+        ORDER BY cnt DESC
+    """)
+    fun getBrewCountsByEquipmentForBean(beanId: Long): Flow<List<EquipmentCount>>
+
+    @Query("""
+        SELECT overallRating, COUNT(*) as cnt FROM brew_records
+        WHERE beanId = :beanId AND overallRating > 0
+        GROUP BY overallRating ORDER BY overallRating
+    """)
+    fun getBrewCountsByRatingForBean(beanId: Long): Flow<List<RatingCount>>
+
     @Query("""
         SELECT
             CASE
@@ -210,11 +238,9 @@ interface BrewRecordDao {
     """)
     fun getBrewCountsByTimeSlotForBean(beanId: Long): Flow<List<TimeSlotCount>>
 
-    /** 某豆子的平均总评分 */
     @Query("SELECT AVG(overallRating * 1.0) FROM brew_records WHERE beanId = :beanId AND overallRating > 0")
     fun getAvgRatingForBean(beanId: Long): Flow<Double?>
 
-    /** 某豆子的月冲煮趋势 */
     @Query("""
         SELECT COUNT(*) FROM brew_records
         WHERE beanId = :beanId AND dateTime >= :startTime
@@ -223,7 +249,8 @@ interface BrewRecordDao {
     """)
     fun getMonthlyBrewCountsForBean(beanId: Long, startTime: Long): Flow<List<Int>>
 
-    /** 器具平均评分 */
+    // ===== Cross-Entity Stats =====
+
     @Query("""
         SELECT e.name AS equipmentName, AVG(br.overallRating * 1.0) as avgRating
         FROM brew_records br
@@ -234,23 +261,18 @@ interface BrewRecordDao {
     """)
     fun getAvgRatingByEquipment(): Flow<List<EquipmentRating>>
 
-    /** 本周冲煮次数 */
     @Query("SELECT COUNT(*) FROM brew_records WHERE dateTime >= :weekStart")
     fun getBrewCountThisWeek(weekStart: Long): Flow<Int>
 
-    /** 上周冲煮次数 */
     @Query("SELECT COUNT(*) FROM brew_records WHERE dateTime >= :lastWeekStart AND dateTime < :weekStart")
     fun getBrewCountLastWeek(lastWeekStart: Long, weekStart: Long): Flow<Int>
 
-    /** 按产地分组统计豆子数量 */
     @Query("SELECT origin, COUNT(*) as cnt FROM coffee_beans WHERE origin != '' GROUP BY origin ORDER BY cnt DESC")
     fun getBeanCountByOrigin(): Flow<List<OriginCount>>
 
-    /** 按烘焙度分组统计 */
     @Query("SELECT roastLevel, COUNT(*) as cnt FROM coffee_beans WHERE roastLevel != '' GROUP BY roastLevel ORDER BY cnt DESC")
     fun getBeanCountByRoastLevel(): Flow<List<RoastLevelCount>>
 
-    /** 按冲煮时段分组统计 */
     @Query("""
         SELECT
             CASE
@@ -277,7 +299,6 @@ interface BrewRecordDao {
 }
 
 data class TimeSlotCount(val slot: String, val cnt: Int)
-
 data class EquipmentCount(val equipmentName: String, val cnt: Int)
 data class RatioCount(val coffeeWaterRatio: Double, val cnt: Int)
 data class TempBucket(val bucket: Int, val cnt: Int)

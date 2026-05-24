@@ -27,6 +27,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun getBean(id: Long) = db.coffeeBeanDao().getBeanById(id)
     fun getBeanFlow(id: Long) = db.coffeeBeanDao().getBeanFlow(id)
     fun searchBeans(query: String) = db.coffeeBeanDao().searchBeans(query)
+    fun searchBeansFull(query: String) = db.coffeeBeanDao().searchBeansFull(query)
 
     suspend fun insertBean(bean: CoffeeBean): Long = db.coffeeBeanDao().insert(bean)
     suspend fun updateBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean)
@@ -225,7 +226,8 @@ class CoffeeRepository(private val db: AppDatabase) {
         }
     }
 
-    private fun BrewRecordWithNames.toRecord() = record.withNames(equipmentName, grinderName)
+    fun searchRecords(query: String) = db.brewRecordDao().searchRecords(query).map { list -> list.map { it.toRecord() } }
+    private fun BrewRecordWithNames.toRecord() = record.withNames(equipmentName, grinderName, beanName, beanRoaster)
     suspend fun updateRoastLevelOnBeans(oldName: String, newName: String) = db.coffeeBeanDao().updateRoastLevelByName(oldName, newName)
     suspend fun updateProcessOnBeans(oldName: String, newName: String) = db.coffeeBeanDao().updateProcessByName(oldName, newName)
 }

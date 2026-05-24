@@ -72,10 +72,22 @@ data class BrewRecord(
     var grinderName: String? = null
         private set
 
+    /** Filled by repository from JOIN query, not a DB column */
+    @Ignore
+    var beanName: String = ""
+        private set
+
+    /** Filled by repository from JOIN query, not a DB column */
+    @Ignore
+    var beanRoaster: String = ""
+        private set
+
     /** Internal: used by repository to populate names from JOIN result */
-    fun withNames(eqName: String?, grName: String?): BrewRecord {
+    fun withNames(eqName: String?, grName: String?, bnName: String = "", bnRoaster: String = ""): BrewRecord {
         equipmentName = eqName
         grinderName = grName
+        beanName = bnName
+        beanRoaster = bnRoaster
         return this
     }
 }

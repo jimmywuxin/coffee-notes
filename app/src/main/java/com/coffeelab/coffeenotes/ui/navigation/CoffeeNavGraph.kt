@@ -13,7 +13,6 @@ import com.coffeelab.coffeenotes.viewmodel.*
 
 @Composable
 fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
-    // Shared ViewModels scoped to NavGraph — persist across navigation
     val beanViewModel: BeanViewModel = viewModel()
     val brewViewModel: BrewViewModel = viewModel()
     val brewMethodViewModel: BrewMethodViewModel = viewModel()
@@ -86,14 +85,6 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
         ) { backStackEntry ->
             val methodId = backStackEntry.arguments?.getLong("methodId") ?: -1L
             BrewMethodEditScreen(navController = navController, methodId = methodId)
-        }
-
-        composable(
-            route = Screen.Search.route,
-            arguments = listOf(navArgument("searchScope") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val searchScope = backStackEntry.arguments?.getString("searchScope") ?: "all"
-            SearchScreen(navController = navController, searchScope = searchScope)
         }
 
         composable(
