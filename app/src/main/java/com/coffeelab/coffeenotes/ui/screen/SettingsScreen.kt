@@ -163,7 +163,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.Label,
                     title = "印象标签管理",
-                    subtitle = "添加或编辑印象标签",
+                    subtitle = "管理自定义印象标签",
                     onClick = { navController.navigate(Screen.ImpressionTagManagement.route) }
                 )
             }
@@ -171,9 +171,9 @@ fun SettingsScreen(
             item {
                 SettingsItem(
                     icon = Icons.Default.LocalFireDepartment,
-                    title = "烘焙度管理",
-                    subtitle = "添加或编辑烘焙度",
-                    onClick = { navController.navigate(Screen.RoastDegreeManagement.route) }
+                    title = "烘焙度配置",
+                    subtitle = "管理烘焙度、养豆期和赏味期",
+                    onClick = { navController.navigate(Screen.RoastDegreeConfigManagement.route) }
                 )
             }
 
@@ -181,26 +181,8 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.WaterDrop,
                     title = "处理法管理",
-                    subtitle = "添加或编辑处理法",
+                    subtitle = "管理咖啡豆处理方式",
                     onClick = { navController.navigate(Screen.ProcessMethodManagement.route) }
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Schedule,
-                    title = "养豆期管理",
-                    subtitle = "配置各烘焙度养豆天数",
-                    onClick = { navController.navigate(Screen.RestPeriodConfigManagement.route) }
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Restaurant,
-                    title = "赏味期管理",
-                    subtitle = "配置各烘焙度赏味期天数",
-                    onClick = { navController.navigate(Screen.PeakFlavorConfigManagement.route) }
                 )
             }
 

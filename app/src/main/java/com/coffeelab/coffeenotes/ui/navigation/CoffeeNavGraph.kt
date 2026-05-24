@@ -19,11 +19,9 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
     val equipmentViewModel: EquipmentViewModel = viewModel()
     val grinderViewModel: GrinderViewModel = viewModel()
     val statsViewModel: StatsViewModel = viewModel()
-    val roastDegreeViewModel: RoastDegreeViewModel = viewModel()
+    val roastDegreeConfigViewModel: RoastDegreeConfigViewModel = viewModel()
     val processMethodViewModel: ProcessMethodViewModel = viewModel()
     val impressionTagViewModel: ImpressionTagViewModel = viewModel()
-    val restPeriodConfigViewModel: RestPeriodConfigViewModel = viewModel()
-    val peakFlavorConfigViewModel: PeakFlavorConfigViewModel = viewModel()
     val purchaseRecordViewModel: PurchaseRecordViewModel = viewModel()
 
     NavHost(
@@ -123,8 +121,8 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
             AboutScreen()
         }
 
-        composable(Screen.RoastDegreeManagement.route) {
-            RoastDegreeManagementScreen(navController = navController, viewModel = roastDegreeViewModel)
+        composable(Screen.RoastDegreeConfigManagement.route) {
+            RoastDegreeConfigScreen(navController = navController, viewModel = roastDegreeConfigViewModel)
         }
 
         composable(Screen.ImpressionTagManagement.route) {
@@ -133,14 +131,6 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
 
         composable(Screen.ProcessMethodManagement.route) {
             ProcessMethodManagementScreen(navController = navController, viewModel = processMethodViewModel)
-        }
-
-        composable(Screen.RestPeriodConfigManagement.route) {
-            RestPeriodConfigManagementScreen(navController = navController, viewModel = restPeriodConfigViewModel)
-        }
-
-        composable(Screen.PeakFlavorConfigManagement.route) {
-            PeakFlavorConfigManagementScreen(navController = navController, viewModel = peakFlavorConfigViewModel)
         }
 
         composable(

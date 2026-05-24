@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -20,8 +21,6 @@ import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.ProcessMethod
 import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.viewmodel.ProcessMethodViewModel
-import kotlin.math.max
-import kotlin.math.min
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,18 +41,15 @@ fun ProcessMethodManagementScreen(
 
     LaunchedEffect(items, isReorderMode) {
         if (!isReorderMode) {
-            mutableList.clear()
-            mutableList.addAll(items)
-            draggingIndex = -1
-            accumulatedDrag = 0f
+            mutableList.clear(); mutableList.addAll(items)
+            draggingIndex = -1; accumulatedDrag = 0f
         }
     }
 
-    var showAddDialog by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf(false) }
+    var isAdding by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var editingItem by remember { mutableStateOf<ProcessMethod?>(null) }
-    var nameInput by remember { mutableStateOf("") }
+    var deletingItem by remember { mutableStateOf<ProcessMethod?>(null) }
 
     Scaffold(
         topBar = {
@@ -73,7 +69,7 @@ fun ProcessMethodManagementScreen(
                         }
                     }
                     if (!isReorderMode) {
-                        IconButton(onClick = { nameInput = ""; showAddDialog = true }) {
+                        IconButton(onClick = { isAdding = true; newName = "" }) {
                             Icon(Icons.Default.Add, "添加", tint = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
@@ -86,13 +82,9 @@ fun ProcessMethodManagementScreen(
             )
         }
     ) { padding ->
-        if (items.isEmpty() && !isReorderMode) {
+        if (items.isEmpty() && !isReorderMode && !isAdding) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                EmptyState(
-                    emoji = "💧",
-                    message = "暂无处理法",
-                    hint = "点击右下角 + 添加"
-                )
+                EmptyState(emoji = "💧", message = "暂无处理法", hint = "点击 + 添加")
             }
         } else {
             LazyColumn(
@@ -100,45 +92,48 @@ fun ProcessMethodManagementScreen(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (isAdding && !isReorderMode) {
+                    item {
+                        Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium) {
+                            Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    value = newName, onValueChange = { newName = it },
+                                    placeholder = { Text("处理法名称") }, singleLine = true,
+                                    modifier = Modifier.weight(1f),
+                                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary)
+                                )
+                                IconButton(onClick = {
+                                    if (newName.isNotBlank()) { viewModel.addProcessMethod(newName.trim()); isAdding = false }
+                                }) { Icon(Icons.Default.Check, "确认", tint = MaterialTheme.colorScheme.primary) }
+                                IconButton(onClick = { isAdding = false }) {
+                                    Icon(Icons.Default.Close, "取消", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (isReorderMode) {
                     itemsIndexed(mutableList, key = { _, item -> item.id }) { index, item ->
                         val isDragging = draggingIndex == index
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer {
-                                    if (isDragging) {
-                                        shadowElevation = 12f; alpha = 0.95f; scaleX = 1.03f; scaleY = 1.03f
-                                        translationY = smoothDragOffset
-                                    }
-                                }
-                                .pointerInput(Unit) {
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = { draggingIndex = index; accumulatedDrag = 0f },
-                                        onDrag = { change, dragAmount ->
-                                            change.consume()
-                                            accumulatedDrag += dragAmount.y
-                                            val layoutInfo = lazyListState.layoutInfo
-                                            val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
-                                            if (myInfo != null) {
-                                                val centerY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
-                                                var target = index
-                                                layoutInfo.visibleItemsInfo.filter { it.index != index }.forEach { info ->
-                                                    val itemCenter = info.offset + info.size / 2
-                                                    if (accumulatedDrag > 0 && info.index > index && centerY > itemCenter) target = max(target, info.index)
-                                                    else if (accumulatedDrag < 0 && info.index < index && centerY < itemCenter) target = min(target, info.index)
-                                                }
-                                                target = target.coerceIn(0, mutableList.lastIndex)
-                                                if (target != index) {
-                                                    mutableList.removeAt(index); mutableList.add(target, item)
-                                                    draggingIndex = target; accumulatedDrag = 0f
-                                                }
-                                            }
-                                        },
-                                        onDragEnd = { draggingIndex = -1; accumulatedDrag = 0f; viewModel.saveOrder(mutableList.toList()); isReorderMode = false },
-                                        onDragCancel = { draggingIndex = -1; accumulatedDrag = 0f }
-                                    )
-                                },
+                            modifier = Modifier.fillMaxWidth().graphicsLayer {
+                                if (isDragging) { shadowElevation = 12f; alpha = 0.95f; scaleX = 1.03f; scaleY = 1.03f; translationY = smoothDragOffset }
+                            }.pointerInput(Unit) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = { draggingIndex = index; accumulatedDrag = 0f },
+                                    onDrag = { _, dragAmount ->
+                                        accumulatedDrag += dragAmount.y
+                                        val info = lazyListState.layoutInfo
+                                        val myInfo = info.visibleItemsInfo.firstOrNull { it.index == index } ?: return@detectDragGesturesAfterLongPress
+                                        val centerY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
+                                        val target = info.visibleItemsInfo.minByOrNull { kotlin.math.abs(it.offset + it.size / 2 - centerY) }?.index ?: index
+                                        if (target != index) { mutableList.removeAt(index); mutableList.add(target, item); draggingIndex = target; accumulatedDrag = 0f }
+                                    },
+                                    onDragEnd = { draggingIndex = -1; accumulatedDrag = 0f; viewModel.saveOrder(mutableList.toList()); isReorderMode = false },
+                                    onDragCancel = { draggingIndex = -1; accumulatedDrag = 0f }
+                                )
+                            },
                             color = if (isDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                             shape = MaterialTheme.shapes.medium
                         ) {
@@ -150,16 +145,20 @@ fun ProcessMethodManagementScreen(
                     }
                 } else {
                     itemsIndexed(items, key = { _, item -> item.id }) { _, item ->
+                        var editedName by remember(item.id) { mutableStateOf(item.name) }
                         Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.medium) {
-                            Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(item.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                                Row {
-                                    IconButton(onClick = { editingItem = item; nameInput = item.name; showEditDialog = true }) {
-                                        Icon(Icons.Default.Edit, "编辑", tint = MaterialTheme.colorScheme.primary)
-                                    }
-                                    IconButton(onClick = { editingItem = item; showDeleteDialog = true }) {
-                                        Icon(Icons.Default.Delete, "删除", tint = MaterialTheme.colorScheme.error)
-                                    }
+                            Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    value = editedName, onValueChange = { editedName = it },
+                                    singleLine = true, modifier = Modifier.weight(1f).onFocusChanged { focus ->
+                                        if (!focus.isFocused && editedName.isNotBlank() && editedName != item.name) {
+                                            viewModel.renameProcessMethod(item, editedName.trim())
+                                        }
+                                    },
+                                    textStyle = MaterialTheme.typography.bodyLarge
+                                )
+                                IconButton(onClick = { deletingItem = item; showDeleteDialog = true }) {
+                                    Icon(Icons.Default.Delete, "删除", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
                                 }
                             }
                         }
@@ -169,32 +168,12 @@ fun ProcessMethodManagementScreen(
         }
     }
 
-    if (showAddDialog) {
-        AlertDialog(
-            onDismissRequest = { showAddDialog = false },
-            title = { Text("添加处理法") },
-            text = { OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("名称") }, singleLine = true, modifier = Modifier.fillMaxWidth()) },
-            confirmButton = { TextButton(onClick = { if (nameInput.isNotBlank()) { viewModel.addProcessMethod(nameInput.trim()); showAddDialog = false } }, enabled = nameInput.isNotBlank()) { Text("添加") } },
-            dismissButton = { TextButton(onClick = { showAddDialog = false }) { Text("取消") } }
-        )
-    }
-
-    if (showEditDialog && editingItem != null) {
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            title = { Text("编辑处理法") },
-            text = { OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, label = { Text("名称") }, singleLine = true, modifier = Modifier.fillMaxWidth()) },
-            confirmButton = { TextButton(onClick = { if (nameInput.isNotBlank()) { viewModel.renameProcessMethod(editingItem!!, nameInput.trim()); showEditDialog = false } }, enabled = nameInput.isNotBlank()) { Text("保存") } },
-            dismissButton = { TextButton(onClick = { showEditDialog = false }) { Text("取消") } }
-        )
-    }
-
-    if (showDeleteDialog && editingItem != null) {
+    if (showDeleteDialog && deletingItem != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
-            text = { Text("确定要删除「${editingItem!!.name}」吗？") },
-            confirmButton = { TextButton(onClick = { viewModel.deleteProcessMethod(editingItem!!); showDeleteDialog = false }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
+            text = { Text("确定要删除「${deletingItem!!.name}」吗？") },
+            confirmButton = { TextButton(onClick = { viewModel.deleteProcessMethod(deletingItem!!); showDeleteDialog = false }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("取消") } }
         )
     }

@@ -173,6 +173,12 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+
+    suspend fun addImpressionTag(name: String): Long {
+        val maxOrder = repository.getMaxImpressionTagSortOrder() ?: 0
+        return repository.insertImpressionTag(ImpressionTag(name = name, sortOrder = maxOrder + 1))
+    }
+
     fun searchBeans(query: String): Flow<List<CoffeeBean>> = repository.searchBeans(query)
 
     // 根据烘焙度ID查养豆期/赏味期配置
