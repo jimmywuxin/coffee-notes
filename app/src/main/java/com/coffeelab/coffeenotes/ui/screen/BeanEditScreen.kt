@@ -1030,7 +1030,7 @@ fun BeanEditScreen(
 
                     }
 
-                }, modifier = Modifier.size(56.dp)) {
+                }, modifier = Modifier.size(32.dp).offset(x = (-4).dp)) {
 
                     Icon(Icons.Default.Add, contentDescription = "添加标签")
 
