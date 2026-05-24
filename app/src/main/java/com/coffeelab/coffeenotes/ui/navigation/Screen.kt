@@ -39,6 +39,7 @@ sealed class Screen(val route: String) {
     object About : Screen("about")
     object RoastDegreeManagement : Screen("roast_degree_management")
     object ProcessMethodManagement : Screen("process_method_management")
+    object ImpressionTagManagement : Screen("impression_tag_management")
     object RestPeriodConfigManagement : Screen("rest_period_config_management")
     object PeakFlavorConfigManagement : Screen("peak_flavor_config_management")
 }

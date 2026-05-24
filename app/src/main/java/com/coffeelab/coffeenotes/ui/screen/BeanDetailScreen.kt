@@ -52,6 +52,7 @@ fun BeanDetailScreen(
     LaunchedEffect(beanId) {
         beanViewModel.loadBean(beanId)
         beanViewModel.loadTags(beanId)
+        beanViewModel.loadImpressionTags(beanId)
         brewViewModel.loadRecordsForBean(beanId)
         // 加载购买记录
         val records = AppDatabase.getInstance(context).purchaseRecordDao().getByBeanIdOnce(beanId)
@@ -60,6 +61,7 @@ fun BeanDetailScreen(
 
     val bean by beanViewModel.selectedBean.collectAsState(initial = null)
     val tags by beanViewModel.tags.collectAsState(initial = emptyList())
+    val impressionTags by beanViewModel.impressionTags.collectAsState(initial = emptyList())
     val records by brewViewModel.recordsForBean.collectAsState(initial = emptyList())
     val roastDegrees by beanViewModel.allRoastDegrees.collectAsState(initial = emptyList())
     val processMethods by beanViewModel.allProcessMethods.collectAsState(initial = emptyList())
@@ -246,6 +248,36 @@ fun BeanDetailScreen(
                                     repeat(3 - rowPhotos.size) {
                                         Spacer(modifier = Modifier.weight(1f))
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 印象标签
+                if (impressionTags.isNotEmpty()) {
+                    item {
+                        Text(
+                            "印象标签",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            impressionTags.forEach { tag ->
+                                Surface(
+                                    shape = MaterialTheme.shapes.extraSmall,
+                                    color = MaterialTheme.colorScheme.tertiaryContainer
+                                ) {
+                                    Text(
+                                        text = tag.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
                                 }
                             }
                         }

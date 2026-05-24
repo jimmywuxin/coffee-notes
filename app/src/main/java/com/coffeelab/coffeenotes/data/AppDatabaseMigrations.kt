@@ -233,9 +233,37 @@ object AppDatabaseMigrations {
         }
     }
 
+    // Migration from v16 → v17: add impression_tags and bean_impression_tags tables
+    private val MIGRATION_16_17 = object : Migration(16, 17) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""
+                CREATE TABLE impression_tags (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    name TEXT NOT NULL,
+                    sortOrder INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            db.execSQL("""
+                CREATE TABLE bean_impression_tags (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    beanId INTEGER NOT NULL,
+                    tagId INTEGER NOT NULL,
+                    FOREIGN KEY(beanId) REFERENCES coffee_beans(id) ON DELETE CASCADE,
+                    FOREIGN KEY(tagId) REFERENCES impression_tags(id) ON DELETE CASCADE
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX index_bean_impression_tags_beanId ON bean_impression_tags(beanId)")
+            db.execSQL("CREATE INDEX index_bean_impression_tags_tagId ON bean_impression_tags(tagId)")
+            val defaultTags = listOf("甜感突出", "回甘悠长", "清爽", "浓郁", "平衡", "复杂", "干净", "厚重")
+            defaultTags.forEachIndexed { index, name ->
+                db.execSQL("INSERT INTO impression_tags (name, sortOrder) VALUES (?, ?)", arrayOf(name, index))
+            }
+        }
+    }
+
     val ALL = arrayOf(
         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
         MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
-        MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16
+        MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17
     )
 }

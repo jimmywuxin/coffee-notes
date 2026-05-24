@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.coffeelab.coffeenotes.data.dao.ImpressionTagDao
 import com.coffeelab.coffeenotes.data.dao.*
 import com.coffeelab.coffeenotes.data.entity.*
 import kotlinx.coroutines.CoroutineScope
@@ -24,9 +25,11 @@ import kotlinx.coroutines.launch
         ProcessMethod::class,
         RestPeriodConfig::class,
         PeakFlavorConfig::class,
-        PurchaseRecord::class
+        PurchaseRecord::class,
+        ImpressionTag::class,
+        BeanImpressionTag::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -42,6 +45,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun restPeriodConfigDao(): RestPeriodConfigDao
     abstract fun peakFlavorConfigDao(): PeakFlavorConfigDao
     abstract fun purchaseRecordDao(): PurchaseRecordDao
+    abstract fun impressionTagDao(): ImpressionTagDao
 
     companion object {
         @Volatile
@@ -65,6 +69,7 @@ abstract class AppDatabase : RoomDatabase() {
                             populateBrewMethodsSync(db)
                             populateRoastDegreesSync(db)
                             populateProcessMethodsSync(db)
+                            populateImpressionTagsSync(db)
                         }
                     })
                     .build()
@@ -142,6 +147,17 @@ abstract class AppDatabase : RoomDatabase() {
             if (count > 0) return
             ProcessMethod.DEFAULT_PROCESS_METHODS.forEachIndexed { index, name ->
                 db.execSQL("INSERT INTO process_methods (name, sortOrder) VALUES (?, ?)", arrayOf(name, index))
+            }
+        }
+
+        private fun populateImpressionTagsSync(db: SupportSQLiteDatabase) {
+            val cursor = db.query("SELECT COUNT(*) FROM impression_tags")
+            cursor.moveToFirst()
+            val count = cursor.getInt(0)
+            cursor.close()
+            if (count > 0) return
+            ImpressionTag.DEFAULT_TAGS.forEachIndexed { index, name ->
+                db.execSQL("INSERT INTO impression_tags (name, sortOrder) VALUES (?, ?)", arrayOf(name, index))
             }
         }
 

@@ -74,13 +74,16 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 val restPeriodConfigs = repository.getAllRestPeriodConfigsOnce()
                 val peakFlavorConfigs = repository.getAllPeakFlavorConfigsOnce()
                 val purchaseRecords = repository.getAllPurchaseRecordsOnce()
+                val impressionTags = repository.getAllImpressionTagsOnce()
 
                 // Collect tags for each bean
                 val beansWithTags = beans.map { bean ->
                     val tags = repository.getTagsForBeanOnce(bean.id)
+                    val impTags = repository.getImpressionTagsForBeanOnce(bean.id)
                     mapOf(
                         "bean" to bean,
-                        "tags" to tags.map { it.name }
+                        "tags" to tags.map { it.name },
+                        "impressionTagIds" to impTags.map { it.id }
                     )
                 }
 
@@ -126,7 +129,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     "processMethods" to processMethods,
                     "restPeriodConfigs" to restPeriodConfigs,
                     "peakFlavorConfigs" to peakFlavorConfigs,
-                    "purchaseRecords" to purchaseRecords
+                    "purchaseRecords" to purchaseRecords,
+                    "impressionTags" to impressionTags
                 )
                 val dataJson = gson.toJson(dataMap)
 
@@ -140,7 +144,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         "records" to records.size,
                         "methods" to methods.size,
                         "equipment" to equipment.size,
-                        "grinders" to grinders.size
+                        "grinders" to grinders.size,
+                        "impressionTags" to impressionTags.size
                     )
                 )
                 val manifestJson = gson.toJson(manifest)
@@ -307,6 +312,25 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 equipmentDao.deleteAll()
                 grinderDao.deleteAll()
 
+                // Import impression tags (before beans so bean_impression_tags FK resolves)
+                val impressionTagIdMap = mutableMapOf<Long, Long>()
+                val impressionTagData: List<*> = (data["impressionTags"] ?: emptyList<Any>()) as List<*>
+                val existingImps = repository.getAllImpressionTagsOnce().associateBy { it.name }
+                for (it in impressionTagData) {
+                    val m = it as Map<*, *>
+                    val oldId = (m["id"] as? Double)?.toLong() ?: continue
+                    val name = m["name"] as? String ?: continue
+                    val newId = if (name in existingImps) {
+                        existingImps[name]!!.id
+                    } else {
+                        repository.insertImpressionTag(ImpressionTag(
+                            name = name,
+                            sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
+                        ))
+                    }
+                    impressionTagIdMap[oldId] = newId
+                }
+
                 // Import beans
                 val beansList: List<*> = data["beans"] as? List<*> ?: emptyList<Any>()
                 val beanIdMap = mutableMapOf<Long, Long>()
@@ -352,6 +376,15 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     if (tagList.isNotEmpty()) {
                         repository.saveTagsForBean(newId, tagList)
                     }
+
+                    // Import impression tags for this bean
+                    val beanImpTagIds: List<*> = entry["impressionTagIds"] as? List<*> ?: emptyList<Any>()
+                    if (beanImpTagIds.isNotEmpty()) {
+                        repository.saveImpressionTagsForBean(
+                            newId,
+                            beanImpTagIds.mapNotNull { (it as? Double)?.toLong()?.let { oldId -> impressionTagIdMap[oldId] } }
+                        )
+                    }
                 }
 
                 // Import methods
@@ -376,6 +409,46 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     methodIdMap[oldId] = newId
                 }
 
+                // Import equipment (build id map, skip duplicate names)
+                val equipmentIdMap = mutableMapOf<Long, Long>()
+                val equipmentList: List<*> = data["equipment"] as? List<*> ?: emptyList<Any>()
+                val existingEq = repository.getAllEquipmentOnce().associateBy { it.name }
+                for (eq in equipmentList) {
+                    val m = eq as Map<*, *>
+                    val oldId = (m["id"] as? Double)?.toLong() ?: continue
+                    val name = m["name"] as? String ?: continue
+                    val newId = if (name in existingEq) {
+                        existingEq[name]!!.id
+                    } else {
+                        repository.insertEquipment(Equipment(
+                            name = name,
+                            sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
+                        ))
+                    }
+                    equipmentIdMap[oldId] = newId
+                }
+
+
+                // Import grinders (build id map, skip duplicate names)
+                val grinderIdMap = mutableMapOf<Long, Long>()
+                val grinderList: List<*> = data["grinders"] as? List<*> ?: emptyList<Any>()
+                val existingGr = repository.getAllGrindersOnce().associateBy { it.name }
+                for (gr in grinderList) {
+                    val m = gr as Map<*, *>
+                    val oldId = (m["id"] as? Double)?.toLong() ?: continue
+                    val name = m["name"] as? String ?: continue
+                    val newId = if (name in existingGr) {
+                        existingGr[name]!!.id
+                    } else {
+                        repository.insertGrinder(Grinder(
+                            name = name,
+                            sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
+                        ))
+                    }
+                    grinderIdMap[oldId] = newId
+                }
+
+
                 // Import records
                 val recordsList: List<*> = data["records"] as? List<*> ?: emptyList<Any>()
                 for (recordMap in recordsList) {
@@ -391,27 +464,21 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         beanId = newBeanId,
                         methodId = newMethodId,
                         dateTime = (r["dateTime"] as? Double)?.toLong() ?: System.currentTimeMillis(),
-                        equipmentId = (r["equipmentId"] as? Double)?.toLong()
+                        equipmentId = (r["equipmentId"] as? Double)?.toLong()?.let { equipmentIdMap[it] }
                             // Legacy support: if old backup has equipment name string, match by name
                             ?: (r["equipment"] as? String)?.takeIf { it.isNotEmpty() }?.let { name ->
-                                val eqId = repository.getAllEquipmentOnce().find { it.name == name }?.id
-                                if (eqId == null) {
-                                    repository.insertEquipment(Equipment(name = name, sortOrder = 0))
-                                }
-                                eqId ?: repository.getAllEquipmentOnce().find { it.name == name }?.id
+                                repository.getAllEquipmentOnce().find { it.name == name }?.id
+                                    ?: repository.insertEquipment(Equipment(name = name, sortOrder = 0))
                             },
                         coffeeWeight = (r["coffeeWeight"] as? Double) ?: 0.0,
                         coffeeWaterRatio = (r["coffeeWaterRatio"] as? Double) ?: 0.0,
                         waterAmount = (r["waterAmount"] as? Double) ?: 0.0,
                         waterTemp = (r["waterTemp"] as? Double) ?: 0.0,
-                        grinderId = (r["grinderId"] as? Double)?.toLong()
+                        grinderId = (r["grinderId"] as? Double)?.toLong()?.let { grinderIdMap[it] }
                             // Legacy support: if old backup has grinder name string, match by name
                             ?: (r["grinder"] as? String)?.takeIf { it.isNotEmpty() }?.let { name ->
-                                val grId = repository.getAllGrindersOnce().find { it.name == name }?.id
-                                if (grId == null) {
-                                    repository.insertGrinder(Grinder(name = name, sortOrder = 0))
-                                }
-                                grId ?: repository.getAllGrindersOnce().find { it.name == name }?.id
+                                repository.getAllGrindersOnce().find { it.name == name }?.id
+                                    ?: repository.insertGrinder(Grinder(name = name, sortOrder = 0))
                             },
                         grindSize = r["grindSize"] as? String ?: "",
                         extractionTime = (r["extractionTime"] as? Double)?.toInt() ?: 0,
@@ -431,32 +498,6 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         updatedAt = (r["updatedAt"] as? Double)?.toLong() ?: System.currentTimeMillis()
                     )
                     repository.insertRecord(record)
-                }
-
-                // Import equipment (skip if name already exists to preserve FK references)
-                val equipmentList: List<*> = data["equipment"] as? List<*> ?: emptyList<Any>()
-                val existingEq = repository.getAllEquipmentOnce().associateBy { it.name }
-                for (eq in equipmentList) {
-                    val m = eq as Map<*, *>
-                    val name = m["name"] as? String ?: continue
-                    if (name in existingEq) continue
-                    repository.insertEquipment(Equipment(
-                        name = name,
-                        sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
-                    ))
-                }
-
-                // Import grinders (skip if name already exists to preserve FK references)
-                val grinderList: List<*> = data["grinders"] as? List<*> ?: emptyList<Any>()
-                val existingGr = repository.getAllGrindersOnce().associateBy { it.name }
-                for (gr in grinderList) {
-                    val m = gr as Map<*, *>
-                    val name = m["name"] as? String ?: continue
-                    if (name in existingGr) continue
-                    repository.insertGrinder(Grinder(
-                        name = name,
-                        sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
-                    ))
                 }
 
                 // Import roast degrees (with ID mapping for RestPeriod/PeakFlavor configs)

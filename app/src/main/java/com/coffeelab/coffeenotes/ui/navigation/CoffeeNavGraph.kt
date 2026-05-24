@@ -22,6 +22,7 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
     val statsViewModel: StatsViewModel = viewModel()
     val roastDegreeViewModel: RoastDegreeViewModel = viewModel()
     val processMethodViewModel: ProcessMethodViewModel = viewModel()
+    val impressionTagViewModel: ImpressionTagViewModel = viewModel()
     val restPeriodConfigViewModel: RestPeriodConfigViewModel = viewModel()
     val peakFlavorConfigViewModel: PeakFlavorConfigViewModel = viewModel()
     val purchaseRecordViewModel: PurchaseRecordViewModel = viewModel()
@@ -133,6 +134,10 @@ fun CoffeeNavGraph(navController: NavHostController, modifier: Modifier = Modifi
 
         composable(Screen.RoastDegreeManagement.route) {
             RoastDegreeManagementScreen(navController = navController, viewModel = roastDegreeViewModel)
+        }
+
+        composable(Screen.ImpressionTagManagement.route) {
+            ImpressionTagManagementScreen(navController = navController, viewModel = impressionTagViewModel)
         }
 
         composable(Screen.ProcessMethodManagement.route) {
