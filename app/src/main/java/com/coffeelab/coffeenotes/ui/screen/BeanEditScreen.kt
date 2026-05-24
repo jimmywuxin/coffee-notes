@@ -992,7 +992,7 @@ fun BeanEditScreen(
 
                             onClick = { quickAddName = ""; showQuickAddDialog = true },
 
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(32.dp).offset(y = 8.dp)
 
                         ) {
 
@@ -1016,7 +1016,7 @@ fun BeanEditScreen(
 
             Text("风味标签", style = MaterialTheme.typography.titleMedium)
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
 
                 OutlinedTextField(value = tagInput, onValueChange = { tagInput = it },
 
@@ -1030,7 +1030,7 @@ fun BeanEditScreen(
 
                     }
 
-                }, modifier = Modifier.size(48.dp)) {
+                }, modifier = Modifier.size(56.dp)) {
 
                     Icon(Icons.Default.Add, contentDescription = "添加标签")
 
