@@ -433,22 +433,26 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     repository.insertRecord(record)
                 }
 
-                // Import equipment
+                // Import equipment (skip if name already exists to preserve FK references)
                 val equipmentList: List<*> = data["equipment"] as? List<*> ?: emptyList<Any>()
+                val existingEq = repository.getAllEquipmentOnce().associateBy { it.name }
                 for (eq in equipmentList) {
                     val m = eq as Map<*, *>
                     val name = m["name"] as? String ?: continue
+                    if (name in existingEq) continue
                     repository.insertEquipment(Equipment(
                         name = name,
                         sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
                     ))
                 }
 
-                // Import grinders
+                // Import grinders (skip if name already exists to preserve FK references)
                 val grinderList: List<*> = data["grinders"] as? List<*> ?: emptyList<Any>()
+                val existingGr = repository.getAllGrindersOnce().associateBy { it.name }
                 for (gr in grinderList) {
                     val m = gr as Map<*, *>
                     val name = m["name"] as? String ?: continue
+                    if (name in existingGr) continue
                     repository.insertGrinder(Grinder(
                         name = name,
                         sortOrder = (m["sortOrder"] as? Double)?.toInt() ?: 0
