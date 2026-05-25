@@ -544,11 +544,11 @@ fun BeanEditScreen(
 
                 .imePadding()
 
-                .padding(16.dp)
+                .padding(12.dp)
 
                 .verticalScroll(rememberScrollState()),
 
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
 
         ) {
 
@@ -556,7 +556,7 @@ fun BeanEditScreen(
 
             Surface(modifier = Modifier.fillMaxWidth()) {
 
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(12.dp)) {
 
                     Text("图片识别", style = MaterialTheme.typography.titleMedium,
 

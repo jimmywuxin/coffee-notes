@@ -279,9 +279,9 @@ fun BrewEditScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .imePadding()
-                .padding(16.dp)
+                .padding(12.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Select Bean
             Text("选择咖啡豆", style = MaterialTheme.typography.titleMedium)
