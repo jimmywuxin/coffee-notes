@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -355,14 +356,14 @@ fun HomeScreen(
                         item {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.errorContainer,
+                                color = Color(0xFFF2DDDD),
                                 shape = MaterialTheme.shapes.medium
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                        Icon(Icons.Default.Notifications, contentDescription = null, tint = Color(0xFFC07070))
                                         Spacer(Modifier.width(8.dp))
-                                        Text("赏味期倒计时", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                                        Text("赏味期倒计时", style = MaterialTheme.typography.labelLarge, color = Color(0xFFC07070), fontWeight = FontWeight.Bold)
                                     }
                                     Spacer(Modifier.height(8.dp))
                                     nearingBeans.forEach { (bean, daysLeft) ->
@@ -374,18 +375,18 @@ fun HomeScreen(
                                             Text(
                                                 text = "${bean.roaster} - ${bean.name}",
                                                 style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                                color = Color(0xFFA06060),
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Surface(
-                                                color = MaterialTheme.colorScheme.error,
+                                                color = Color(0xFFD4A0A0),
                                                 shape = MaterialTheme.shapes.small
                                             ) {
                                                 Text(
                                                     text = if (daysLeft <= 0) "今日结束" else "剩余${daysLeft}天",
                                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onError
+                                                    color = Color(0xFF6B3030)
                                                 )
                                             }
                                         }
