@@ -92,8 +92,8 @@ fun BrewMethodEditScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Name
             OutlinedTextField(
@@ -106,7 +106,7 @@ fun BrewMethodEditScreen(
 
             // 冲煮参数默认值
             Text("冲煮参数（选填，作为新建记录的默认值）", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedTextField(
                     value = coffeeWeightText,
                     onValueChange = { newVal ->
@@ -133,7 +133,7 @@ fun BrewMethodEditScreen(
                 )
             }
             Text("粉水比", style = MaterialTheme.typography.bodyMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                 val ratioOptions = listOf("2", "15", "16", "17")
                 ratioOptions.forEach { ratio ->
                     FilterChip(
@@ -209,7 +209,7 @@ fun BrewMethodEditScreen(
             // Step list
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 itemsIndexed(steps) { index, step ->
                     StepCard(
@@ -233,7 +233,7 @@ fun BrewMethodEditScreen(
                         ) {
                             Text(
                                 "点击上方「新增步骤」添加第一步",
-                                modifier = Modifier.padding(24.dp),
+                                modifier = Modifier.padding(20.dp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -321,7 +321,7 @@ private fun StepCard(
         color = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.medium
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -347,7 +347,7 @@ private fun StepCard(
             Spacer(Modifier.height(8.dp))
 
             // 注水量 & 时间
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedTextField(
                     value = waterAmountText,
                     onValueChange = { newVal ->

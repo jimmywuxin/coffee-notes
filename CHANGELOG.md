@@ -1,5 +1,18 @@
 # 更新日志
 
+## v2.0.5 (2026-05-26)
+
+### UI 优化
+- 管理页面间距与编辑页面统一：页面 padding 16→10dp，spacedBy 8→4dp，卡片内 padding 12→8dp
+- BrewMethodEditScreen、ProcessMethod、Equipment、Grinder、PurchaseRecord、ImpressionTag、RoastDegree 全部统一
+
+### 版本信息
+- versionCode: 60 → 61
+- versionName: 2.0.4 → 2.0.5
+
+---
+
+
 ## v2.0.4 (2026-05-26)
 
 ### UI 优化

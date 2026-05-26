@@ -92,13 +92,13 @@ fun GrinderManagementScreen(
         } else {
             LazyColumn(
                 state = lazyListState,
-                modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxSize().padding(padding).padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 if (isAdding && !isReorderMode) {
                     item {
                         Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium) {
-                            Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 OutlinedTextField(
                                     value = newName, onValueChange = { newName = it },
                                     placeholder = { Text("磨豆机名称") }, singleLine = true,
@@ -192,7 +192,7 @@ private fun DraggableManagementItem(
         },
         color = animatedBgColor, shape = MaterialTheme.shapes.medium
     ) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.DragHandle, "拖动", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
         }
