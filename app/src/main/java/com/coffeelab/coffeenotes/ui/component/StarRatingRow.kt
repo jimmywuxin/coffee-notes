@@ -31,14 +31,14 @@ fun StarRatingRow(
         for (i in 1..5) {
             IconButton(
                 onClick = { onRatingChange(if (rating == i) 0 else i) },
-                modifier = Modifier.size(if (large) 36.dp else 28.dp)
+                modifier = Modifier.size(if (large) 40.dp else 32.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = "星 $i",
                     tint = if (i <= rating) MaterialTheme.colorScheme.secondary
                     else MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.size(if (large) 28.dp else 20.dp)
+                    modifier = Modifier.size(if (large) 32.dp else 24.dp)
                 )
             }
         }

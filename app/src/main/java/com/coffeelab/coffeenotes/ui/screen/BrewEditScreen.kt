@@ -279,9 +279,9 @@ fun BrewEditScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .imePadding()
-                .padding(12.dp)
+                .padding(10.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Select Bean
             Text("选择咖啡豆", style = MaterialTheme.typography.titleMedium)
@@ -340,19 +340,19 @@ fun BrewEditScreen(
                 val hasAny = suggestion.dose != null || suggestion.brewRatio != null ||
                     suggestion.waterAmount != null || suggestion.brewTime != null || suggestion.waterTemp != null || suggestion.pouringDurationSeconds != null
                 if (hasAny) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     Surface(
                         shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column(modifier = Modifier.padding(8.dp)) {
                             Text(
                                 "萃取参考",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -462,19 +462,19 @@ fun BrewEditScreen(
             if (selectedMethod != null) {
                 val steps = com.coffeelab.coffeenotes.data.Converters.parseSteps(selectedMethod.steps)
                 if (steps.isNotEmpty()) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
                     Surface(
                         shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column(modifier = Modifier.padding(8.dp)) {
                             Text(
                                 selectedMethod.name,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(2.dp))
                             steps.forEachIndexed { index, step ->
                                 val waterStr = step.waterAmount?.let { "${it}ml" } ?: "至总水量"
                                 val descStr = step.description?.let { " · $it" } ?: ""
@@ -651,7 +651,7 @@ fun BrewEditScreen(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 onClick = { timerExpanded = !timerExpanded }
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -803,7 +803,7 @@ fun BrewEditScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(0.dp))
 
             OutlinedTextField(
                 value = waterTemp,
@@ -906,7 +906,7 @@ fun BrewEditScreen(
             StarRatingRow(label = "苦味", rating = bitterness, onRatingChange = { bitterness = it })
             StarRatingRow(label = "口感", rating = mouthfeel, onRatingChange = { mouthfeel = it })
             StarRatingRow(label = "回甘", rating = aftertaste, onRatingChange = { aftertaste = it })
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
             StarRatingRow(label = "总评 ⭐", rating = overall, onRatingChange = { overall = it }, large = true)
 
             // Flavor Notes

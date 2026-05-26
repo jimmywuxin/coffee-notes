@@ -544,11 +544,11 @@ fun BeanEditScreen(
 
                 .imePadding()
 
-                .padding(12.dp)
+                .padding(10.dp)
 
                 .verticalScroll(rememberScrollState()),
 
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
 
         ) {
 
@@ -556,7 +556,7 @@ fun BeanEditScreen(
 
             Surface(modifier = Modifier.fillMaxWidth()) {
 
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(8.dp)) {
 
                     Text("图片识别", style = MaterialTheme.typography.titleMedium,
 
@@ -1008,7 +1008,7 @@ fun BeanEditScreen(
 
 
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(0.dp))
 
 
 
@@ -1066,11 +1066,11 @@ fun BeanEditScreen(
 
             if (localPhotoPaths.isNotEmpty() || localPhotoPaths.size < 6) {
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
 
                 Text("豆子照片", style = MaterialTheme.typography.titleMedium)
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
                 // 已有照片 Grid
 
@@ -1168,7 +1168,7 @@ fun BeanEditScreen(
 
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                 }
 
