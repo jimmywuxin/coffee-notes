@@ -16,8 +16,8 @@
 ## v2.0.3 (2026-05-26)
 
 ### UI 优化
-- 编辑页面全局紧凑化：BrewEditScreen、BeanEditScreen 页面 padding 16dp→12dp，纵向间距 12dp→8dp
-- StarRatingRow 星星间距 4dp→2dp，图标尺寸紧凑化（约省 20-25% 纵向空间）
+- 编辑页面初次紧凑化：BrewEditScreen、BeanEditScreen 页面 padding 16dp→12dp，纵向间距 12dp→8dp
+- StarRatingRow 星星间距 4dp→2dp，图标尺寸紧凑化
 
 ### 版本信息
 - versionCode: 58 → 59
