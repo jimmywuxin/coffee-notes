@@ -1,15 +1,11 @@
 package com.coffeelab.coffeenotes.viewmodel
 
 import com.coffeelab.coffeenotes.data.AppDatabase
-import com.coffeelab.coffeenotes.data.dao.BrewRecordDao
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -41,7 +37,7 @@ class BrewViewModelTest {
     fun `saveRecord inserts and returns id`() = runTest {
         val record = BrewRecord(
             beanId = 1L,
-            equipment = "V60",
+            equipmentId = 1L,
             coffeeWeight = 15.0,
             waterTemp = 92.0,
             overallRating = 4

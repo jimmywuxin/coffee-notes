@@ -2,6 +2,7 @@ package com.coffeelab.coffeenotes.util
 
 import android.content.Context
 import android.net.Uri
+import com.coffeelab.coffeenotes.data.AppDatabase
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -46,7 +47,10 @@ object BackupUtil {
                 return false
             }
 
-            // Force close database connections
+            // Close Room database connection and reset singleton before replacing file
+            AppDatabase.closeAndReset()
+
+            // Remove WAL/SHM files from previous connection
             context.deleteDatabase("${DB_NAME}_wal")
             context.deleteDatabase("${DB_NAME}_shm")
             tmpFile.renameTo(dbFile)

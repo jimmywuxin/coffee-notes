@@ -78,6 +78,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Close the current database connection and reset the singleton.
+         * Used by BackupUtil before replacing the database file to prevent
+         * stale connections and data corruption.
+         */
+        fun closeAndReset() {
+            INSTANCE?.close()
+            INSTANCE = null
+        }
+
         private fun populateEquipmentSync(db: SupportSQLiteDatabase) {
             val cursor = db.query("SELECT name FROM equipment")
             val existingNames = mutableSetOf<String>()

@@ -1,5 +1,20 @@
 # 更新日志
 
+## v2.0.6 (2026-05-28)
+
+### Bug 修复
+- 修复测试代码 `BrewViewModelTest` 中已移除的 `equipment` 字段，改为 `equipmentId`
+- 修复 `BackupUtil.importDb()` 导入数据库时未关闭 Room 连接的问题，防止数据损坏或崩溃
+- 补全 `BackupViewModel.importBackup()` 的数据清理范围，覆盖全部 11 张表（之前遗漏了烘焙度、处理法、养豆期/赏味期配置、购买记录、印象标签等）
+- 修复 `MIGRATION_15_16` 中 Cursor 资源泄漏，所有 cursor 改用 `use {}` 块确保异常安全关闭
+
+### 版本信息
+- versionCode: 61 → 62
+- versionName: 2.0.5 → 2.0.6
+
+---
+
+
 ## v2.0.5 (2026-05-26)
 
 ### UI 优化

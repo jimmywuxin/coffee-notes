@@ -304,13 +304,25 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 val methodDao = db.brewMethodDao()
                 val equipmentDao = db.equipmentDao()
                 val grinderDao = db.grinderDao()
+                val roastDegreeDao = db.roastDegreeDao()
+                val processMethodDao = db.processMethodDao()
+                val restPeriodConfigDao = db.restPeriodConfigDao()
+                val peakFlavorConfigDao = db.peakFlavorConfigDao()
+                val purchaseRecordDao = db.purchaseRecordDao()
+                val impressionTagDao = db.impressionTagDao()
 
-                // Delete all records first (cascade will delete them), then beans, methods, equipment, grinders
+                // Delete in FK-safe order: child/assoc tables first, then parent tables
                 recordDao.deleteAll()
-                beanDao.deleteAll()
+                purchaseRecordDao.deleteAll()
+                beanDao.deleteAll()          // CASCADE deletes flavor_tags, bean_impression_tags
                 methodDao.deleteAll()
                 equipmentDao.deleteAll()
                 grinderDao.deleteAll()
+                restPeriodConfigDao.deleteAll()   // FK to roast_degrees
+                peakFlavorConfigDao.deleteAll()   // FK to roast_degrees
+                roastDegreeDao.deleteAll()
+                processMethodDao.deleteAll()
+                impressionTagDao.deleteAll()      // independent table
 
                 // Import impression tags (before beans so bean_impression_tags FK resolves)
                 val impressionTagIdMap = mutableMapOf<Long, Long>()
