@@ -34,6 +34,13 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         _showFavoritesOnly.value = value
     }
 
+    private val _showArchivedOnly = MutableStateFlow(false)
+    val showArchivedOnly: StateFlow<Boolean> = _showArchivedOnly.asStateFlow()
+
+    fun setShowArchivedOnly(value: Boolean) {
+        _showArchivedOnly.value = value
+    }
+
     // ===== Search =====
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()

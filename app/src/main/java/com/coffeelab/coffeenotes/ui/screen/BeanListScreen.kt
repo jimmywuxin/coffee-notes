@@ -45,7 +45,7 @@ fun BeanListScreen(
     val archivedBeans by viewModel.archivedBeans.collectAsState(initial = emptyList())
     val mutableBeans = remember { mutableStateListOf(*beans.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
-    var showArchivedOnly by remember { mutableStateOf(false) }
+    val showArchivedOnly by viewModel.showArchivedOnly.collectAsState()
     val showFavoritesOnly by viewModel.showFavoritesOnly.collectAsState()
 
     // ===== Search state =====
@@ -266,20 +266,20 @@ fun BeanListScreen(
                             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 FilterChip(
                                     selected = !showFavoritesOnly && !showArchivedOnly && !isSearching,
-                                    onClick = { viewModel.setShowFavoritesOnly(false); showArchivedOnly = false },
+                                    onClick = { viewModel.setShowFavoritesOnly(false); viewModel.setShowArchivedOnly(false) },
                                     label = { Text("全部") }
                                 )
                                 FilterChip(
                                     selected = showFavoritesOnly && !isSearching,
-                                    onClick = { viewModel.setShowFavoritesOnly(true); showArchivedOnly = false },
+                                    onClick = { viewModel.setShowFavoritesOnly(true); viewModel.setShowArchivedOnly(false) },
                                     label = { Text("❤ 收藏") },
                                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.errorContainer)
                                 )
                                 FilterChip(
                                     selected = showArchivedOnly && !isSearching,
                                     onClick = {
-                                        showArchivedOnly = !showArchivedOnly
-                                        if (showArchivedOnly) viewModel.setShowFavoritesOnly(false)
+                                        viewModel.setShowArchivedOnly(!showArchivedOnly)
+                                        if (!showArchivedOnly) viewModel.setShowFavoritesOnly(false)
                                     },
                                     label = { Text("📁 归档") },
                                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer)
