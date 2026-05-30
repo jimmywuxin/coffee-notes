@@ -54,6 +54,7 @@ fun ImpressionTagManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = {
                     if (isReorderMode) Text("印象标签排序")
                     else Row(verticalAlignment = Alignment.CenterVertically) {

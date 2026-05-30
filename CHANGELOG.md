@@ -1,5 +1,41 @@
 # 更新日志
 
+## v2.0.7 (2026-05-30)
+
+### 编译环境升级
+- Gradle: 8.11.1 → 8.14.1
+- AGP: 8.2.2 → 8.10.0
+- Kotlin: 1.9.22 → 2.1.20（新增 Compose Compiler Gradle 插件）
+- KSP: 1.9.22-1.0.17 → 2.1.20-1.0.32
+- compileSdk / targetSdk: 34 → 35
+
+### 依赖升级
+- Compose BOM: 2024.02.00 → 2025.05.01
+- AndroidX Core KTX: 1.12.0 → 1.16.0
+- Lifecycle: 2.7.0 → 2.9.0
+- Activity Compose: 1.8.2 → 1.10.1
+- Navigation Compose: 2.7.7 → 2.9.0
+- Room: 2.6.1 → 2.7.1
+- CameraX: 1.3.1 → 1.5.0
+- ML Kit Text Recognition: 16.0.0 → 16.0.1
+- Coil: 2.5.0 → 3.1.0（迁移至 coil3 包名）
+- Gson: 2.10.1 → 2.13.1
+- Coroutines Play Services: 1.7.3 → 1.10.2
+- 移除未使用的 Vico 图表库
+
+### UI 修复
+- 修复状态栏颜色跟随主题主色调（时间、信号、电量行统一咖啡色）
+- 所有页面 TopAppBar 添加 `windowInsets = WindowInsets(0)` 防止色块过大
+- 关闭 edge-to-edge 模式恢复传统系统栏行为
+
+### 版本信息
+- versionCode: 62 → 63
+- versionName: 2.0.6 → 2.0.7
+
+---
+
+# 更新日志
+
 ## v2.0.6 (2026-05-28)
 
 ### Bug 修复

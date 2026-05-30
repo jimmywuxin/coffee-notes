@@ -126,6 +126,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = { Text(if (isSearchMode) "搜索" else "☕ 咖啡笔记") },
                 actions = {
                     if (isSearchMode) {

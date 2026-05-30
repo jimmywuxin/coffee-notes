@@ -258,6 +258,7 @@ fun BrewEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Coffee, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(if (isEditing) "编辑冲煮记录" else "新增冲煮记录") } },
                 actions = {
                     if (isEditing) {

@@ -115,6 +115,7 @@ fun BeanListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = {
                     when {
                         isSelectionMode -> Text("${selectedBeans.size} 条已选")

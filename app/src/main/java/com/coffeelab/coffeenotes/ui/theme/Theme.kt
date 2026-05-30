@@ -101,8 +101,12 @@ fun CoffeeNotesTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            // 关闭 edge-to-edge，让 statusBarColor/navigationBarColor 生效
+            WindowCompat.setDecorFitsSystemWindows(window, true)
             // 状态栏跟随主色调
             window.statusBarColor = colorScheme.primary.toArgb()
+            // 导航栏跟随主色调
+            window.navigationBarColor = colorScheme.primary.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

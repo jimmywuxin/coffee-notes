@@ -62,6 +62,7 @@ fun RoastDegreeConfigScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = {
                     if (isReorderMode) Text("烘焙度排序")
                     else Row(verticalAlignment = Alignment.CenterVertically) {

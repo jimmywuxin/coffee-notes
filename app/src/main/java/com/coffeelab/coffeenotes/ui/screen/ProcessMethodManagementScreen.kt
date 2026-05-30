@@ -54,6 +54,7 @@ fun ProcessMethodManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = {
                     if (isReorderMode) Text("处理法排序")
                     else Row(verticalAlignment = Alignment.CenterVertically) {

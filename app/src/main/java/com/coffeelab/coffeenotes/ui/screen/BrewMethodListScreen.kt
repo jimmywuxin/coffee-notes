@@ -67,6 +67,7 @@ fun BrewMethodListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = {
                     if (isReorderMode) Text("冲煮手法排序") else Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.AccountTree, contentDescription = null)

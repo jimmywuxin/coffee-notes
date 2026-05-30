@@ -71,6 +71,7 @@ fun BrewMethodEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.AccountTree, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(if (isEditing) "编辑手法" else "新建手法") } },
                 actions = {
                     if (isEditing) {

@@ -58,6 +58,7 @@ fun GrinderManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = {
                     if (isReorderMode) Text("磨豆机排序") else Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Refresh, contentDescription = null)

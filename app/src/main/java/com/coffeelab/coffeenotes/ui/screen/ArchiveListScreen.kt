@@ -31,6 +31,7 @@ fun ArchiveListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Archive, contentDescription = null); Spacer(Modifier.width(8.dp)); Text("已归档的豆子") } },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,

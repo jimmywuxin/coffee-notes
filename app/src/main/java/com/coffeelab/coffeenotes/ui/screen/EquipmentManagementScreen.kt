@@ -58,6 +58,7 @@ fun EquipmentManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = {
                     if (isReorderMode) Text("器具排序") else Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.LocalCafe, contentDescription = null)

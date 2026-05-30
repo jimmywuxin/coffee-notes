@@ -48,7 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import androidx.navigation.NavController
 
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 
@@ -517,6 +517,7 @@ fun BeanEditScreen(
         topBar = {
 
             TopAppBar(
+                windowInsets = WindowInsets(0),
 
                 title = { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Edit, contentDescription = null); Spacer(Modifier.width(8.dp)); Text(if (isEditing) "编辑豆子" else "添加豆子") } },
 

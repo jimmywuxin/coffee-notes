@@ -46,6 +46,7 @@ fun PurchaseRecordManagementScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = { Text("购买记录${if (beanName.isNotEmpty()) " - $beanName" else ""}") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,

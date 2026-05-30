@@ -128,6 +128,7 @@ fun BrewListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets(0),
                 title = {
                     if (isSelectionMode) {
                         Text("${selectedRecords.size} 条已选")
