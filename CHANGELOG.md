@@ -1,4 +1,19 @@
 # 更新日志
+
+## v2.0.9 (2026-05-31)
+
+### Bug 修复
+- 修复清空数据恢复备份后，有烘焙日期的豆子详情页不显示养豆期和赏味期的问题
+  - `BackupViewModel.importBackup` 恢复 bean 时读取 `restDays`/`peakFlavorDays` 字段（之前完全忽略）
+  - 恢复完成后遍历所有有 `roastDate` 但缺 `restDays`/`peakFlavorDays` 的豆子，从烘焙度配置自动填充
+  - `PurchaseRecordViewModel.syncRoastDateToBean` 同步条件补充 `restDays == null || peakFlavorDays == null`，避免已有值时仍重复写入
+
+### 版本信息
+- versionCode: 64 → 65
+- versionName: 2.0.8 → 2.0.9
+
+---
+
 # 更新日志
 
 ## v2.0.8 (2026-05-30)

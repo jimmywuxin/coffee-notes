@@ -50,8 +50,8 @@ class PurchaseRecordViewModel(application: Application) : AndroidViewModel(appli
 
     private suspend fun syncRoastDateToBean(beanId: Long, roastDate: Long) {
         beanDao.getBeanById(beanId)?.let { bean ->
-            // 只在豆子当前没有烘焙日期时自动填入，或有新日期时更新
-            if (bean.roastDate == null || roastDate > 0) {
+            // 当豆子没有烘焙日期，或有新日期，或缺少养豆期/赏味期时，自动同步并填充
+            if (bean.roastDate == null || roastDate > 0 || bean.restDays == null || bean.peakFlavorDays == null) {
                 // 根据烘焙度名称查找配置，自动填充养豆期/赏味期天数
                 var restDays: Int? = bean.restDays
                 var peakFlavorDays: Int? = bean.peakFlavorDays

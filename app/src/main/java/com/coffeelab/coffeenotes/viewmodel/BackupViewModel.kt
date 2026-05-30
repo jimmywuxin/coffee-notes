@@ -378,7 +378,9 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         waterTemp = (beanMap["waterTemp"] as? Double)?.toInt(),
                         pouringDurationSeconds = (beanMap["pouringDurationSeconds"] as? Double)?.toInt(),
                         createdAt = (beanMap["createdAt"] as? Double)?.toLong() ?: System.currentTimeMillis(),
-                        updatedAt = (beanMap["updatedAt"] as? Double)?.toLong() ?: System.currentTimeMillis()
+                        updatedAt = (beanMap["updatedAt"] as? Double)?.toLong() ?: System.currentTimeMillis(),
+                        restDays = (beanMap["restDays"] as? Double)?.toInt(),
+                        peakFlavorDays = (beanMap["peakFlavorDays"] as? Double)?.toInt()
                     )
 
                     val newId = repository.insertBean(newBean)
@@ -402,6 +404,20 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 // Import methods
                 val methodsList: List<*> = data["methods"] as? List<*> ?: emptyList<Any>()
                 val methodIdMap = mutableMapOf<Long, Long>()
+
+                // 恢复完成后，对所有有 roastDate 但缺 restDays/peakFlavorDays 的豆子，从烘焙度配置自动填充
+                val allBeansAfterRestore = beanDao.getAllBeans().first()
+                for (bean in allBeansAfterRestore) {
+                    if (bean.roastDate != null && (bean.restDays == null || bean.peakFlavorDays == null) && bean.roastLevel.isNotEmpty()) {
+                        val roastDegree = roastDegreeDao.getAllOnce().find { it.name == bean.roastLevel }
+                        if (roastDegree != null) {
+                            val restD = bean.restDays ?: restPeriodConfigDao.getByRoastDegreeId(roastDegree.id)?.restDays
+                            val peakD = bean.peakFlavorDays ?: peakFlavorConfigDao.getByRoastDegreeId(roastDegree.id)?.peakFlavorDays
+                            beanDao.update(bean.copy(restDays = restD, peakFlavorDays = peakD))
+                        }
+                    }
+                }
+
                 for (methodEntry in methodsList) {
                     val m = methodEntry as Map<*, *>
                     val name = m["name"] as? String ?: continue
