@@ -5,12 +5,18 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.PurchaseRecord
+import com.coffeelab.coffeenotes.data.entity.RoastDegree
+import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
+import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class PurchaseRecordViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = AppDatabase.getInstance(application).purchaseRecordDao()
     private val beanDao = AppDatabase.getInstance(application).coffeeBeanDao()
+    private val roastDegreeDao = AppDatabase.getInstance(application).roastDegreeDao()
+    private val restPeriodConfigDao = AppDatabase.getInstance(application).restPeriodConfigDao()
+    private val peakFlavorConfigDao = AppDatabase.getInstance(application).peakFlavorConfigDao()
 
     private val _beanId = MutableStateFlow<Long?>(null)
 
@@ -46,7 +52,25 @@ class PurchaseRecordViewModel(application: Application) : AndroidViewModel(appli
         beanDao.getBeanById(beanId)?.let { bean ->
             // 只在豆子当前没有烘焙日期时自动填入，或有新日期时更新
             if (bean.roastDate == null || roastDate > 0) {
-                beanDao.update(bean.copy(roastDate = roastDate))
+                // 根据烘焙度名称查找配置，自动填充养豆期/赏味期天数
+                var restDays: Int? = bean.restDays
+                var peakFlavorDays: Int? = bean.peakFlavorDays
+                if (bean.roastLevel.isNotEmpty()) {
+                    val roastDegree = roastDegreeDao.getAllOnce().find { it.name == bean.roastLevel }
+                    if (roastDegree != null) {
+                        if (restDays == null) {
+                            restDays = restPeriodConfigDao.getByRoastDegreeId(roastDegree.id)?.restDays
+                        }
+                        if (peakFlavorDays == null) {
+                            peakFlavorDays = peakFlavorConfigDao.getByRoastDegreeId(roastDegree.id)?.peakFlavorDays
+                        }
+                    }
+                }
+                beanDao.update(bean.copy(
+                    roastDate = roastDate,
+                    restDays = restDays,
+                    peakFlavorDays = peakFlavorDays
+                ))
             }
         }
     }

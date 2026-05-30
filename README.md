@@ -68,7 +68,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## 版本
 
-当前版本：**2.0.7** (versionCode 63)
+当前版本：**2.0.8** (versionCode 64)
 
 ## 许可证
 

@@ -9,6 +9,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -49,14 +52,33 @@ fun BeanDetailScreen(
 ) {
     val context = LocalContext.current
     var purchaseRecords by remember { mutableStateOf<List<PurchaseRecord>>(emptyList()) }
-    LaunchedEffect(beanId) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    
+    fun reloadBeanData() {
         beanViewModel.loadBean(beanId)
         beanViewModel.loadTags(beanId)
         beanViewModel.loadImpressionTags(beanId)
         brewViewModel.loadRecordsForBean(beanId)
+    }
+    
+    LaunchedEffect(beanId) {
+        reloadBeanData()
         // 加载购买记录
         val records = AppDatabase.getInstance(context).purchaseRecordDao().getByBeanIdOnce(beanId)
         purchaseRecords = records
+    }
+    
+    // 监听页面 resume 事件，从购买记录页等返回时刷新数据
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                reloadBeanData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     val bean by beanViewModel.selectedBean.collectAsState(initial = null)
