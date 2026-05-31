@@ -152,6 +152,15 @@ fun BeanCard(
             }
             if (!isSelectionMode) {
                 if (onUnarchiveClick != null) {
+                    // 归档模式：只显示收藏状态（不可点击），不显示收藏按钮
+                    if (bean.isFavorite) {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = "已收藏",
+                            modifier = Modifier.padding(start = 8.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                     Icon(
                         imageVector = Icons.Default.Unarchive,
                         contentDescription = "取消归档",

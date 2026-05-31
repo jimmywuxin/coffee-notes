@@ -107,6 +107,7 @@ fun BeanListScreen(
     // Displayed beans
     val displayedBeans = when {
         isSearching -> searchResults
+        showArchivedOnly && showFavoritesOnly -> archivedBeans.filter { it.isFavorite }
         showArchivedOnly -> archivedBeans
         showFavoritesOnly -> beans.filter { it.isFavorite }
         else -> beans
@@ -272,15 +273,18 @@ fun BeanListScreen(
                                 )
                                 FilterChip(
                                     selected = showFavoritesOnly && !isSearching,
-                                    onClick = { viewModel.setShowFavoritesOnly(true); viewModel.setShowArchivedOnly(false) },
+                                    onClick = {
+                                        if (showArchivedOnly) viewModel.setShowArchivedOnly(false)
+                                        viewModel.setShowFavoritesOnly(!showFavoritesOnly)
+                                    },
                                     label = { Text("❤ 收藏") },
                                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.errorContainer)
                                 )
                                 FilterChip(
                                     selected = showArchivedOnly && !isSearching,
                                     onClick = {
+                                        if (showFavoritesOnly) viewModel.setShowFavoritesOnly(false)
                                         viewModel.setShowArchivedOnly(!showArchivedOnly)
-                                        if (!showArchivedOnly) viewModel.setShowFavoritesOnly(false)
                                     },
                                     label = { Text("📁 归档") },
                                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer)
@@ -293,6 +297,7 @@ fun BeanListScreen(
                                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                                     Text(
                                         if (isSearching) "没有找到匹配的豆子"
+                                        else if (showArchivedOnly && showFavoritesOnly) "归档的收藏豆子为空"
                                         else if (showArchivedOnly) "还没有归档的豆子"
                                         else if (showFavoritesOnly) "还没有收藏的豆子"
                                         else "还没有咖啡豆\n点击 + 开始记录",
