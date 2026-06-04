@@ -359,6 +359,7 @@ fun BeanListScreen(
                                     }
                                 },
                                 onLongClick = { isSelectionMode = true; selectedBeans = setOf(bean.id) },
+                                onFavoriteClick = { viewModel.toggleFavorite(bean) },
                                 onUnarchiveClick = if (showArchivedOnly) {{ showUnarchiveDialog = bean }} else null,
                                 impressionTags = beanImpressionTagsMap[bean.id] ?: emptyList()
                             )

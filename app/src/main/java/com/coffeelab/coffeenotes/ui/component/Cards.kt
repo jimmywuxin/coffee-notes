@@ -152,15 +152,13 @@ fun BeanCard(
             }
             if (!isSelectionMode) {
                 if (onUnarchiveClick != null) {
-                    // 归档模式：只显示收藏状态（不可点击），不显示收藏按钮
-                    if (bean.isFavorite) {
-                        Icon(
-                            imageVector = Icons.Filled.Favorite,
-                            contentDescription = "已收藏",
-                            modifier = Modifier.padding(start = 8.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
+                    // 归档模式：心形作为收藏状态指示（不可点击）
+                    Icon(
+                        imageVector = if (bean.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = if (bean.isFavorite) "已收藏" else "未收藏",
+                        modifier = Modifier.padding(start = 8.dp),
+                        tint = if (bean.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Icon(
                         imageVector = Icons.Default.Unarchive,
                         contentDescription = "取消归档",
