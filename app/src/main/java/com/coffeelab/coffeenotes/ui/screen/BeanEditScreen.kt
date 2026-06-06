@@ -1069,7 +1069,11 @@ fun BeanEditScreen(
 
             if (tags.isNotEmpty()) {
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
 
                     tags.forEach { tag ->
 

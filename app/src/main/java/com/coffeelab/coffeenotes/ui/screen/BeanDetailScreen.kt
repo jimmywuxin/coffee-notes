@@ -42,7 +42,7 @@ import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun BeanDetailScreen(
     navController: NavController,
@@ -315,9 +315,10 @@ fun BeanDetailScreen(
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(top = 8.dp)
                         )
-                        Row(
+                        FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(top = 4.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                         ) {
                             tags.forEach { tag ->
                                 AssistChip(
