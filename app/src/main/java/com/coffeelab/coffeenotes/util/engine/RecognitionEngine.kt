@@ -40,5 +40,10 @@ data class RecognitionResult(
     val waterTemp: Int? = null,           // 水温（°C）
     val rawResponse: String = "",
     val success: Boolean = true,
-    val engineName: String = ""
+    val engineName: String = "",
+    /**
+     * 证据强度低于阈值的字段名（与 OCRResult.lowConfidenceFields 同步）。
+     * UI 据此追加 "⚠️ 低置信请核对: ..." 提示。
+     */
+    val lowConfidenceFields: Set<String> = emptySet()
 )

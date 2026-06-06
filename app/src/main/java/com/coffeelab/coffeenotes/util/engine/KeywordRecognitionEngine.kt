@@ -21,12 +21,18 @@ class KeywordRecognitionEngine : RecognitionEngine {
                 variety = ocrResult.variety,
                 process = ocrResult.process,
                 roastLevel = ocrResult.roastLevel,
-                roastDate = "",
+                roastDate = ocrResult.roastDate,
                 flavors = ocrResult.flavors,
                 notes = "",
+                dose = ocrResult.dose,
+                brewRatio = ocrResult.brewRatio,
+                waterAmount = ocrResult.waterAmount,
+                brewTime = ocrResult.brewTime,
+                waterTemp = ocrResult.waterTemp,
                 rawResponse = ocrResult.fullText,
                 success = true,
-                engineName = "本地关键词"
+                engineName = "本地关键词",
+                lowConfidenceFields = ocrResult.lowConfidenceFields
             )
         } catch (e: Exception) {
             RecognitionResult(

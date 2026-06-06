@@ -215,7 +215,7 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
             _blurWarning.value = false
             try {
                 val blurScore = BitmapLoader.detectBlur(bitmap)
-                if (blurScore < 50f) {
+                if (blurScore < 60f) {
                     _blurWarning.value = true
                 }
                 val result = keywordEngine.recognize(bitmap)

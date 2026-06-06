@@ -34,8 +34,7 @@ object BitmapLoader {
                     BitmapFactory.decodeStream(stream, null, options)
                 }
 
-                // Apply preprocessing for better OCR
-                bitmap?.let { enhanceForOcr(it) }
+                bitmap
             } catch (e: Exception) {
                 e.printStackTrace()
                 null
@@ -115,6 +114,32 @@ object BitmapLoader {
         val t = otsuThreshold(gray)
         val result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val dst = IntArray(w * h) { i -> if (gray[i] > t) 0xFFFFFFFF.toInt() else 0xFF000000.toInt() }
+        result.setPixels(dst, 0, w, 0, 0, w, h)
+        return result
+    }
+
+    /**
+     * Gamma 校正。gamma < 1 提亮（如 0.8 适合暗光照片），gamma > 1 压暗。
+     * 公式：out = (in / 255) ^ gamma * 255
+     * 返回新 Bitmap，不回收 source。
+     */
+    fun applyGammaCorrection(source: Bitmap, gamma: Float): Bitmap {
+        require(gamma > 0f) { "gamma must be positive, got $gamma" }
+        val w = source.width; val h = source.height
+        val pixels = IntArray(w * h)
+        source.getPixels(pixels, 0, w, 0, 0, w, h)
+        val lut = IntArray(256) { v ->
+            (Math.pow(v / 255.0, gamma.toDouble()) * 255.0).toInt().coerceIn(0, 255)
+        }
+        val dst = IntArray(w * h) { i ->
+            val p = pixels[i]
+            val a = (p ushr 24) and 0xFF
+            val r = lut[(p shr 16) and 0xFF]
+            val g = lut[(p shr 8) and 0xFF]
+            val b = lut[p and 0xFF]
+            (a shl 24) or (r shl 16) or (g shl 8) or b
+        }
+        val result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         result.setPixels(dst, 0, w, 0, 0, w, h)
         return result
     }

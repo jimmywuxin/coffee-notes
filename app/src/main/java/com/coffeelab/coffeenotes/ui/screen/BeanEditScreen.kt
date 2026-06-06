@@ -301,13 +301,34 @@ fun BeanEditScreen(
 
                 result.waterTemp?.let { temp -> waterTemp = temp.toString(); filled.add("水温") }
 
+                val lowConfDisplay = result.lowConfidenceFields.mapNotNull { field ->
+                    when (field) {
+                        "roaster" -> if (roaster.isNotEmpty()) "烘焙商" else null
+                        "name" -> if (name.isNotEmpty()) "豆名" else null
+                        "origin" -> if (origin.isNotEmpty()) "产地" else null
+                        "region" -> if (region.isNotEmpty()) "产区" else null
+                        "variety" -> if (variety.isNotEmpty()) "品种" else null
+                        "estate" -> if (estate.isNotEmpty()) "庄园" else null
+                        "roastDate" -> if (roastDate.isNotEmpty()) "烘焙日期" else null
+                        else -> field
+                    }
+                }
+
                 statusMessage = if (filled.isEmpty()) {
 
                     "识别完成，但未提取到信息"
 
                 } else {
 
-                    "${result.engineName} 已填入: ${filled.joinToString("、")}"
+                    buildString {
+                        append(result.engineName)
+                        append(" 已填入: ")
+                        append(filled.joinToString("、"))
+                        if (lowConfDisplay.isNotEmpty()) {
+                            append(" ⚠️ 低置信请核对: ")
+                            append(lowConfDisplay.joinToString("、"))
+                        }
+                    }
 
                 }
 
