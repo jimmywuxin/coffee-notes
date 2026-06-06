@@ -181,6 +181,7 @@ fun BeanEditScreen(
     val recResult by viewModel.recognitionResult.collectAsState(initial = null)
 
     val recProcessing by viewModel.recognitionProcessing.collectAsState(initial = false)
+    val blurWarning by viewModel.blurWarning.collectAsState()
 
 
 
@@ -589,6 +590,12 @@ fun BeanEditScreen(
 
                         Text("正在识别...", style = MaterialTheme.typography.bodySmall)
 
+                    }
+
+                    if (blurWarning) {
+                        Text("图片较模糊，识别结果可能不准确", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 4.dp))
                     }
 
                     statusMessage?.let { msg ->

@@ -8,6 +8,7 @@ import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.data.entity.ImpressionTag
 import com.coffeelab.coffeenotes.data.entity.FlavorTag
+import com.coffeelab.coffeenotes.util.BitmapLoader
 import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
@@ -203,10 +204,20 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
     private val _recognitionProcessing = MutableStateFlow(false)
     val recognitionProcessing: StateFlow<Boolean> = _recognitionProcessing.asStateFlow()
 
+    private val _blurWarning = MutableStateFlow(false)
+    val blurWarning: StateFlow<Boolean> = _blurWarning.asStateFlow()
+    fun clearBlurWarning() { _blurWarning.value = false }
+
+
     fun runKeywordRecognition(bitmap: Bitmap) {
         viewModelScope.launch {
             _recognitionProcessing.value = true
+            _blurWarning.value = false
             try {
+                val blurScore = BitmapLoader.detectBlur(bitmap)
+                if (blurScore < 50f) {
+                    _blurWarning.value = true
+                }
                 val result = keywordEngine.recognize(bitmap)
                 _recognitionResult.value = result
             } catch (e: Exception) {
@@ -219,6 +230,7 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearRecognitionResult() {
         _recognitionResult.value = null
+        _blurWarning.value = false
     }
 
     // OCR Processing
