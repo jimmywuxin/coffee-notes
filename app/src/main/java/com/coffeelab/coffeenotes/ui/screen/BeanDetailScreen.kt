@@ -211,7 +211,8 @@ fun BeanDetailScreen(
                             if (b.roastDate != null && (b.restDays != null || b.peakFlavorDays != null)) {
                                 val DAY_MS = 86400 * 1000L
                                 val restEnd = b.restDays?.let { b.roastDate + it.toLong() * DAY_MS }
-                                val peakEnd = b.peakFlavorDays?.let { (restEnd ?: b.roastDate) + it.toLong() * DAY_MS }
+                                // 赏味期结束日 = 烘焙日 + 赏味期天数（赏味期天数已是从烘焙日起算的总天数）
+                                val peakEnd = b.peakFlavorDays?.let { b.roastDate + it.toLong() * DAY_MS }
                                 if (restEnd != null || peakEnd != null) {
                                     Text(
                                         text = listOfNotNull(

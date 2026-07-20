@@ -85,29 +85,24 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     // 赏味期即将结束的豆子（距离赏味期结束 <= 15天，即提前15天开始倒计时），按倒计时升序排列
-    // 赏味期结束日 = 烘焙日 + 养豆期 + 赏味期天数（与详情页「养豆至 / 赏味至」口径一致）
+    // 赏味期结束日 = 烘焙日 + 赏味期天数
     val beansNearingPeakFlavorEnd: StateFlow<List<Pair<CoffeeBean, Int>>> = combine(
         repository.activeBeans,
         repository.allRoastDegrees,
         repository.allPeakFlavorConfigs,
         repository.allRestPeriodConfigs
-    ) { beans, roastDegrees, peakConfigs, restConfigs ->
+    ) { beans, roastDegrees, peakConfigs, _ ->
         val now = System.currentTimeMillis()
         val fifteenDaysFromNow = now + 15L * 24 * 60 * 60 * 1000
         beans.filter { bean ->
             bean.roastDate != null
         }.mapNotNull { bean ->
-            val restDays = bean.restDays
-                ?: roastDegrees.find { it.name == bean.roastLevel }?.let { rd ->
-                    restConfigs.find { it.roastDegreeId == rd.id }?.restDays
-                }
-                ?: 0  // 养豆期默认 0 天
             val peakDays = bean.peakFlavorDays
                 ?: roastDegrees.find { it.name == bean.roastLevel }?.let { rd ->
                     peakConfigs.find { it.roastDegreeId == rd.id }?.peakFlavorDays
                 }
                 ?: 14  // 赏味期默认 14 天
-            val peakEndDate = bean.roastDate!! + (restDays + peakDays) * 86400000L
+            val peakEndDate = bean.roastDate!! + (peakDays * 86400000L)
             if (peakEndDate in now..fifteenDaysFromNow) {
                 val daysLeft = ((peakEndDate - now) / (24 * 60 * 60 * 1000)).toInt()
                 bean to daysLeft
