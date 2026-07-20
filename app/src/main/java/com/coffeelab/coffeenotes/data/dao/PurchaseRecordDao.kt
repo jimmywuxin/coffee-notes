@@ -30,6 +30,15 @@ interface PurchaseRecordDao {
     @Query("SELECT * FROM purchase_records ORDER BY date DESC")
     suspend fun getAllOnce(): List<PurchaseRecord>
 
+    // 每个豆子最近一次购买记录（按 beanId 分组取 date 最大的一条）
+    @Query("""
+        SELECT * FROM purchase_records pr
+        WHERE pr.date = (
+            SELECT MAX(date) FROM purchase_records WHERE beanId = pr.beanId
+        )
+    """)
+    suspend fun getLatestForAllBeansOnce(): List<PurchaseRecord>
+
     @Query("DELETE FROM purchase_records")
     suspend fun deleteAll()
 }

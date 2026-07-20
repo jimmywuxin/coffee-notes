@@ -34,7 +34,8 @@ fun BeanCard(
     onLongClick: () -> Unit = {},
     onFavoriteClick: () -> Unit = {},
     onUnarchiveClick: (() -> Unit)? = null,
-    impressionTags: List<String> = emptyList()
+    impressionTags: List<String> = emptyList(),
+    latestUnitPrice: Float? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -119,6 +120,21 @@ fun BeanCard(
                             text = bean.roastLevel,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
+                // 最近一次购买单价
+                if (latestUnitPrice != null && latestUnitPrice > 0f) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        shape = MaterialTheme.shapes.extraSmall,
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = "最近 ¥%.2f/g".format(latestUnitPrice),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }

@@ -17,6 +17,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -66,6 +69,21 @@ fun BeanListScreen(
     // Load impression tags for all displayed beans
     val context = LocalContext.current
     var beanImpressionTagsMap by remember { mutableStateOf<Map<Long, List<String>>>(emptyMap()) }
+    // beanId -> 最近一次购买单价（元/克）
+    var beanLatestUnitPriceMap by remember { mutableStateOf<Map<Long, Float>>(emptyMap()) }
+
+    suspend fun reloadLatestUnitPrices() {
+        val dao = AppDatabase.getInstance(context).purchaseRecordDao()
+        val records = dao.getLatestForAllBeansOnce()
+        val map = mutableMapOf<Long, Float>()
+        for (record in records) {
+            if (record.weightGrams > 0) {
+                map[record.beanId] = record.unitPrice
+            }
+        }
+        beanLatestUnitPriceMap = map
+    }
+
     LaunchedEffect(beans) {
         val dao = AppDatabase.getInstance(context).impressionTagDao()
         val map = mutableMapOf<Long, List<String>>()
@@ -76,6 +94,21 @@ fun BeanListScreen(
             }
         }
         beanImpressionTagsMap = map
+        // 同时刷新最近购买单价
+        reloadLatestUnitPrices()
+    }
+
+    // 从详情页/购买记录页返回时刷新最近购买单价
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    val refreshScope = rememberCoroutineScope()
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshScope.launch { reloadLatestUnitPrices() }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     // Drag state
@@ -361,7 +394,8 @@ fun BeanListScreen(
                                 onLongClick = { isSelectionMode = true; selectedBeans = setOf(bean.id) },
                                 onFavoriteClick = { viewModel.toggleFavorite(bean) },
                                 onUnarchiveClick = if (showArchivedOnly) {{ showUnarchiveDialog = bean }} else null,
-                                impressionTags = beanImpressionTagsMap[bean.id] ?: emptyList()
+                                impressionTags = beanImpressionTagsMap[bean.id] ?: emptyList(),
+                                latestUnitPrice = beanLatestUnitPriceMap[bean.id]
                             )
                         }
                     }

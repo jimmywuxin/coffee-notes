@@ -375,6 +375,38 @@ fun BeanDetailScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 32.dp)
                         )
+                        // 最近一次购买记录
+                        val latest = purchaseRecords.first()
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    navController.navigate(Screen.PurchaseRecordManagement.createRoute(beanId, bean?.name ?: ""))
+                                },
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = MaterialTheme.shapes.small,
+                            tonalElevation = 1.dp
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    "最近一次购买",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    DateUtils.formatDate(latest.date),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    "${latest.weightGrams}g  ·  ¥${"%.2f".format(latest.price)}  ·  单价 ¥%.2f/g".format(latest.unitPrice),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
 

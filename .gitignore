@@ -24,3 +24,6 @@ Thumbs.db
 *.jks
 *.keystore
 _last_session.json
+
+# WorkBuddy workspace metadata
+.workbuddy/
