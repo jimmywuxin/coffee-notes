@@ -183,6 +183,9 @@ fun BeanEditScreen(
     val recProcessing by viewModel.recognitionProcessing.collectAsState(initial = false)
     val blurWarning by viewModel.blurWarning.collectAsState()
 
+    // OCR 纠错回流：记录 OCR 填入表单时的原始值快照（field -> ocrRaw），保存时与最终值对比
+    var ocrSnapshot by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
 
 
     // Gallery picker - keyword mode (for OCR)
@@ -266,22 +269,23 @@ fun BeanEditScreen(
             } else {
 
                 val filled = mutableListOf<String>()
+                val snapshot = mutableMapOf<String, String>()
 
-                if (result.roaster.isNotEmpty()) { roaster = result.roaster; filled.add("烘焙商") }
+                if (result.roaster.isNotEmpty()) { roaster = result.roaster; filled.add("烘焙商"); snapshot["roaster"] = result.roaster }
 
-                if (result.name.isNotEmpty()) { name = result.name; filled.add("豆名") }
+                if (result.name.isNotEmpty()) { name = result.name; filled.add("豆名"); snapshot["name"] = result.name }
 
-                if (result.origin.isNotEmpty()) { origin = result.origin; filled.add("产地") }
+                if (result.origin.isNotEmpty()) { origin = result.origin; filled.add("产地"); snapshot["origin"] = result.origin }
 
-                if (result.estate.isNotEmpty()) { estate = result.estate; filled.add("庄园") }
+                if (result.estate.isNotEmpty()) { estate = result.estate; filled.add("庄园"); snapshot["estate"] = result.estate }
 
-                if (result.variety.isNotEmpty()) { variety = result.variety; filled.add("品种") }
+                if (result.variety.isNotEmpty()) { variety = result.variety; filled.add("品种"); snapshot["variety"] = result.variety }
 
                 if (result.process.isNotEmpty()) { /* 处理法改由下拉选，这里不做OCR填充 */ }
 
                 if (result.roastLevel.isNotEmpty()) { /* 烘焙度改由下拉选，这里不做OCR填充 */ }
 
-                if (result.roastDate.isNotEmpty()) { roastDate = result.roastDate; filled.add("烘焙日期") }
+                if (result.roastDate.isNotEmpty()) { roastDate = result.roastDate; filled.add("烘焙日期"); snapshot["roastDate"] = result.roastDate }
 
                 result.flavors.forEach { f ->
 
@@ -300,6 +304,9 @@ fun BeanEditScreen(
                 result.brewTime?.let { t -> brewTime = t.toString(); filled.add("萃取时长") }
 
                 result.waterTemp?.let { temp -> waterTemp = temp.toString(); filled.add("水温") }
+
+                // 记录 OCR 原始值快照，供保存时做纠错回流
+                ocrSnapshot = snapshot
 
                 val lowConfDisplay = result.lowConfidenceFields.mapNotNull { field ->
                     when (field) {
@@ -1383,9 +1390,33 @@ fun BeanEditScreen(
 
                     )
 
-                    if (isEditing) viewModel.updateBeanSync(beanToSave, tags.toList(), selectedImpressionTagIds.toList())
-
-                    else viewModel.saveBeanSync(beanToSave, tags.toList(), selectedImpressionTagIds.toList())
+                    if (isEditing) {
+                        viewModel.updateBeanSync(beanToSave, tags.toList(), selectedImpressionTagIds.toList())
+                        // 记录 OCR 纠错回流（编辑场景）
+                        val finalValues = mapOf(
+                            "roaster" to roaster,
+                            "name" to name,
+                            "origin" to origin,
+                            "estate" to estate,
+                            "variety" to variety,
+                            "roastDate" to roastDate
+                        )
+                        viewModel.recordOcrCorrections(beanId, ocrSnapshot, finalValues)
+                    } else {
+                        val newId = viewModel.saveBeanSync(beanToSave, tags.toList(), selectedImpressionTagIds.toList())
+                        // 记录 OCR 纠错回流（新建场景）
+                        if (newId > 0) {
+                            val finalValues = mapOf(
+                                "roaster" to roaster,
+                                "name" to name,
+                                "origin" to origin,
+                                "estate" to estate,
+                                "variety" to variety,
+                                "roastDate" to roastDate
+                            )
+                            viewModel.recordOcrCorrections(newId, ocrSnapshot, finalValues)
+                        }
+                    }
 
                     navController.popBackStack()
 

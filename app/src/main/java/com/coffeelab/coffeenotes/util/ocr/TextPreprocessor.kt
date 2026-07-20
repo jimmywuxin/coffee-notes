@@ -2,6 +2,7 @@ package com.coffeelab.coffeenotes.util.ocr
 
 import android.graphics.Bitmap
 import com.coffeelab.coffeenotes.util.BitmapLoader
+import kotlin.math.abs
 
 /**
  * 多策略图像预处理。
@@ -12,12 +13,13 @@ import com.coffeelab.coffeenotes.util.BitmapLoader
  *  - OTSU_BIN          Otsu 自适应二值化（高对比度包装袋）
  *  - GAMMA_0_8         γ=0.8 提亮（暗光照片）
  *
- * 降级模式：先跑 GRAY_CONTRAST，若行级平均置信度 < [DEGRADE_THRESHOLD]，
+ * 倾斜矫正：首轮识别后取 ML Kit 行级平均角度，绝对值 > [SKEW_THRESHOLD_DEG] 时
+ * 反向旋转原图重跑，取置信度更高的结果。
+ *
+ * 降级模式：若（矫正后）行级平均置信度 < [DEGRADE_THRESHOLD]，
  * 再跑其余 3 策略，取平均置信度最高的结果。
  *
- * 最坏情况 4 次 ML Kit 调用（计划指标）；典型 1 次。
- *
- * 倾斜矫正（3.3）与文字密集区裁剪（3.2）暂未接入，留作未来扩展。
+ * 文字密集区裁剪暂未接入，留作未来扩展。
  */
 class TextPreprocessor(
     private val ocrEngine: OcrEngine
@@ -31,12 +33,24 @@ class TextPreprocessor(
     }
 
     suspend fun process(bitmap: Bitmap): List<OcrLine> {
-        val firstLines = ocrEngine.recognize(BitmapLoader.enhanceForOcr(bitmap))
-        if (avgConfidence(firstLines) >= DEGRADE_THRESHOLD) {
-            return firstLines
+        val (firstLines, avgAngle) = ocrEngine.recognizeWithAngle(BitmapLoader.enhanceForOcr(bitmap))
+
+        // 倾斜矫正：平均角度超阈值时，反向旋转原图重跑，取置信度更高者
+        var bestLines = firstLines
+        if (abs(avgAngle) > SKEW_THRESHOLD_DEG) {
+            val rotated = BitmapLoader.rotateBitmap(bitmap, -avgAngle)
+            val rotatedEnhanced = BitmapLoader.enhanceForOcr(rotated)
+            val rotatedLines = ocrEngine.recognize(rotatedEnhanced)
+            if (avgConfidence(rotatedLines) > avgConfidence(bestLines)) {
+                bestLines = rotatedLines
+            }
+        }
+
+        if (avgConfidence(bestLines) >= DEGRADE_THRESHOLD) {
+            return bestLines
         }
         val candidates = mutableListOf<Pair<List<OcrLine>, Strategy>>()
-        candidates.add(firstLines to Strategy.GRAY_CONTRAST)
+        candidates.add(bestLines to Strategy.GRAY_CONTRAST)
         candidates.add(ocrEngine.recognize(bitmap) to Strategy.ORIGINAL)
         candidates.add(ocrEngine.recognize(BitmapLoader.applyOtsuBinarization(bitmap)) to Strategy.OTSU_BIN)
         candidates.add(ocrEngine.recognize(BitmapLoader.applyGammaCorrection(bitmap, GAMMA_VALUE)) to Strategy.GAMMA_0_8)
@@ -51,5 +65,7 @@ class TextPreprocessor(
     companion object {
         const val DEGRADE_THRESHOLD = 0.75f
         const val GAMMA_VALUE = 0.8f
+        /** 倾斜角度阈值（度），超过此值触发旋转矫正 */
+        const val SKEW_THRESHOLD_DEG = 2f
     }
 }

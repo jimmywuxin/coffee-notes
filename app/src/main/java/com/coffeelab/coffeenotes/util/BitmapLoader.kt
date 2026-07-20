@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
@@ -142,6 +143,16 @@ object BitmapLoader {
         val result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         result.setPixels(dst, 0, w, 0, 0, w, h)
         return result
+    }
+
+    /**
+     * 旋转Bitmap。用于 OCR 倾斜矫正：传入负角度可反向矫正倾斜。
+     * degrees 为 0 时直接返回原 bitmap。
+     */
+    fun rotateBitmap(source: Bitmap, degrees: Float): Bitmap {
+        if (degrees == 0f) return source
+        val matrix = Matrix().apply { postRotate(degrees) }
+        return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
     }
 
     private fun otsuThreshold(gray: IntArray): Int {

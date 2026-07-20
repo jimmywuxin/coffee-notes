@@ -31,15 +31,23 @@ class OcrEngine {
      * 双模型识别，返回合并后的行列表。
      * 任一模型失败时不影响另一模型；两者都失败返回空列表。
      */
-    suspend fun recognize(bitmap: Bitmap): List<OcrLine> {
+    suspend fun recognize(bitmap: Bitmap): List<OcrLine> = recognizeWithAngle(bitmap).first
+
+    /**
+     * 双模型识别，返回合并后的行列表 + 平均倾斜角度（度，按文本长度加权）。
+     * 平均角度供 [TextPreprocessor] 判断是否需要旋转矫正。
+     */
+    suspend fun recognizeWithAngle(bitmap: Bitmap): Pair<List<OcrLine>, Float> {
         val image = InputImage.fromBitmap(bitmap, 0)
-        val zhLines = runCatching { chineseRecognizer.process(image).await() }
+        val zhResult = runCatching { chineseRecognizer.process(image).await() }
             .map { extractLines(it) }
-            .getOrDefault(emptyList())
-        val laLines = runCatching { latinRecognizer.process(image).await() }
+            .getOrDefault(emptyList<OcrLine>() to 0f)
+        val laResult = runCatching { latinRecognizer.process(image).await() }
             .map { extractLines(it) }
-            .getOrDefault(emptyList())
-        return mergeLines(zhLines, laLines)
+            .getOrDefault(emptyList<OcrLine>() to 0f)
+        val merged = mergeLines(zhResult.first, laResult.first)
+        val avgAngle = (zhResult.second + laResult.second) / 2f
+        return merged to avgAngle
     }
 
     /**
@@ -50,8 +58,10 @@ class OcrEngine {
         runCatching { latinRecognizer.close() }
     }
 
-    private fun extractLines(text: Text): List<OcrLine> {
+    private fun extractLines(text: Text): Pair<List<OcrLine>, Float> {
         val out = mutableListOf<OcrLine>()
+        var angleSum = 0.0
+        var angleWeight = 0.0
         for (block in text.textBlocks) {
             for (line in block.lines) {
                 val lineBbox = BoundingBox.from(line.boundingBox ?: Rect())
@@ -73,9 +83,16 @@ class OcrEngine {
                 else
                     OcrConfidence.DEFAULT_LINE_CONFIDENCE
                 out.add(OcrLine(cleanText, lineBbox, conf))
+                // 收集行角度（按文本长度加权），用于倾斜矫正
+                val len = cleanText.length.toDouble()
+                if (len > 0) {
+                    angleSum += line.angle.toDouble() * len
+                    angleWeight += len
+                }
             }
         }
-        return out
+        val avgAngle = if (angleWeight > 0) (angleSum / angleWeight).toFloat() else 0f
+        return out to avgAngle
     }
 
     private fun mergeLines(zh: List<OcrLine>, la: List<OcrLine>): List<OcrLine> {

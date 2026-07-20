@@ -27,9 +27,10 @@ import kotlinx.coroutines.launch
         PeakFlavorConfig::class,
         PurchaseRecord::class,
         ImpressionTag::class,
-        BeanImpressionTag::class
+        BeanImpressionTag::class,
+        OcrCorrection::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -46,6 +47,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun peakFlavorConfigDao(): PeakFlavorConfigDao
     abstract fun purchaseRecordDao(): PurchaseRecordDao
     abstract fun impressionTagDao(): ImpressionTagDao
+    abstract fun ocrCorrectionDao(): OcrCorrectionDao
 
     companion object {
         @Volatile

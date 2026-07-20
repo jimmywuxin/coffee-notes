@@ -219,7 +219,10 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
                 if (blurScore < 60f) {
                     _blurWarning.value = true
                 }
-                val result = keywordEngine.recognize(bitmap)
+                // 拉取历史 OCR 纠错，传给引擎做后处理替换
+                val corrections = AppDatabase.getInstance(getApplication())
+                    .ocrCorrectionDao().getAllOnce()
+                val result = keywordEngine.recognize(bitmap, corrections)
                 _recognitionResult.value = result
             } catch (e: Exception) {
                 _recognitionResult.value = RecognitionResult(success = false, rawResponse = "识别出错: ${e.message}", engineName = "本地关键词")
@@ -228,6 +231,33 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    /**
+     * 保存豆子时记录 OCR 纠错回流。
+     * @param beanId 豆子 id（新建取 saveBeanSync 返回值，编辑用 bean.id）
+     * @param ocrSnapshot OCR 填入表单时的原始值快照（field -> ocrRaw）
+     * @param finalValues 保存时表单的最终值（field -> userValue）
+     */
+    suspend fun recordOcrCorrections(
+        beanId: Long,
+        ocrSnapshot: Map<String, String>,
+        finalValues: Map<String, String>
+    ) {
+        if (ocrSnapshot.isEmpty()) return
+        val dao = AppDatabase.getInstance(getApplication()).ocrCorrectionDao()
+        val now = System.currentTimeMillis()
+        ocrSnapshot.forEach { (field, ocrRaw) ->
+            if (ocrRaw.isBlank()) return@forEach
+            val userValue = finalValues[field] ?: return@forEach
+            if (userValue.isBlank()) return@forEach
+            // 没改不记；归一化后相等也不记
+            if (normalizeForCompare(ocrRaw) == normalizeForCompare(userValue)) return@forEach
+            runCatching { dao.upsert(field, ocrRaw, userValue, beanId, now) }
+        }
+    }
+
+    private fun normalizeForCompare(s: String): String =
+        s.trim().lowercase().replace(Regex("\\s+"), " ")
 
     fun clearRecognitionResult() {
         _recognitionResult.value = null
