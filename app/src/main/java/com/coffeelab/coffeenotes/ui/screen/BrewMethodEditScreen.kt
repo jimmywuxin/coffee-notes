@@ -246,6 +246,8 @@ fun BrewMethodEditScreen(
             Button(
                 onClick = {
                     scope.launch {
+                        // 编辑时保留原始 sortOrder 与 updatedAt，避免保存后排序置顶、位置变化
+                        val existing = if (isEditing) viewModel.getMethod(methodId) else null
                         val method = BrewMethod(
                             id = if (isEditing) methodId else 0,
                             name = name,
@@ -254,8 +256,9 @@ fun BrewMethodEditScreen(
                             coffeeWeight = coffeeWeight,
                             coffeeWaterRatio = coffeeWaterRatio,
                             waterTemp = waterTemp,
-                            createdAt = if (isEditing) (viewModel.getMethod(methodId)?.createdAt ?: System.currentTimeMillis()) else System.currentTimeMillis(),
-                            updatedAt = System.currentTimeMillis()
+                            sortOrder = existing?.sortOrder ?: 0,
+                            createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                            updatedAt = existing?.updatedAt ?: System.currentTimeMillis()
                         )
                         if (isEditing) {
                             viewModel.updateMethod(method)

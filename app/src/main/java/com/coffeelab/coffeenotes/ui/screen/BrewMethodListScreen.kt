@@ -164,26 +164,6 @@ fun BrewMethodListScreen(
                     )
                 }
             } else {
-                // 新建手法引导卡片（常驻顶部，统一新建入口视觉位置）
-                item {
-                    Surface(
-                        onClick = { navController.navigate(Screen.BrewMethodEdit.createRoute()) },
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = MaterialTheme.shapes.medium,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.width(8.dp))
-                            Text("新建手法", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                }
                 if (methods.isEmpty()) {
                     item {
                         Box(
@@ -191,7 +171,7 @@ fun BrewMethodListScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "还没有冲煮手法，点击上方卡片新建",
+                                "还没有冲煮手法，点击右上角 + 新建",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
