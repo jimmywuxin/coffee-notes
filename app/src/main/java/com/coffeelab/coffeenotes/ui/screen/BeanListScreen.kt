@@ -32,6 +32,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.AppDatabase
+import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.ui.component.BeanCard
 import com.coffeelab.coffeenotes.ui.component.EmptyState
@@ -71,6 +72,8 @@ fun BeanListScreen(
     var beanImpressionTagsMap by remember { mutableStateOf<Map<Long, List<String>>>(emptyMap()) }
     // beanId -> 最近一次购买单价（元/克）
     var beanLatestUnitPriceMap by remember { mutableStateOf<Map<Long, Float>>(emptyMap()) }
+    // beanId -> 库存信息（余量 = 累计购入 - 累计消耗，仅未归档豆子）
+    var beanInventoryMap by remember { mutableStateOf<Map<Long, BeanInventory>>(emptyMap()) }
 
     suspend fun reloadLatestUnitPrices() {
         val dao = AppDatabase.getInstance(context).purchaseRecordDao()
@@ -84,6 +87,11 @@ fun BeanListScreen(
         beanLatestUnitPriceMap = map
     }
 
+    suspend fun reloadInventory() {
+        val dao = AppDatabase.getInstance(context).coffeeBeanDao()
+        beanInventoryMap = dao.getInventoryForActiveBeans().associateBy { it.beanId }
+    }
+
     LaunchedEffect(beans) {
         val dao = AppDatabase.getInstance(context).impressionTagDao()
         val map = mutableMapOf<Long, List<String>>()
@@ -94,8 +102,9 @@ fun BeanListScreen(
             }
         }
         beanImpressionTagsMap = map
-        // 同时刷新最近购买单价
+        // 同时刷新最近购买单价和库存
         reloadLatestUnitPrices()
+        reloadInventory()
     }
 
     // 从详情页/购买记录页返回时刷新最近购买单价
@@ -105,6 +114,7 @@ fun BeanListScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 refreshScope.launch { reloadLatestUnitPrices() }
+                refreshScope.launch { reloadInventory() }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -395,7 +405,8 @@ fun BeanListScreen(
                                 onFavoriteClick = { viewModel.toggleFavorite(bean) },
                                 onUnarchiveClick = if (showArchivedOnly) {{ showUnarchiveDialog = bean }} else null,
                                 impressionTags = beanImpressionTagsMap[bean.id] ?: emptyList(),
-                                latestUnitPrice = beanLatestUnitPriceMap[bean.id]
+                                latestUnitPrice = beanLatestUnitPriceMap[bean.id],
+                                inventory = beanInventoryMap[bean.id]
                             )
                         }
                     }

@@ -158,9 +158,9 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun archiveBean(bean: CoffeeBean) {
+    fun archiveBean(bean: CoffeeBean, clearStock: Boolean = false) {
         viewModelScope.launch {
-            repository.archiveBean(bean)
+            repository.archiveBean(bean, clearStock)
         }
     }
 

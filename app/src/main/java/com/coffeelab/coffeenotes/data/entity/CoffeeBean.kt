@@ -35,5 +35,7 @@ data class CoffeeBean(
     val pouringDurationSeconds: Int? = null,  // 注水时长（秒），选填
     // 养豆/赏味期（手动覆盖，空则按烘焙度配置计算）
     val restDays: Int? = null,
-    val peakFlavorDays: Int? = null
+    val peakFlavorDays: Int? = null,
+    // 库存重置时间戳：归档时如标记"已喝完"，设为当前时间；库存只算此时间之后的购买/消耗
+    val stockResetAt: Long? = null
 )

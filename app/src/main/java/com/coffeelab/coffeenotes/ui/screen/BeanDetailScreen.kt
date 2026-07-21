@@ -33,6 +33,7 @@ import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
 import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.data.entity.PurchaseRecord
 import com.coffeelab.coffeenotes.data.AppDatabase
+import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.ui.component.RecordCard
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.DateUtils
@@ -52,7 +53,9 @@ fun BeanDetailScreen(
 ) {
     val context = LocalContext.current
     var purchaseRecords by remember { mutableStateOf<List<PurchaseRecord>>(emptyList()) }
+    var inventory by remember { mutableStateOf<BeanInventory?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val refreshScope = rememberCoroutineScope()
     
     fun reloadBeanData() {
         beanViewModel.loadBean(beanId)
@@ -66,6 +69,8 @@ fun BeanDetailScreen(
         // 加载购买记录
         val records = AppDatabase.getInstance(context).purchaseRecordDao().getByBeanIdOnce(beanId)
         purchaseRecords = records
+        // 加载库存（累计购入 - 累计消耗）
+        inventory = AppDatabase.getInstance(context).coffeeBeanDao().getInventoryForBean(beanId)
     }
     
     // 监听页面 resume 事件，从购买记录页等返回时刷新数据
@@ -73,6 +78,10 @@ fun BeanDetailScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 reloadBeanData()
+                refreshScope.launch {
+                    purchaseRecords = AppDatabase.getInstance(context).purchaseRecordDao().getByBeanIdOnce(beanId)
+                    inventory = AppDatabase.getInstance(context).coffeeBeanDao().getInventoryForBean(beanId)
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -347,6 +356,55 @@ fun BeanDetailScreen(
                 }
 
 
+                // 库存汇总卡（余量 = 累计购入 - 累计消耗）
+                item {
+                    val inv = inventory
+                    if (inv != null && (inv.totalPurchased > 0 || inv.totalConsumed > 0)) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = MaterialTheme.shapes.medium,
+                            tonalElevation = 1.dp
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("库存", style = MaterialTheme.typography.titleMedium)
+                                Spacer(Modifier.height(12.dp))
+                                Row(modifier = Modifier.fillMaxWidth()) {
+                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("${inv.totalPurchased}g", style = MaterialTheme.typography.titleMedium)
+                                        Text("已购", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("${String.format("%.1f", inv.totalConsumed)}g", style = MaterialTheme.typography.titleMedium)
+                                        Text("已用", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        val rem = inv.remaining
+                                        val lowStock = rem <= 50
+                                        Text(
+                                            "${rem.toInt()}g",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = if (lowStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                        )
+                                        Text("余量", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                if (inv.totalPurchased > 0) {
+                                    Spacer(Modifier.height(8.dp))
+                                    val progress = (inv.remaining / inv.totalPurchased).coerceIn(0.0, 1.0).toFloat()
+                                    val lowStock = inv.remaining <= 50
+                                    LinearProgressIndicator(
+                                        progress = { progress },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = if (lowStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // 购买记录入口
                 item {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -529,38 +587,63 @@ fun BeanDetailScreen(
 
     // Archive Confirmation Dialog
     if (showArchiveDialog && bean != null) {
+        val isCurrentlyArchived = bean!!.isArchived
         AlertDialog(
             onDismissRequest = { showArchiveDialog = false },
-            title = { Text(if (bean!!.isArchived) "取消归档" else "归档") },
+            title = { Text(if (isCurrentlyArchived) "取消归档" else "归档") },
             text = {
                 Text(
-                    if (bean!!.isArchived)
+                    if (isCurrentlyArchived)
                         "将「${bean?.name}」恢复到豆子列表？"
                     else
-                        "将「${bean?.name}」归档？\n归档后不在主列表显示，但数据和冲煮记录都保留。"
+                        "将「${bean?.name}」归档？\n归档后不在主列表显示，但数据和冲煮记录都保留。\n\n这包豆子是否已喝完？"
                 )
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        bean?.let {
-                            val isArchived = it.isArchived
-                            if (isArchived) beanViewModel.unarchiveBean(it)
-                            else beanViewModel.archiveBean(it)
+                if (isCurrentlyArchived) {
+                    TextButton(
+                        onClick = {
+                            beanViewModel.unarchiveBean(bean!!)
                             showArchiveDialog = false
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar(
-                                    if (isArchived) "已取消归档" else "已归档",
-                                    duration = SnackbarDuration.Indefinite
-                                )
+                                snackbarHostState.showSnackbar("已取消归档", duration = SnackbarDuration.Indefinite)
                             }
                             coroutineScope.launch {
                                 delay(1000)
                                 navController.popBackStack()
                             }
                         }
+                    ) { Text("确认") }
+                } else {
+                    Row {
+                        TextButton(
+                            onClick = {
+                                beanViewModel.archiveBean(bean!!, clearStock = true)
+                                showArchiveDialog = false
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("已归档（库存已清零）", duration = SnackbarDuration.Indefinite)
+                                }
+                                coroutineScope.launch {
+                                    delay(1000)
+                                    navController.popBackStack()
+                                }
+                            }
+                        ) { Text("已喝完", color = MaterialTheme.colorScheme.error) }
+                        TextButton(
+                            onClick = {
+                                beanViewModel.archiveBean(bean!!, clearStock = false)
+                                showArchiveDialog = false
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("已归档", duration = SnackbarDuration.Indefinite)
+                                }
+                                coroutineScope.launch {
+                                    delay(1000)
+                                    navController.popBackStack()
+                                }
+                            }
+                        ) { Text("还有剩余") }
                     }
-                ) { Text("确认") }
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showArchiveDialog = false }) { Text("取消") }

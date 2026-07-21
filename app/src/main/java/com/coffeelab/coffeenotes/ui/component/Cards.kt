@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.util.DateUtils
@@ -35,7 +36,8 @@ fun BeanCard(
     onFavoriteClick: () -> Unit = {},
     onUnarchiveClick: (() -> Unit)? = null,
     impressionTags: List<String> = emptyList(),
-    latestUnitPrice: Float? = null
+    latestUnitPrice: Float? = null,
+    inventory: BeanInventory? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -123,19 +125,42 @@ fun BeanCard(
                         )
                     }
                 }
-                // 最近一次购买单价
-                if (latestUnitPrice != null && latestUnitPrice > 0f) {
+                // 最近购买单价 + 库存余量角标
+                val showUnitPrice = latestUnitPrice != null && latestUnitPrice > 0f
+                val showInventory = inventory != null && inventory!!.remaining > 0
+                if (showUnitPrice || showInventory) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Surface(
-                        shape = MaterialTheme.shapes.extraSmall,
-                        color = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Text(
-                            text = "最近 ¥%.2f/g".format(latestUnitPrice),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (showUnitPrice) {
+                            Surface(
+                                shape = MaterialTheme.shapes.extraSmall,
+                                color = MaterialTheme.colorScheme.secondaryContainer
+                            ) {
+                                Text(
+                                    text = "最近 ¥%.2f/g".format(latestUnitPrice),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        if (showInventory) {
+                            val inv = inventory!!
+                            val lowStock = inv.remaining <= 50
+                            Surface(
+                                shape = MaterialTheme.shapes.extraSmall,
+                                color = if (lowStock) MaterialTheme.colorScheme.errorContainer
+                                        else MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    text = "剩 ${inv.remaining.toInt()}g",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (lowStock) MaterialTheme.colorScheme.onErrorContainer
+                                            else MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }

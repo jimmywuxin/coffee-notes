@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
         BeanImpressionTag::class,
         OcrCorrection::class
     ],
-    version = 18,
+    version = 19,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

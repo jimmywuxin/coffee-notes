@@ -32,7 +32,11 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun insertBean(bean: CoffeeBean): Long = db.coffeeBeanDao().insert(bean)
     suspend fun updateBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean)
     suspend fun deleteBean(bean: CoffeeBean) = db.coffeeBeanDao().delete(bean)
-    suspend fun archiveBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean.copy(isArchived = true, updatedAt = System.currentTimeMillis()))
+    suspend fun archiveBean(bean: CoffeeBean, clearStock: Boolean = false) = db.coffeeBeanDao().update(bean.copy(
+        isArchived = true,
+        updatedAt = System.currentTimeMillis(),
+        stockResetAt = if (clearStock) System.currentTimeMillis() else bean.stockResetAt
+    ))
     suspend fun unarchiveBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean.copy(isArchived = false, updatedAt = System.currentTimeMillis()))
     @Transaction
     suspend fun saveBeanOrder(items: List<CoffeeBean>) {
