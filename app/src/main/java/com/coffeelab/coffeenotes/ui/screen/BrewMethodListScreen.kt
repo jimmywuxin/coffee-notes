@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
@@ -98,81 +99,103 @@ fun BrewMethodListScreen(
             )
         }
     ) { padding ->
-        if (methods.isEmpty() && !isReorderMode) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                EmptyState(
-                    emoji = "🌳",
-                    message = "还没有冲煮手法",
-                    hint = "点击 + 新建"
-                )
-            }
-        } else {
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (isReorderMode) {
-                    itemsIndexed(mutableList, key = { _, item -> item.id }) { index, method ->
-                        val isDraggingThisItem = isReorderMode && draggingItemIndex == index
-                        DraggableMethodItem(
-                            method = method,
-                            isDragging = isDraggingThisItem,
-                            dragOffset = if (isDraggingThisItem) smoothDragOffset else 0f,
-                            onDragStart = {
-                                draggingItemIndex = index
-                                accumulatedDrag = 0f
-                                // 使用 layoutInfo 获取 item 在列表中的真实像素位置
-                                val layoutInfo = lazyListState.layoutInfo
-                                val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
-                                dragStartItemOffset = myInfo?.offset?.toFloat() ?: 0f
-                            },
-                            onDrag = { dragAmount ->
-                                accumulatedDrag += dragAmount.y
-                                // 当前 item 中心在列表坐标系中的位置（含拖动偏移）
-                                val layoutInfo = lazyListState.layoutInfo
-                                val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggingItemIndex }
-                                if (myInfo != null) {
-                                    val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
-                                    // 与相邻 item 中心比较，确定目标位置
-                                    var targetIndex = draggingItemIndex
-                                    layoutInfo.visibleItemsInfo
-                                        .filter { it.index != draggingItemIndex }
-                                        .forEach { info ->
-                                            val itemCenter = info.offset + info.size / 2
-                                            if (accumulatedDrag > 0 && info.index > draggingItemIndex && currentCenterY > itemCenter) {
-                                                targetIndex = maxOf(targetIndex, info.index)
-                                            } else if (accumulatedDrag < 0 && info.index < draggingItemIndex && currentCenterY < itemCenter) {
-                                                targetIndex = minOf(targetIndex, info.index)
-                                            }
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (isReorderMode) {
+                itemsIndexed(mutableList, key = { _, item -> item.id }) { index, method ->
+                    val isDraggingThisItem = isReorderMode && draggingItemIndex == index
+                    DraggableMethodItem(
+                        method = method,
+                        isDragging = isDraggingThisItem,
+                        dragOffset = if (isDraggingThisItem) smoothDragOffset else 0f,
+                        onDragStart = {
+                            draggingItemIndex = index
+                            accumulatedDrag = 0f
+                            // 使用 layoutInfo 获取 item 在列表中的真实像素位置
+                            val layoutInfo = lazyListState.layoutInfo
+                            val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+                            dragStartItemOffset = myInfo?.offset?.toFloat() ?: 0f
+                        },
+                        onDrag = { dragAmount ->
+                            accumulatedDrag += dragAmount.y
+                            // 当前 item 中心在列表坐标系中的位置（含拖动偏移）
+                            val layoutInfo = lazyListState.layoutInfo
+                            val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggingItemIndex }
+                            if (myInfo != null) {
+                                val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
+                                // 与相邻 item 中心比较，确定目标位置
+                                var targetIndex = draggingItemIndex
+                                layoutInfo.visibleItemsInfo
+                                    .filter { it.index != draggingItemIndex }
+                                    .forEach { info ->
+                                        val itemCenter = info.offset + info.size / 2
+                                        if (accumulatedDrag > 0 && info.index > draggingItemIndex && currentCenterY > itemCenter) {
+                                            targetIndex = maxOf(targetIndex, info.index)
+                                        } else if (accumulatedDrag < 0 && info.index < draggingItemIndex && currentCenterY < itemCenter) {
+                                            targetIndex = minOf(targetIndex, info.index)
                                         }
-                                    targetIndex = targetIndex.coerceIn(0, mutableList.lastIndex)
-                                    if (targetIndex != draggingItemIndex) {
-                                        val item = mutableList.removeAt(draggingItemIndex)
-                                        mutableList.add(targetIndex, item)
-                                        draggingItemIndex = targetIndex
-                                        // 重置拖动偏移，避免 item 闪跳
-                                        accumulatedDrag = 0f
-                                        // 更新起始偏移为 item 的新位置
-                                        val newLayoutInfo = lazyListState.layoutInfo
-                                        val newInfo = newLayoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIndex }
-                                        dragStartItemOffset = newInfo?.offset?.toFloat() ?: 0f
                                     }
+                                targetIndex = targetIndex.coerceIn(0, mutableList.lastIndex)
+                                if (targetIndex != draggingItemIndex) {
+                                    val item = mutableList.removeAt(draggingItemIndex)
+                                    mutableList.add(targetIndex, item)
+                                    draggingItemIndex = targetIndex
+                                    // 重置拖动偏移，避免 item 闪跳
+                                    accumulatedDrag = 0f
+                                    // 更新起始偏移为 item 的新位置
+                                    val newLayoutInfo = lazyListState.layoutInfo
+                                    val newInfo = newLayoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIndex }
+                                    dragStartItemOffset = newInfo?.offset?.toFloat() ?: 0f
                                 }
-                            },
-                            onDragEnd = {
-                                draggingItemIndex = -1
-                                accumulatedDrag = 0f
-                                viewModel.saveMethodOrder(mutableList.toList())
-                                isReorderMode = false
                             }
-                        )
+                        },
+                        onDragEnd = {
+                            draggingItemIndex = -1
+                            accumulatedDrag = 0f
+                            viewModel.saveMethodOrder(mutableList.toList())
+                            isReorderMode = false
+                        }
+                    )
+                }
+            } else {
+                // 新建手法引导卡片（常驻顶部，统一新建入口视觉位置）
+                item {
+                    Surface(
+                        onClick = { navController.navigate(Screen.BrewMethodEdit.createRoute()) },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = MaterialTheme.shapes.medium,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(8.dp))
+                            Text("新建手法", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+                if (methods.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "还没有冲煮手法，点击上方卡片新建",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 } else {
                     itemsIndexed(methods, key = { _, item -> item.id }) { _, method ->
@@ -247,7 +270,7 @@ private fun DraggableMethodItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -286,22 +309,11 @@ private fun MethodCard(
         shape = MaterialTheme.shapes.medium
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (method.isPreset) {
-                        Icon(
-                            Icons.Default.Star,
-                            contentDescription = "预置",
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    Text(method.name, style = MaterialTheme.typography.titleMedium)
-                }
+                Text(method.name, style = MaterialTheme.typography.titleMedium)
                 val parsedSteps = Converters.parseSteps(method.steps)
                 val stepSummary = parsedSteps.withIndex().joinToString(" → ") { (i, step) ->
                     val water = step.waterAmount?.let { "${it}ml" } ?: "至总水量"

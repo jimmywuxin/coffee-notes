@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.ui.component.DraggableManagementItem
 import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.viewmodel.RoastDegreeConfigItem
 import com.coffeelab.coffeenotes.viewmodel.RoastDegreeConfigViewModel
@@ -98,15 +99,15 @@ fun RoastDegreeConfigScreen(
         } else {
             LazyColumn(
                 state = lazyListState,
-                modifier = Modifier.fillMaxSize().padding(padding).padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.fillMaxSize().padding(padding).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Add inline row
                 if (isAdding && !isReorderMode) {
                     item {
                         Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium) {
                             Row(
-                                Modifier.fillMaxWidth().padding(10.dp),
+                                Modifier.fillMaxWidth().padding(12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -139,47 +140,41 @@ fun RoastDegreeConfigScreen(
                 if (isReorderMode) {
                     itemsIndexed(mutableList, key = { _, item -> item.degree.id }) { index, item ->
                         val isDragging = draggingIndex == index
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .graphicsLayer {
-                                    if (isDragging) {
-                                        shadowElevation = 12f; alpha = 0.95f; scaleX = 1.03f; scaleY = 1.03f
-                                        translationY = smoothDragOffset
+                        DraggableManagementItem(
+                            name = item.degree.name,
+                            isDragging = isDragging,
+                            dragOffset = if (isDragging) smoothDragOffset else 0f,
+                            onDragStart = { draggingIndex = index; accumulatedDrag = 0f },
+                            onDrag = { dragAmount ->
+                                accumulatedDrag += dragAmount.y
+                                val info = lazyListState.layoutInfo
+                                val myInfo = info.visibleItemsInfo.firstOrNull { it.index == draggingIndex } ?: return@DraggableManagementItem
+                                val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
+                                var targetIndex = draggingIndex
+                                info.visibleItemsInfo
+                                    .filter { it.index != draggingIndex }
+                                    .forEach { other ->
+                                        val itemCenter = other.offset + other.size / 2
+                                        if (accumulatedDrag > 0 && other.index > draggingIndex && currentCenterY > itemCenter) {
+                                            targetIndex = maxOf(targetIndex, other.index)
+                                        } else if (accumulatedDrag < 0 && other.index < draggingIndex && currentCenterY < itemCenter) {
+                                            targetIndex = minOf(targetIndex, other.index)
+                                        }
                                     }
+                                targetIndex = targetIndex.coerceIn(0, mutableList.lastIndex)
+                                if (targetIndex != draggingIndex) {
+                                    val movedItem = mutableList.removeAt(draggingIndex)
+                                    mutableList.add(targetIndex, movedItem)
+                                    draggingIndex = targetIndex
+                                    accumulatedDrag = 0f
                                 }
-                                .pointerInput(Unit) {
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = { draggingIndex = index; accumulatedDrag = 0f },
-                                        onDrag = { _, dragAmount ->
-                                            accumulatedDrag += dragAmount.y
-                                            val info = lazyListState.layoutInfo
-                                            val myInfo = info.visibleItemsInfo.firstOrNull { it.index == index } ?: return@detectDragGesturesAfterLongPress
-                                            val centerY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
-                                            val target = info.visibleItemsInfo.minByOrNull { kotlin.math.abs(it.offset + it.size / 2 - centerY) }?.index ?: index
-                                            if (target != index) {
-                                                mutableList.removeAt(index)
-                                                mutableList.add(target, item)
-                                                draggingIndex = target
-                                                accumulatedDrag = 0f
-                                            }
-                                        },
-                                        onDragEnd = {
-                                            draggingIndex = -1; accumulatedDrag = 0f
-                                            viewModel.saveOrder(mutableList.map { it.degree })
-                                            isReorderMode = false
-                                        },
-                                        onDragCancel = { draggingIndex = -1; accumulatedDrag = 0f }
-                                    )
-                                },
-                            color = if (isDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.DragHandle, "拖动", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(item.degree.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                            },
+                            onDragEnd = {
+                                draggingIndex = -1; accumulatedDrag = 0f
+                                viewModel.saveOrder(mutableList.map { it.degree })
+                                isReorderMode = false
                             }
-                        }
+                        )
                     }
                 } else {
                     // Header
@@ -203,7 +198,7 @@ fun RoastDegreeConfigScreen(
 
                         Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.medium) {
                             Row(
-                                Modifier.fillMaxWidth().padding(8.dp),
+                                Modifier.fillMaxWidth().padding(12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {

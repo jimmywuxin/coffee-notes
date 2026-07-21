@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.Grinder
+import com.coffeelab.coffeenotes.ui.component.DraggableManagementItem
 import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.viewmodel.GrinderViewModel
 
@@ -93,13 +94,13 @@ fun GrinderManagementScreen(
         } else {
             LazyColumn(
                 state = lazyListState,
-                modifier = Modifier.fillMaxSize().padding(padding).padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.fillMaxSize().padding(padding).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (isAdding && !isReorderMode) {
                     item {
                         Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium) {
-                            Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 OutlinedTextField(
                                     value = newName, onValueChange = { newName = it },
                                     placeholder = { Text("磨豆机名称") }, singleLine = true,
@@ -125,11 +126,27 @@ fun GrinderManagementScreen(
                             onDrag = { dragAmount ->
                                 accumulatedDrag += dragAmount.y
                                 val info = lazyListState.layoutInfo
-                                val myInfo = info.visibleItemsInfo.firstOrNull { it.index == index }
+                                val myInfo = info.visibleItemsInfo.firstOrNull { it.index == draggingItemIndex }
                                 if (myInfo != null) {
-                                    val centerY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
-                                    val target = info.visibleItemsInfo.minByOrNull { kotlin.math.abs(it.offset + it.size / 2 - centerY) }?.index ?: index
-                                    if (target != index) { mutableList.removeAt(index); mutableList.add(target, item); draggingItemIndex = target; accumulatedDrag = 0f }
+                                    val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
+                                    var targetIndex = draggingItemIndex
+                                    info.visibleItemsInfo
+                                        .filter { it.index != draggingItemIndex }
+                                        .forEach { other ->
+                                            val itemCenter = other.offset + other.size / 2
+                                            if (accumulatedDrag > 0 && other.index > draggingItemIndex && currentCenterY > itemCenter) {
+                                                targetIndex = maxOf(targetIndex, other.index)
+                                            } else if (accumulatedDrag < 0 && other.index < draggingItemIndex && currentCenterY < itemCenter) {
+                                                targetIndex = minOf(targetIndex, other.index)
+                                            }
+                                        }
+                                    targetIndex = targetIndex.coerceIn(0, mutableList.lastIndex)
+                                    if (targetIndex != draggingItemIndex) {
+                                        val movedItem = mutableList.removeAt(draggingItemIndex)
+                                        mutableList.add(targetIndex, movedItem)
+                                        draggingItemIndex = targetIndex
+                                        accumulatedDrag = 0f
+                                    }
                                 }
                             },
                             onDragEnd = {
@@ -143,7 +160,7 @@ fun GrinderManagementScreen(
                     itemsIndexed(grinderList, key = { _, item -> item.id }) { _, item ->
                         var editedName by remember(item.id) { mutableStateOf(item.name) }
                         Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.medium) {
-                            Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 OutlinedTextField(
                                     value = editedName, onValueChange = { editedName = it },
                                     singleLine = true, modifier = Modifier.weight(1f).onFocusChanged { focus ->
@@ -172,30 +189,5 @@ fun GrinderManagementScreen(
             confirmButton = { TextButton(onClick = { grinderViewModel.deleteGrinder(deletingItem!!); showDeleteDialog = false }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("取消") } }
         )
-    }
-}
-
-@Composable
-private fun DraggableManagementItem(
-    name: String, isDragging: Boolean, dragOffset: Float,
-    onDragStart: () -> Unit, onDrag: (Offset) -> Unit, onDragEnd: () -> Unit
-) {
-    val animatedElevation by animateFloatAsState(targetValue = if (isDragging) 12f else 0f, animationSpec = spring(dampingRatio = 0.5f, stiffness = 200f), label = "elev")
-    val animatedScale by animateFloatAsState(targetValue = if (isDragging) 1.03f else 1f, animationSpec = spring(dampingRatio = 0.5f, stiffness = 200f), label = "scale")
-    val animatedBgColor by animateColorAsState(targetValue = if (isDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant, animationSpec = spring(dampingRatio = 0.5f, stiffness = 150f), label = "bg")
-
-    Surface(
-        modifier = Modifier.fillMaxWidth().graphicsLayer {
-            alpha = if (isDragging) 0.95f else 1f; shadowElevation = animatedElevation
-            translationY = dragOffset; scaleX = animatedScale; scaleY = animatedScale
-        }.pointerInput(Unit) {
-            detectDragGesturesAfterLongPress(onDragStart = { onDragStart() }, onDrag = { change, dragAmount -> change.consume(); onDrag(dragAmount) }, onDragEnd = { onDragEnd() }, onDragCancel = { onDragEnd() })
-        },
-        color = animatedBgColor, shape = MaterialTheme.shapes.medium
-    ) {
-        Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.DragHandle, "拖动", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        }
     }
 }
