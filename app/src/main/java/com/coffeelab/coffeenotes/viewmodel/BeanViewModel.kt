@@ -170,6 +170,8 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    suspend fun resetStockSync(bean: CoffeeBean) = repository.resetStock(bean)
+
     fun toggleFavorite(bean: CoffeeBean) {
         viewModelScope.launch {
             repository.updateBean(bean.copy(isFavorite = !bean.isFavorite))

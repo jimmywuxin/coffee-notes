@@ -54,6 +54,7 @@ fun BeanDetailScreen(
     val context = LocalContext.current
     var purchaseRecords by remember { mutableStateOf<List<PurchaseRecord>>(emptyList()) }
     var inventory by remember { mutableStateOf<BeanInventory?>(null) }
+    var showResetStockDialog by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val refreshScope = rememberCoroutineScope()
     
@@ -367,7 +368,19 @@ fun BeanDetailScreen(
                             tonalElevation = 1.dp
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text("库存", style = MaterialTheme.typography.titleMedium)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("库存", style = MaterialTheme.typography.titleMedium)
+                                    TextButton(
+                                        onClick = { showResetStockDialog = true },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                    ) {
+                                        Text("重置库存", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
                                 Spacer(Modifier.height(12.dp))
                                 Row(modifier = Modifier.fillMaxWidth()) {
                                     Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -583,6 +596,33 @@ fun BeanDetailScreen(
                 }
             }
         }
+    }
+
+    // Reset Stock Confirmation Dialog
+    if (showResetStockDialog && bean != null) {
+        AlertDialog(
+            onDismissRequest = { showResetStockDialog = false },
+            title = { Text("重置库存") },
+            text = {
+                Text("重置后，此前的购买和冲煮记录将不再计入库存，余量从 0 开始重新计算。\n\n历史记录仍会保留，此操作不可撤销。")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showResetStockDialog = false
+                        coroutineScope.launch {
+                            beanViewModel.resetStockSync(bean!!)
+                            inventory = AppDatabase.getInstance(context).coffeeBeanDao().getInventoryForBean(beanId)
+                            beanViewModel.loadBean(beanId)
+                            snackbarHostState.showSnackbar("库存已重置")
+                        }
+                    }
+                ) { Text("重置", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetStockDialog = false }) { Text("取消") }
+            }
+        )
     }
 
     // Archive Confirmation Dialog

@@ -38,6 +38,7 @@ class CoffeeRepository(private val db: AppDatabase) {
         stockResetAt = if (clearStock) System.currentTimeMillis() else bean.stockResetAt
     ))
     suspend fun unarchiveBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean.copy(isArchived = false, updatedAt = System.currentTimeMillis()))
+    suspend fun resetStock(bean: CoffeeBean) = db.coffeeBeanDao().update(bean.copy(stockResetAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis()))
     @Transaction
     suspend fun saveBeanOrder(items: List<CoffeeBean>) {
         items.forEachIndexed { index, bean ->
