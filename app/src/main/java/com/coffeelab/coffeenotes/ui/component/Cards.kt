@@ -193,11 +193,16 @@ fun BeanCard(
             }
             if (!isSelectionMode) {
                 if (onUnarchiveClick != null) {
-                    // 归档模式：心形作为收藏状态指示（不可点击）
+                    // 归档模式：心形可点击切换收藏
                     Icon(
                         imageVector = if (bean.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = if (bean.isFavorite) "已收藏" else "未收藏",
-                        modifier = Modifier.padding(start = 8.dp),
+                        contentDescription = if (bean.isFavorite) "取消收藏" else "收藏",
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onFavoriteClick() },
                         tint = if (bean.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Icon(

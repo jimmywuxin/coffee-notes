@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
@@ -149,6 +150,7 @@ fun BeanListScreen(
 
     // Displayed beans
     val displayedBeans = when {
+        isSearching && showFavoritesOnly -> searchResults.filter { it.isFavorite }
         isSearching -> searchResults
         showArchivedOnly && showFavoritesOnly -> archivedBeans.filter { it.isFavorite }
         showArchivedOnly -> archivedBeans
@@ -184,6 +186,13 @@ fun BeanListScreen(
                 },
                 actions = {
                     if (!isSelectionMode && !isReorderMode) {
+                        IconButton(onClick = { viewModel.setShowFavoritesOnly(!showFavoritesOnly) }) {
+                            Icon(
+                                imageVector = if (showFavoritesOnly) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = if (showFavoritesOnly) "取消收藏筛选" else "仅看收藏",
+                                tint = if (showFavoritesOnly) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                         IconButton(onClick = { isSearchMode = !isSearchMode }) {
                             Icon(Icons.Default.Search, contentDescription = "搜索")
                         }
@@ -295,6 +304,25 @@ fun BeanListScreen(
                 )
             }
 
+            // 固定的生命周期 Tab（不随列表滚动，全宽）
+            if (!isReorderMode && !isSearching && beans.isNotEmpty()) {
+                TabRow(
+                    selectedTabIndex = if (showArchivedOnly) 1 else 0,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Tab(
+                        selected = !showArchivedOnly,
+                        onClick = { viewModel.setShowArchivedOnly(false) },
+                        text = { Text("在喝") }
+                    )
+                    Tab(
+                        selected = showArchivedOnly,
+                        onClick = { viewModel.setShowArchivedOnly(true) },
+                        text = { Text("已归档") }
+                    )
+                }
+            }
+
             if (beans.isEmpty() && !isReorderMode && !isSearching) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("还没有咖啡豆\n点击 + 开始记录", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -307,34 +335,6 @@ fun BeanListScreen(
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     if (!isReorderMode) {
-                        item {
-                            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(
-                                    selected = !showFavoritesOnly && !showArchivedOnly && !isSearching,
-                                    onClick = { viewModel.setShowFavoritesOnly(false); viewModel.setShowArchivedOnly(false) },
-                                    label = { Text("全部") }
-                                )
-                                FilterChip(
-                                    selected = showFavoritesOnly && !isSearching,
-                                    onClick = {
-                                        if (showArchivedOnly) viewModel.setShowArchivedOnly(false)
-                                        viewModel.setShowFavoritesOnly(!showFavoritesOnly)
-                                    },
-                                    label = { Text("❤ 收藏") },
-                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.errorContainer)
-                                )
-                                FilterChip(
-                                    selected = showArchivedOnly && !isSearching,
-                                    onClick = {
-                                        if (showFavoritesOnly) viewModel.setShowFavoritesOnly(false)
-                                        viewModel.setShowArchivedOnly(!showArchivedOnly)
-                                    },
-                                    label = { Text("📁 归档") },
-                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer)
-                                )
-                            }
-                        }
-
                         if (displayedBeans.isEmpty()) {
                             item {
                                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
