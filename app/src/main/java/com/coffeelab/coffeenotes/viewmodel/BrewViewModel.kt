@@ -7,6 +7,7 @@ import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -46,8 +47,11 @@ class BrewViewModel(application: Application) : AndroidViewModel(application) {
 
     // ===== Records =====
 
+    private var recordsJob: Job? = null
+
     fun loadRecordsForBean(beanId: Long) {
-        viewModelScope.launch {
+        recordsJob?.cancel()
+        recordsJob = viewModelScope.launch {
             repository.getRecordsForBean(beanId).collect { records ->
                 _recordsForBean.value = records
             }

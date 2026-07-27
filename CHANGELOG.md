@@ -1,3 +1,16 @@
+## v2.7.2 (2026-07-28)
+
+### Bug 修复：稳定性
+
+- 修复 Flow collect 泄漏：BeanViewModel 的 loadImpressionTags/loadTags、BrewViewModel 的 loadRecordsForBean 加 Job 字段，调用前取消旧 collector，避免详情页 ON_RESUME 重复调用导致 collector 堆积泄漏
+- 修复主线程重像素运算：runKeywordRecognition 的 detectBlur + OCR 识别用 withContext(Dispatchers.Default) 切到后台线程，消除 ANR 风险，StateFlow 设置仍回主线程
+- 修复备份资源未关闭：导出 ZIP 的 ZipOutputStream 改用 use 自动关闭，openOutputStream 返回 null 时抛异常而非 NPE；导入的 inputStream 改用 use 自动关闭
+
+### 版本信息
+
+- versionCode: 79 → 80
+- versionName: 2.7.1 → 2.7.2
+
 ## v2.7.1 (2026-07-27)
 
 ### Bug 修复：数据安全

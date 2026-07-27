@@ -152,34 +152,35 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 val manifestJson = gson.toJson(manifest)
 
                 // Write ZIP
-                val zos = ZipOutputStream(context.contentResolver.openOutputStream(uri))
+                val os = context.contentResolver.openOutputStream(uri)
+                    ?: throw IOException("无法写入备份文件")
+                ZipOutputStream(os).use { zos ->
+                    // Write manifest.json
+                    zos.putNextEntry(ZipEntry(MANIFEST_FILE))
+                    zos.write(manifestJson.toByteArray(Charsets.UTF_8))
+                    zos.closeEntry()
 
-                // Write manifest.json
-                zos.putNextEntry(ZipEntry(MANIFEST_FILE))
-                zos.write(manifestJson.toByteArray(Charsets.UTF_8))
-                zos.closeEntry()
+                    // Write data.json
+                    zos.putNextEntry(ZipEntry(DATA_FILE))
+                    zos.write(dataJson.toByteArray(Charsets.UTF_8))
+                    zos.closeEntry()
 
-                // Write data.json
-                zos.putNextEntry(ZipEntry(DATA_FILE))
-                zos.write(dataJson.toByteArray(Charsets.UTF_8))
-                zos.closeEntry()
-
-                // Write bean photos
-                val photosDir = ImageUtils.getBeanPhotosDir(context)
-                if (photosDir.exists()) {
-                    photosDir.listFiles()?.forEach { file ->
-                        if (file.isFile && file.name.endsWith(".jpg")) {
-                            zos.putNextEntry(ZipEntry("$BEAN_PHOTOS_DIR/${file.name}"))
-                            FileInputStream(file).use { fis ->
-                                fis.copyTo(zos)
+                    // Write bean photos
+                    val photosDir = ImageUtils.getBeanPhotosDir(context)
+                    if (photosDir.exists()) {
+                        photosDir.listFiles()?.forEach { file ->
+                            if (file.isFile && file.name.endsWith(".jpg")) {
+                                zos.putNextEntry(ZipEntry("$BEAN_PHOTOS_DIR/${file.name}"))
+                                FileInputStream(file).use { fis ->
+                                    fis.copyTo(zos)
+                                }
+                                zos.closeEntry()
                             }
-                            zos.closeEntry()
                         }
                     }
-                }
 
-                zos.finish()
-                zos.close()
+                    zos.finish()
+                }
 
                 withContext(Dispatchers.Main) {
                     _backupState.value = BackupState.Success(
@@ -201,12 +202,9 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
 
         try {
             withContext(Dispatchers.IO) {
-                val inputStream = context.contentResolver.openInputStream(uri)
+                // Read all bytes first to detect format (use 自动关闭)
+                val allBytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     ?: throw IOException("无法打开文件")
-
-                // Read all bytes first to detect format
-                val allBytes = inputStream.readBytes()
-                inputStream.close()
 
                 var manifestContent: String? = null
                 var dataContent: String? = null

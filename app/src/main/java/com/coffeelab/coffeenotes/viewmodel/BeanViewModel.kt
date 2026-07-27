@@ -17,8 +17,11 @@ import com.coffeelab.coffeenotes.util.OCRProcessor
 import com.coffeelab.coffeenotes.util.OCRResult
 import com.coffeelab.coffeenotes.util.engine.KeywordRecognitionEngine
 import com.coffeelab.coffeenotes.util.engine.RecognitionResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class BeanViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -121,8 +124,12 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private var impressionTagsJob: Job? = null
+    private var tagsJob: Job? = null
+
     fun loadImpressionTags(beanId: Long) {
-        viewModelScope.launch {
+        impressionTagsJob?.cancel()
+        impressionTagsJob = viewModelScope.launch {
             repository.getImpressionTagsForBean(beanId).collect { tags ->
                 _impressionTags.value = tags
             }
@@ -130,7 +137,8 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadTags(beanId: Long) {
-        viewModelScope.launch {
+        tagsJob?.cancel()
+        tagsJob = viewModelScope.launch {
             repository.getTagsForBean(beanId).collect { tagEntities ->
                 _tags.value = tagEntities.map { it.name }
             }
@@ -217,14 +225,17 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
             _recognitionProcessing.value = true
             _blurWarning.value = false
             try {
-                val blurScore = BitmapLoader.detectBlur(bitmap)
+                val (blurScore, result) = withContext(Dispatchers.Default) {
+                    val blurScore = BitmapLoader.detectBlur(bitmap)
+                    // 拉取历史 OCR 纠错，传给引擎做后处理替换
+                    val corrections = AppDatabase.getInstance(getApplication())
+                        .ocrCorrectionDao().getAllOnce()
+                    val result = keywordEngine.recognize(bitmap, corrections)
+                    blurScore to result
+                }
                 if (blurScore < 60f) {
                     _blurWarning.value = true
                 }
-                // 拉取历史 OCR 纠错，传给引擎做后处理替换
-                val corrections = AppDatabase.getInstance(getApplication())
-                    .ocrCorrectionDao().getAllOnce()
-                val result = keywordEngine.recognize(bitmap, corrections)
                 _recognitionResult.value = result
             } catch (e: Exception) {
                 _recognitionResult.value = RecognitionResult(success = false, rawResponse = "识别出错: ${e.message}", engineName = "本地关键词")
