@@ -326,7 +326,7 @@ fun BrewListScreen(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filteredRecords.take(visibleCount), contentType = { "record" }) { record ->
+                    items(filteredRecords.take(visibleCount), key = { it.id }, contentType = { "record" }) { record ->
                         val beanName = beans.find { it.id == record.beanId }?.let {
                             "${it.roaster} - ${it.name}"
                         } ?: record.beanRoaster.let { if (it.isNotEmpty()) "$it - ${record.beanName}" else "未知豆子" }

@@ -217,7 +217,13 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
-                        items(mixedResults, contentType = { item ->
+                        items(mixedResults, key = { item ->
+                            when (item) {
+                                is CoffeeBean -> "bean_${item.id}"
+                                is BrewRecord -> "record_${item.id}"
+                                else -> "unknown_${item.hashCode()}"
+                            }
+                        }, contentType = { item ->
                             when (item) {
                                 is CoffeeBean -> "bean"
                                 is BrewRecord -> "record"

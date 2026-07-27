@@ -571,7 +571,7 @@ fun BeanDetailScreen(
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
-                    items(records) { record ->
+                    items(records, key = { it.id }) { record ->
                         RecordCard(
                             record = record,
                             beanName = bean?.name ?: "",

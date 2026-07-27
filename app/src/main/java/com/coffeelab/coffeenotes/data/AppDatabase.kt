@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
         OcrCorrection::class
     ],
     version = 20,
-    exportSchema = false
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

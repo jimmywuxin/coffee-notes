@@ -13,8 +13,8 @@ android {
         applicationId = "com.coffeelab.coffeenotes"
         minSdk = 30
         targetSdk = 35
-        versionCode = 80
-        versionName = "2.7.2"
+        versionCode = 81
+        versionName = "2.7.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -52,6 +52,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {

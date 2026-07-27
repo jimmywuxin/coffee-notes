@@ -1,0 +1,1012 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 20,
+    "identityHash": "89703058b4a1de1f0b827646888b1930",
+    "entities": [
+      {
+        "tableName": "coffee_beans",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `roaster` TEXT NOT NULL, `name` TEXT NOT NULL, `origin` TEXT NOT NULL, `region` TEXT NOT NULL, `estate` TEXT NOT NULL, `variety` TEXT NOT NULL, `process` TEXT NOT NULL, `roastLevel` TEXT NOT NULL, `grindSize` TEXT NOT NULL, `roastDate` INTEGER, `notes` TEXT NOT NULL, `localPhotoPaths` TEXT NOT NULL, `imageUri` TEXT NOT NULL, `isFavorite` INTEGER NOT NULL, `isArchived` INTEGER NOT NULL, `sortOrder` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `extractionMethod` TEXT, `dose` REAL, `brewRatio` TEXT, `waterAmount` REAL, `brewTime` INTEGER, `waterTemp` INTEGER, `pouringDurationSeconds` INTEGER, `restDays` INTEGER, `peakFlavorDays` INTEGER, `stockResetAt` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roaster",
+            "columnName": "roaster",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origin",
+            "columnName": "origin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "region",
+            "columnName": "region",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estate",
+            "columnName": "estate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "variety",
+            "columnName": "variety",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "process",
+            "columnName": "process",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roastLevel",
+            "columnName": "roastLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "grindSize",
+            "columnName": "grindSize",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roastDate",
+            "columnName": "roastDate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localPhotoPaths",
+            "columnName": "localPhotoPaths",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "imageUri",
+            "columnName": "imageUri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isFavorite",
+            "columnName": "isFavorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "isArchived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extractionMethod",
+            "columnName": "extractionMethod",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dose",
+            "columnName": "dose",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "brewRatio",
+            "columnName": "brewRatio",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "waterAmount",
+            "columnName": "waterAmount",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "brewTime",
+            "columnName": "brewTime",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "waterTemp",
+            "columnName": "waterTemp",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pouringDurationSeconds",
+            "columnName": "pouringDurationSeconds",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "restDays",
+            "columnName": "restDays",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "peakFlavorDays",
+            "columnName": "peakFlavorDays",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "stockResetAt",
+            "columnName": "stockResetAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "flavor_tags",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `beanId` INTEGER NOT NULL, `name` TEXT NOT NULL, FOREIGN KEY(`beanId`) REFERENCES `coffee_beans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "beanId",
+            "columnName": "beanId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_flavor_tags_beanId",
+            "unique": false,
+            "columnNames": [
+              "beanId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_flavor_tags_beanId` ON `${TABLE_NAME}` (`beanId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "coffee_beans",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "beanId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "brew_records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `beanId` INTEGER NOT NULL, `methodId` INTEGER, `dateTime` INTEGER NOT NULL, `equipmentId` INTEGER, `coffeeWeight` REAL NOT NULL, `coffeeWaterRatio` REAL NOT NULL, `waterAmount` REAL NOT NULL, `waterTemp` REAL NOT NULL, `grindSize` TEXT NOT NULL, `grinderId` INTEGER, `extractionTime` INTEGER NOT NULL, `pouringDurationSeconds` INTEGER, `acidity` INTEGER NOT NULL, `sweetness` INTEGER NOT NULL, `bitterness` INTEGER NOT NULL, `mouthfeel` INTEGER NOT NULL, `aftertaste` INTEGER NOT NULL, `overallRating` INTEGER NOT NULL, `flavorNotes` TEXT NOT NULL, `imageUri` TEXT NOT NULL, `isIced` INTEGER NOT NULL, `iceAmount` INTEGER NOT NULL, `bypassAmount` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`beanId`) REFERENCES `coffee_beans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`equipmentId`) REFERENCES `equipment`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`grinderId`) REFERENCES `grinders`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "beanId",
+            "columnName": "beanId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "methodId",
+            "columnName": "methodId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dateTime",
+            "columnName": "dateTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "equipmentId",
+            "columnName": "equipmentId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "coffeeWeight",
+            "columnName": "coffeeWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coffeeWaterRatio",
+            "columnName": "coffeeWaterRatio",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "waterAmount",
+            "columnName": "waterAmount",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "waterTemp",
+            "columnName": "waterTemp",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "grindSize",
+            "columnName": "grindSize",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "grinderId",
+            "columnName": "grinderId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "extractionTime",
+            "columnName": "extractionTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pouringDurationSeconds",
+            "columnName": "pouringDurationSeconds",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "acidity",
+            "columnName": "acidity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sweetness",
+            "columnName": "sweetness",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bitterness",
+            "columnName": "bitterness",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mouthfeel",
+            "columnName": "mouthfeel",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aftertaste",
+            "columnName": "aftertaste",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "overallRating",
+            "columnName": "overallRating",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "flavorNotes",
+            "columnName": "flavorNotes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "imageUri",
+            "columnName": "imageUri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isIced",
+            "columnName": "isIced",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "iceAmount",
+            "columnName": "iceAmount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bypassAmount",
+            "columnName": "bypassAmount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_brew_records_beanId",
+            "unique": false,
+            "columnNames": [
+              "beanId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_brew_records_beanId` ON `${TABLE_NAME}` (`beanId`)"
+          },
+          {
+            "name": "index_brew_records_equipmentId",
+            "unique": false,
+            "columnNames": [
+              "equipmentId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_brew_records_equipmentId` ON `${TABLE_NAME}` (`equipmentId`)"
+          },
+          {
+            "name": "index_brew_records_grinderId",
+            "unique": false,
+            "columnNames": [
+              "grinderId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_brew_records_grinderId` ON `${TABLE_NAME}` (`grinderId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "coffee_beans",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "beanId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "equipment",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "equipmentId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "grinders",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "grinderId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "brew_methods",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `isPreset` INTEGER NOT NULL, `steps` TEXT, `coffeeWeight` REAL, `coffeeWaterRatio` REAL, `waterTemp` INTEGER, `sortOrder` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPreset",
+            "columnName": "isPreset",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "steps",
+            "columnName": "steps",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "coffeeWeight",
+            "columnName": "coffeeWeight",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "coffeeWaterRatio",
+            "columnName": "coffeeWaterRatio",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "waterTemp",
+            "columnName": "waterTemp",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "equipment",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `sortOrder` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "grinders",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `sortOrder` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "roast_degrees",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `sortOrder` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "process_methods",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `sortOrder` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "rest_period_configs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `roastDegreeId` INTEGER NOT NULL, `restDays` INTEGER NOT NULL, FOREIGN KEY(`roastDegreeId`) REFERENCES `roast_degrees`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roastDegreeId",
+            "columnName": "roastDegreeId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "restDays",
+            "columnName": "restDays",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_rest_period_configs_roastDegreeId",
+            "unique": false,
+            "columnNames": [
+              "roastDegreeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_rest_period_configs_roastDegreeId` ON `${TABLE_NAME}` (`roastDegreeId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "roast_degrees",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "roastDegreeId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "peak_flavor_configs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `roastDegreeId` INTEGER NOT NULL, `peakFlavorDays` INTEGER NOT NULL, FOREIGN KEY(`roastDegreeId`) REFERENCES `roast_degrees`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roastDegreeId",
+            "columnName": "roastDegreeId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "peakFlavorDays",
+            "columnName": "peakFlavorDays",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_peak_flavor_configs_roastDegreeId",
+            "unique": false,
+            "columnNames": [
+              "roastDegreeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_peak_flavor_configs_roastDegreeId` ON `${TABLE_NAME}` (`roastDegreeId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "roast_degrees",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "roastDegreeId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "purchase_records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `beanId` INTEGER NOT NULL, `date` INTEGER NOT NULL, `weightGrams` INTEGER NOT NULL, `price` REAL NOT NULL, `roastDate` INTEGER, FOREIGN KEY(`beanId`) REFERENCES `coffee_beans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "beanId",
+            "columnName": "beanId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weightGrams",
+            "columnName": "weightGrams",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "price",
+            "columnName": "price",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roastDate",
+            "columnName": "roastDate",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_purchase_records_beanId",
+            "unique": false,
+            "columnNames": [
+              "beanId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_purchase_records_beanId` ON `${TABLE_NAME}` (`beanId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "coffee_beans",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "beanId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "impression_tags",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `sortOrder` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "bean_impression_tags",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `beanId` INTEGER NOT NULL, `tagId` INTEGER NOT NULL, FOREIGN KEY(`beanId`) REFERENCES `coffee_beans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`tagId`) REFERENCES `impression_tags`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "beanId",
+            "columnName": "beanId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tagId",
+            "columnName": "tagId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_bean_impression_tags_beanId",
+            "unique": false,
+            "columnNames": [
+              "beanId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_bean_impression_tags_beanId` ON `${TABLE_NAME}` (`beanId`)"
+          },
+          {
+            "name": "index_bean_impression_tags_tagId",
+            "unique": false,
+            "columnNames": [
+              "tagId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_bean_impression_tags_tagId` ON `${TABLE_NAME}` (`tagId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "coffee_beans",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "beanId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "impression_tags",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tagId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "ocr_corrections",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `field` TEXT NOT NULL, `ocrRaw` TEXT NOT NULL, `userValue` TEXT NOT NULL, `beanId` INTEGER, `hitCount` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "field",
+            "columnName": "field",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ocrRaw",
+            "columnName": "ocrRaw",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userValue",
+            "columnName": "userValue",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "beanId",
+            "columnName": "beanId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "hitCount",
+            "columnName": "hitCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_ocr_corrections_field_ocrRaw",
+            "unique": true,
+            "columnNames": [
+              "field",
+              "ocrRaw"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_ocr_corrections_field_ocrRaw` ON `${TABLE_NAME}` (`field`, `ocrRaw`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '89703058b4a1de1f0b827646888b1930')"
+    ]
+  }
+}

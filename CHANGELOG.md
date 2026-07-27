@@ -1,3 +1,15 @@
+## v2.7.3 (2026-07-28)
+
+### 改进：性能与可维护性
+
+- LazyColumn 列表加 key：BeanDetailScreen 冲煮记录、BrewListScreen 冲煮列表、HomeScreen 混合列表加 `key = { it.id }`，列表增删时避免全量重组，动画流畅、滚动位置稳定
+- 开启 Room exportSchema：生成 schema JSON 入仓库，未来可做迁移回归测试，防止再出现 extractionMethod 那样的迁移遗漏
+
+### 版本信息
+
+- versionCode: 80 → 81
+- versionName: 2.7.2 → 2.7.3
+
 ## v2.7.2 (2026-07-28)
 
 ### Bug 修复：稳定性
