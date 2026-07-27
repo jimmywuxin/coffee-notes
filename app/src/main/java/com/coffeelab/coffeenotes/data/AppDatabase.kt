@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
         BeanImpressionTag::class,
         OcrCorrection::class
     ],
-    version = 19,
+    version = 20,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -61,7 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "coffee_notes.db"
                 )
                     .addMigrations(*AppDatabaseMigrations.ALL)
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigrationOnDowngrade()
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)

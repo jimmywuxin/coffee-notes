@@ -1,3 +1,17 @@
+## v2.7.1 (2026-07-27)
+
+### Bug 修复：数据安全
+
+- 补 extractionMethod 列迁移（MIGRATION_19_20）：MIGRATION_5_6 当年漏加此列，老用户数据库缺列会触发 Room 查询崩溃；迁移采用防御性写法，先查 pragma_table_info 判断列是否存在再 ALTER，避免 fallback 重建过的库报 duplicate column
+- 收紧迁移失败策略：`fallbackToDestructiveMigration` 改为 `fallbackToDestructiveMigrationOnDowngrade`，升级迁移失败不再静默清库而是抛异常暴露问题，仅降级时允许清库
+- importBackup 恢复流程加事务保护：用 `db.withTransaction` 包裹 deleteAll + 全部插入，中途异常整体回滚，避免「旧数据已删、新数据未写完」的半残状态
+
+### 版本信息
+
+- database version: 19 → 20
+- versionCode: 78 → 79
+- versionName: 2.7.0 → 2.7.1
+
 ## v2.7.0 (2026-07-26)
 
 ### 改进：豆子列表筛选重构

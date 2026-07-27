@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.withTransaction
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.*
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
@@ -311,6 +312,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 val purchaseRecordDao = db.purchaseRecordDao()
                 val impressionTagDao = db.impressionTagDao()
 
+                db.withTransaction {
                 // Delete in FK-safe order: child/assoc tables first, then parent tables
                 recordDao.deleteAll()
                 purchaseRecordDao.deleteAll()
@@ -597,6 +599,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         roastDate = roastDate
                     ))
                 }
+                } // end withTransaction
 
                 val counts: Map<*, *> = if (manifestContent != null) {
                     try {

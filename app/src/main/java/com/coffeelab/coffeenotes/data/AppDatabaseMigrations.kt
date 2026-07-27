@@ -276,10 +276,22 @@ object AppDatabaseMigrations {
         }
     }
 
+    // Migration from v19 → v20: 补 extractionMethod 列（MIGRATION_5_6 当年漏加，老用户数据库缺此列）
+    // 防御性检查：若数据库曾因 fallback 重建已含此列，则跳过，避免 duplicate column 报错
+    private val MIGRATION_19_20 = object : Migration(19, 20) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            val cursor = db.query("SELECT COUNT(*) FROM pragma_table_info('coffee_beans') WHERE name='extractionMethod'")
+            val exists = cursor.use { it.moveToFirst() && it.getInt(0) > 0 }
+            if (!exists) {
+                db.execSQL("ALTER TABLE coffee_beans ADD COLUMN extractionMethod TEXT")
+            }
+        }
+    }
+
     val ALL = arrayOf(
         MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
         MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12,
         MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-        MIGRATION_17_18, MIGRATION_18_19
+        MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20
     )
 }
