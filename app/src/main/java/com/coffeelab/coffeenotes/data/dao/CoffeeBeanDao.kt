@@ -38,6 +38,7 @@ interface CoffeeBeanDao {
         SELECT DISTINCT cb.* FROM coffee_beans cb
         LEFT JOIN bean_impression_tags bit ON cb.id = bit.beanId
         LEFT JOIN impression_tags it ON bit.tagId = it.id
+        LEFT JOIN flavor_tags ft ON cb.id = ft.beanId
         WHERE cb.roaster LIKE '%' || :query || '%'
            OR cb.name LIKE '%' || :query || '%'
            OR cb.origin LIKE '%' || :query || '%'
@@ -48,6 +49,7 @@ interface CoffeeBeanDao {
            OR cb.roastLevel LIKE '%' || :query || '%'
            OR cb.notes LIKE '%' || :query || '%'
            OR it.name LIKE '%' || :query || '%'
+           OR ft.name LIKE '%' || :query || '%'
         ORDER BY cb.updatedAt DESC
     """)
     fun searchBeansFull(query: String): Flow<List<CoffeeBean>>
