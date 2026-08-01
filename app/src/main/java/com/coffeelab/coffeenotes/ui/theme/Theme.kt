@@ -49,9 +49,11 @@ private val LightColorScheme = lightColorScheme(
     outline = Outline,
     outlineVariant = OutlineVariant,
 
-    // 错误色
+    // 错误色（暖红系）
     error = Error,
-    onError = OnError
+    onError = OnError,
+    errorContainer = ErrorContainer,
+    onErrorContainer = OnErrorContainer
 )
 
 // ============================================================
@@ -84,7 +86,9 @@ private val DarkColorScheme = darkColorScheme(
     outlineVariant = Color(0xFF353230),
 
     error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005)
+    onError = Color(0xFF690005),
+    errorContainer = DarkErrorContainer,
+    onErrorContainer = DarkOnErrorContainer
 )
 
 // ============================================================

@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.MainActivity
@@ -52,184 +53,115 @@ fun SettingsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
+            // ===== 数据 =====
             item {
-                Text(
-                    text = "数据",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
+                SettingsGroup(title = "数据") {
+                    SettingsItem(
+                        icon = Icons.Default.Download,
+                        title = "备份",
+                        subtitle = "导出数据到本地文件",
+                        onClick = { navController.navigate(Screen.Backup.route) }
+                    )
+                }
             }
 
+            // ===== 显示 =====
             item {
-                SettingsItem(
-                    icon = Icons.Default.Download,
-                    title = "备份",
-                    subtitle = "导出数据到本地文件",
-                    onClick = { navController.navigate(Screen.Backup.route) }
-                )
+                SettingsGroup(title = "显示") {
+                    SettingsItem(
+                        icon = Icons.Default.BrightnessAuto,
+                        title = "显示模式",
+                        subtitle = when (currentMode) {
+                            "light" -> "浅色模式"
+                            "dark" -> "深色模式"
+                            else -> "跟随系统"
+                        },
+                        onClick = { navController.navigate(Screen.DisplayTheme.route) }
+                    )
+                }
             }
 
+            // ===== 工具 =====
             item {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                SettingsGroup(title = "工具") {
+                    SettingsItem(
+                        icon = Icons.Default.Analytics,
+                        title = "统计总览",
+                        subtitle = "查看冲煮数据统计",
+                        onClick = { navController.navigate(Screen.Stats.createRoute()) }
+                    )
+                    SettingsItem(
+                        icon = Icons.Default.AccountTree,
+                        title = "冲煮手法管理",
+                        subtitle = "添加或编辑冲煮手法",
+                        onClick = { navController.navigate(Screen.BrewMethodList.route) }
+                    )
+                    SettingsItem(
+                        icon = Icons.Default.LocalCafe,
+                        title = "器具管理",
+                        subtitle = "添加或编辑咖啡器具",
+                        onClick = { navController.navigate(Screen.EquipmentManagement.route) }
+                    )
+                    SettingsItem(
+                        icon = Icons.Default.Refresh,
+                        title = "磨豆机管理",
+                        subtitle = "添加或编辑磨豆机",
+                        onClick = { navController.navigate(Screen.GrinderManagement.route) }
+                    )
+                }
             }
 
+            // ===== 咖啡豆工具 =====
             item {
-                Text(
-                    text = "显示",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
+                SettingsGroup(title = "咖啡豆工具") {
+                    SettingsItem(
+                        icon = Icons.Default.Label,
+                        title = "印象标签管理",
+                        subtitle = "管理自定义印象标签",
+                        onClick = { navController.navigate(Screen.ImpressionTagManagement.route) }
+                    )
+                    SettingsItem(
+                        icon = Icons.Default.LocalFireDepartment,
+                        title = "烘焙度配置",
+                        subtitle = "管理烘焙度、养豆期和赏味期",
+                        onClick = { navController.navigate(Screen.RoastDegreeConfigManagement.route) }
+                    )
+                    SettingsItem(
+                        icon = Icons.Default.WaterDrop,
+                        title = "处理法管理",
+                        subtitle = "管理咖啡豆处理方式",
+                        onClick = { navController.navigate(Screen.ProcessMethodManagement.route) }
+                    )
+                }
             }
 
+            // ===== 关于 =====
             item {
-                SettingsItem(
-                    icon = Icons.Default.BrightnessAuto,
-                    title = "显示模式",
-                    subtitle = when (currentMode) {
-                        "light" -> "浅色模式"
-                        "dark" -> "深色模式"
-                        else -> "跟随系统"
-                    },
-                    onClick = { navController.navigate(Screen.DisplayTheme.route) }
-                )
+                SettingsGroup(title = "关于") {
+                    SettingsItem(
+                        icon = Icons.Default.Info,
+                        title = "关于咖啡笔记",
+                        subtitle = "版本信息与应用介绍",
+                        onClick = { navController.navigate(Screen.About.route) }
+                    )
+                }
             }
 
+            // ===== 危险区域 =====
             item {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            }
-
-            item {
-                Text(
-                    text = "工具",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Analytics,
-                    title = "统计总览",
-                    subtitle = "查看冲煮数据统计",
-                    onClick = { navController.navigate(Screen.Stats.createRoute()) }
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.AccountTree,
-                    title = "冲煮手法管理",
-                    subtitle = "添加或编辑冲煮手法",
-                    onClick = { navController.navigate(Screen.BrewMethodList.route) }
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.LocalCafe,
-                    title = "器具管理",
-                    subtitle = "添加或编辑咖啡器具",
-                    onClick = { navController.navigate(Screen.EquipmentManagement.route) }
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Refresh,
-                    title = "磨豆机管理",
-                    subtitle = "添加或编辑磨豆机",
-                    onClick = { navController.navigate(Screen.GrinderManagement.route) }
-                )
-            }
-
-            item {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            }
-
-            item {
-                Text(
-                    text = "咖啡豆工具",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Label,
-                    title = "印象标签管理",
-                    subtitle = "管理自定义印象标签",
-                    onClick = { navController.navigate(Screen.ImpressionTagManagement.route) }
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.LocalFireDepartment,
-                    title = "烘焙度配置",
-                    subtitle = "管理烘焙度、养豆期和赏味期",
-                    onClick = { navController.navigate(Screen.RoastDegreeConfigManagement.route) }
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.WaterDrop,
-                    title = "处理法管理",
-                    subtitle = "管理咖啡豆处理方式",
-                    onClick = { navController.navigate(Screen.ProcessMethodManagement.route) }
-                )
-            }
-
-            item {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            }
-
-            item {
-                Text(
-                    text = "关于",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Info,
-                    title = "关于咖啡笔记",
-                    subtitle = "版本信息与应用介绍",
-                    onClick = { navController.navigate(Screen.About.route) }
-                )
-            }
-
-            item {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            }
-
-            item {
-                Text(
-                    text = "危险区域",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.DeleteForever,
-                    title = "清空所有数据",
-                    subtitle = "删除所有咖啡豆、冲煮记录和手法",
-                    onClick = { showClearDataDialog = true },
-                    isDestructive = true
-                )
+                SettingsGroup(title = "危险区域", isDestructive = true) {
+                    SettingsItem(
+                        icon = Icons.Default.DeleteForever,
+                        title = "清空所有数据",
+                        subtitle = "删除所有咖啡豆、冲煮记录和手法",
+                        onClick = { showClearDataDialog = true },
+                        isDestructive = true
+                    )
+                }
             }
         }
     }
@@ -330,6 +262,36 @@ fun SettingsItem(
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+/**
+ * 设置分组：13sp/Medium 分组标题 + 白色圆角卡片容器（无硬线分割）。
+ * 符合 UI_STYLE_GUIDE 7.3：设置项白卡、圆角18dp、间距14dp。
+ */
+@Composable
+private fun SettingsGroup(
+    title: String,
+    isDestructive: Boolean = false,
+    items: @Composable ColumnScope.() -> Unit
+) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+        color = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+    )
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = 1.dp
+    ) {
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            items()
+        }
     }
 }
 

@@ -34,8 +34,12 @@ val TextHint = Color(0xFFC0BCB8)          // 浅灰（占位符/hint）
 // --- 边框/分割线 ---
 val BorderLight = Color(0xFFE8E4DE)       // 微暖灰（极淡边框）
 
-// --- 危险色 ---
+// --- 危险色（暖红系，低饱和日系感）---
 val DangerMuted = Color(0xFFC07070)       // 降低饱和度的危险红
+val ErrorContainer = Color(0xFFF2DDDD)    // 暖粉底（低库存/警示卡片背景）
+val OnErrorContainer = Color(0xFF6B3030)  // 深红棕（警示卡片上的文字）
+val DarkErrorContainer = Color(0xFF4A2E2E)    // 深色模式暖红底
+val DarkOnErrorContainer = Color(0xFFE8B8B8)  // 深色模式警示文字
 
 // ============================================================
 // 语义色映射（适配 MaterialTheme colorScheme）
