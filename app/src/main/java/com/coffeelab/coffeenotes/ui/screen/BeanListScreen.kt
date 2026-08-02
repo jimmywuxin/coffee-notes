@@ -69,9 +69,6 @@ fun BeanListScreen(
     // beanId -> (平均评分, 评分次数)
     var beanRatingsMap by remember { mutableStateOf<Map<Long, Pair<Double, Int>>>(emptyMap()) }
 
-    // ===== 随机选豆 =====
-    var showRandomPicker by remember { mutableStateOf(false) }
-
     LaunchedEffect(isSearchMode) {
         if (isSearchMode) {
             try { focusRequester.requestFocus() } catch (_: Exception) {}
@@ -238,10 +235,6 @@ fun BeanListScreen(
                                     onClick = { sortMode = BeanSortMode.COUNT_DESC; showSortMenu = false }
                                 )
                                 HorizontalDivider()
-                                DropdownMenuItem(
-                                    text = { Text("🎲 随机选豆") },
-                                    onClick = { showSortMenu = false; showRandomPicker = true }
-                                )
                                 DropdownMenuItem(
                                     text = { Text("拖动排序") },
                                     onClick = { showSortMenu = false; isReorderMode = true }
@@ -492,73 +485,6 @@ fun BeanListScreen(
             dismissButton = { TextButton(onClick = { showUnarchiveDialog = null }) { Text("取消") } }
         )
     }
-
-    // 随机选豆 Dialog
-    if (showRandomPicker) {
-        RandomBeanPickerDialog(
-            beans = if (showArchivedOnly) archivedBeans else beans,
-            onDismiss = { showRandomPicker = false },
-            onPick = { navController.navigate(Screen.BeanDetail.createRoute(it.id)) }
-        )
-    }
-}
-
-/**
- * 随机选豆弹窗：从给定豆子列表中随机挑一包展示，可重新随机或直接进入详情。
- */
-@Composable
-private fun RandomBeanPickerDialog(
-    beans: List<CoffeeBean>,
-    onDismiss: () -> Unit,
-    onPick: (CoffeeBean) -> Unit
-) {
-    val activeBeans = beans.filter { !it.isArchived }
-    val pool = if (activeBeans.isNotEmpty()) activeBeans else beans
-    var current by remember { mutableStateOf(pool.randomOrNull()) }
-    val selected = current
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("🎲 随机选豆") },
-        text = {
-            if (pool.isEmpty()) {
-                Text("没有可选的豆子")
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = selected?.let { "${it.roaster} ${it.name}" } ?: "",
-                        style = MaterialTheme.typography.titleLarge,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = selected?.let { bean ->
-                            listOfNotNull(
-                                bean.origin.ifEmpty { null },
-                                bean.process.ifEmpty { null },
-                                bean.roastLevel.ifEmpty { null }
-                            ).joinToString(" · ")
-                        } ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            if (pool.isNotEmpty()) {
-                TextButton(onClick = { current = pool.randomOrNull() }) { Text("换一个") }
-            }
-        },
-        dismissButton = {
-            if (pool.isNotEmpty()) {
-                TextButton(onClick = { selected?.let(onPick) }) { Text("就喝这包") }
-            } else {
-                TextButton(onClick = onDismiss) { Text("知道了") }
-            }
-        }
-    )
 }
 
 @Composable

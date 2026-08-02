@@ -25,6 +25,7 @@ import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.ui.component.BeanCard
 import com.coffeelab.coffeenotes.ui.component.RecordCard
 import com.coffeelab.coffeenotes.ui.component.EmptyState
+import com.coffeelab.coffeenotes.ui.component.RandomBeanPickerDialog
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
@@ -51,6 +52,7 @@ fun HomeScreen(
     val isSearching by homeViewModel.isSearching.collectAsState(initial = false)
     val mixedResults by homeViewModel.mixedResults.collectAsState(initial = emptyList())
     val focusRequester = remember { FocusRequester() }
+    var showRandomPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(isSearchMode) {
         if (isSearchMode) {
@@ -403,16 +405,30 @@ fun HomeScreen(
                         }
                     }
 
-                    // Quick start button
+                    // Quick start + 随机选豆
                     item {
-                        Button(
-                            onClick = { navController.navigate(Screen.BrewEdit.createRoute()) },
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(Icons.Default.Coffee, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("开始冲煮", style = MaterialTheme.typography.titleMedium)
+                            Button(
+                                onClick = { navController.navigate(Screen.BrewEdit.createRoute()) },
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Icon(Icons.Default.Coffee, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("开始冲煮", style = MaterialTheme.typography.titleMedium)
+                            }
+                            OutlinedButton(
+                                onClick = { showRandomPicker = true },
+                                modifier = Modifier.weight(1f),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Icon(Icons.Default.Casino, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("随机选豆", style = MaterialTheme.typography.titleMedium)
+                            }
                         }
                     }
 
@@ -430,6 +446,15 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    // 随机选豆弹窗（只对在喝的豆子）
+    if (showRandomPicker) {
+        RandomBeanPickerDialog(
+            activeBeans = beans,
+            onDismiss = { showRandomPicker = false },
+            onPick = { navController.navigate(Screen.BeanDetail.createRoute(it.id)) }
+        )
     }
 }
 
