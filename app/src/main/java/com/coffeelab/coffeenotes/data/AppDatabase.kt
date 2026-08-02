@@ -28,9 +28,10 @@ import kotlinx.coroutines.launch
         PurchaseRecord::class,
         ImpressionTag::class,
         BeanImpressionTag::class,
-        OcrCorrection::class
+        OcrCorrection::class,
+        StockAdjustment::class
     ],
-    version = 20,
+    version = 21,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -48,6 +49,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun purchaseRecordDao(): PurchaseRecordDao
     abstract fun impressionTagDao(): ImpressionTagDao
     abstract fun ocrCorrectionDao(): OcrCorrectionDao
+    abstract fun stockAdjustmentDao(): StockAdjustmentDao
 
     companion object {
         @Volatile

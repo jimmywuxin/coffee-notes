@@ -203,6 +203,7 @@ fun SettingsScreen(
                                     db.peakFlavorConfigDao().deleteAll()
                                     db.purchaseRecordDao().deleteAll()
                                     db.impressionTagDao().deleteAll()
+                                    db.stockAdjustmentDao().deleteAll()
                                     showClearDataDialog = false
                                     showClearProgress = false
                                     navController.popBackStack()

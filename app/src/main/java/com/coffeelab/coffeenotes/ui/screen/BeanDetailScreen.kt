@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,9 +17,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -32,6 +36,7 @@ import com.coffeelab.coffeenotes.data.entity.ProcessMethod
 import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
 import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.data.entity.PurchaseRecord
+import com.coffeelab.coffeenotes.data.entity.StockAdjustment
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.ui.component.RecordCard
@@ -55,6 +60,7 @@ fun BeanDetailScreen(
     var purchaseRecords by remember { mutableStateOf<List<PurchaseRecord>>(emptyList()) }
     var inventory by remember { mutableStateOf<BeanInventory?>(null) }
     var showResetStockDialog by remember { mutableStateOf(false) }
+    var showAdjustStockDialog by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val refreshScope = rememberCoroutineScope()
     
@@ -175,7 +181,8 @@ fun BeanDetailScreen(
                             contentDescription = "豆袋照片",
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp),
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(18.dp)),
                             contentScale = ContentScale.Crop
                         )
                     }
@@ -275,6 +282,7 @@ fun BeanDetailScreen(
                                                 .weight(1f)
                                                 .aspectRatio(1f)
                                                 .fillMaxWidth()
+                                                .clip(RoundedCornerShape(12.dp))
                                                 .clickable { selectedPhotoPath = photoPath },
                                             contentScale = ContentScale.Crop
                                         )
@@ -374,11 +382,19 @@ fun BeanDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text("库存", style = MaterialTheme.typography.titleMedium)
-                                    TextButton(
-                                        onClick = { showResetStockDialog = true },
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                                    ) {
-                                        Text("重置库存", style = MaterialTheme.typography.labelSmall)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        TextButton(
+                                            onClick = { showAdjustStockDialog = true },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                        ) {
+                                            Text("扣减", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                        TextButton(
+                                            onClick = { showResetStockDialog = true },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                        ) {
+                                            Text("重置库存", style = MaterialTheme.typography.labelSmall)
+                                        }
                                     }
                                 }
                                 Spacer(Modifier.height(12.dp))
@@ -596,6 +612,70 @@ fun BeanDetailScreen(
                 }
             }
         }
+    }
+
+    // Adjust Stock (快捷扣减) Dialog
+    if (showAdjustStockDialog && bean != null) {
+        var amountText by remember { mutableStateOf("") }
+        var noteText by remember { mutableStateOf("") }
+        val inv = inventory
+        val maxGrams = (inv?.remaining ?: 0.0).coerceAtLeast(0.0)
+        AlertDialog(
+            onDismissRequest = { showAdjustStockDialog = false },
+            title = { Text("扣减库存") },
+            text = {
+                Column {
+                    Text(
+                        "记录一次未记冲煮参数的豆子消耗（如随手一杯、分装、送人）。\n当前余量：${maxGrams.toInt()}g",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = amountText,
+                        onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' }.take(6) },
+                        label = { Text("扣减克重") },
+                        placeholder = { Text("如 15") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = noteText,
+                        onValueChange = { noteText = it.take(30) },
+                        label = { Text("备注（可选）") },
+                        placeholder = { Text("如 分装送人 / 随手一杯") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = amountText.toDoubleOrNull()?.let { it > 0 } == true,
+                    onClick = {
+                        val amount = amountText.toDoubleOrNull() ?: 0.0
+                        if (amount <= 0) return@TextButton
+                        showAdjustStockDialog = false
+                        coroutineScope.launch {
+                            AppDatabase.getInstance(context).stockAdjustmentDao().insert(
+                                StockAdjustment(
+                                    beanId = bean!!.id,
+                                    changeGrams = -amount,
+                                    note = noteText.trim()
+                                )
+                            )
+                            inventory = AppDatabase.getInstance(context).coffeeBeanDao().getInventoryForBean(beanId)
+                            snackbarHostState.showSnackbar("已扣减 ${amount.toInt()}g")
+                        }
+                    }
+                ) { Text("扣减", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAdjustStockDialog = false }) { Text("取消") }
+            }
+        )
     }
 
     // Reset Stock Confirmation Dialog

@@ -3,7 +3,13 @@ package com.coffeelab.coffeenotes.ui.screen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -14,6 +20,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,12 +38,14 @@ import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.data.entity.BrewMethod
 import com.coffeelab.coffeenotes.data.entity.Grinder
 import com.coffeelab.coffeenotes.ui.navigation.Screen
+import com.coffeelab.coffeenotes.util.DateUtils
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import com.coffeelab.coffeenotes.data.entity.Equipment
 import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
 import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
 import com.coffeelab.coffeenotes.ui.component.StarRatingRow
+import com.coffeelab.coffeenotes.ui.component.CompactDatePicker
 import com.coffeelab.coffeenotes.viewmodel.GrinderViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -72,6 +84,9 @@ fun BrewEditScreen(
     var selectedMethodId by remember { mutableStateOf(-1L) }
     var methodSelectedByUser by remember { mutableStateOf(false) } // 仅用户主动选择手法时自动填充
     var selectedEquipmentId by remember { mutableStateOf<Long?>(null) }
+    // 冲煮时间（可修改，默认当前时间；补录历史记录用）
+    var recordDateTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDateTimePicker by remember { mutableStateOf(false) }
     var coffeeWeight by remember { mutableStateOf("") }
     var coffeeWaterRatio by remember { mutableStateOf("") }
     var waterAmount by remember { mutableStateOf("") }
@@ -178,6 +193,7 @@ fun BrewEditScreen(
             val record = brewViewModel.getRecord(recordId)
             record?.let { r ->
                 selectedBeanId = r.beanId
+                recordDateTime = r.dateTime
                 selectedMethodId = r.methodId ?: -1L
                 selectedEquipmentId = r.equipmentId
                 coffeeWeight = if (r.coffeeWeight > 0) r.coffeeWeight.toString() else ""
@@ -284,6 +300,35 @@ fun BrewEditScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+// 冲煮时间（可修改，补录历史记录用）
+            Text("冲煮时间", style = MaterialTheme.typography.titleMedium)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clickable { showDateTimePicker = true }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.EditCalendar,
+                        contentDescription = "修改时间",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = DateUtils.formatDateTime(recordDateTime),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+
             // Select Bean
             Text("选择咖啡豆", style = MaterialTheme.typography.titleMedium)
             if (beans.isEmpty()) {
@@ -927,8 +972,7 @@ fun BrewEditScreen(
                             id = if (isEditing) recordId else 0,
                             beanId = selectedBeanId,
                             methodId = if (selectedMethodId > 0) selectedMethodId else null,
-                            dateTime = if (isEditing) (brewViewModel.getRecord(recordId)?.dateTime
-                                ?: System.currentTimeMillis()) else System.currentTimeMillis(),
+                            dateTime = recordDateTime,
                             equipmentId = selectedEquipmentId,
                             coffeeWeight = coffeeWeight.toDoubleOrNull() ?: 0.0,
                             coffeeWaterRatio = coffeeWaterRatio.toDoubleOrNull() ?: 0.0,
@@ -984,6 +1028,66 @@ fun BrewEditScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
+            }
+        )
+    }
+
+    // 冲煮时间选择器：分两步——日期 Dialog → 时间 Dialog
+    if (showDateTimePicker) {
+        val zone = java.time.ZoneId.systemDefault()
+        val initialLocalDate = java.time.Instant.ofEpochMilli(recordDateTime)
+            .atZone(zone).toLocalDate()
+        val initialLocalTime = java.time.Instant.ofEpochMilli(recordDateTime)
+            .atZone(zone).toLocalTime()
+        // 临时日期 state（用户点确定后才提交到 recordDateTime）
+        var pendingDate by remember(showDateTimePicker) {
+            mutableStateOf<java.time.LocalDate?>(null)
+        }
+        val timePickerState = rememberTimePickerState(
+            initialHour = initialLocalTime.hour,
+            initialMinute = initialLocalTime.minute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showDateTimePicker = false; pendingDate = null },
+            title = { Text(if (pendingDate == null) "选择日期" else "选择时间") },
+            text = {
+                if (pendingDate == null) {
+                    CompactDatePicker(
+                        initialDate = initialLocalDate,
+                        onDateSelected = { pendingDate = it }
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        TimePicker(state = timePickerState)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (pendingDate == null) {
+                        // 第一步：记录日期，进入时间选择
+                        pendingDate = initialLocalDate
+                    } else {
+                        // 第二步：组合日期+时间，写回 recordDateTime
+                        val picked = java.time.LocalDateTime.of(
+                            pendingDate!!,
+                            java.time.LocalTime.of(timePickerState.hour, timePickerState.minute)
+                        )
+                        recordDateTime = picked.atZone(zone).toInstant().toEpochMilli()
+                        showDateTimePicker = false
+                        pendingDate = null
+                    }
+                }) { Text(if (pendingDate == null) "下一步" else "确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    if (pendingDate == null) {
+                        showDateTimePicker = false
+                    } else {
+                        pendingDate = null
+                    }
+                }) { Text(if (pendingDate == null) "取消" else "上一步") }
             }
         )
     }

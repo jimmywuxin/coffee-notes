@@ -41,13 +41,15 @@ import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 
+/** 豆子列表排序模式：自定义（拖拽）/ 评分最高 / 冲煮次数最多 */
+enum class BeanSortMode { CUSTOM, RATING_DESC, COUNT_DESC }
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun BeanListScreen(
     navController: NavController,
     viewModel: BeanViewModel = viewModel()
-) {
-    val beans by viewModel.activeBeans.collectAsState(initial = emptyList())
+) {    val beans by viewModel.activeBeans.collectAsState(initial = emptyList())
     val archivedBeans by viewModel.archivedBeans.collectAsState(initial = emptyList())
     val mutableBeans = remember { mutableStateListOf(*beans.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
@@ -60,6 +62,15 @@ fun BeanListScreen(
     val searchResults by viewModel.searchResults.collectAsState(initial = emptyList())
     val isSearching by viewModel.isSearching.collectAsState(initial = false)
     val focusRequester = remember { FocusRequester() }
+
+    // ===== 排序模式（自定义 / 评分 / 次数）=====
+    var sortMode by remember { mutableStateOf(BeanSortMode.CUSTOM) }
+    var showSortMenu by remember { mutableStateOf(false) }
+    // beanId -> (平均评分, 评分次数)
+    var beanRatingsMap by remember { mutableStateOf<Map<Long, Pair<Double, Int>>>(emptyMap()) }
+
+    // ===== 随机选豆 =====
+    var showRandomPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(isSearchMode) {
         if (isSearchMode) {
@@ -107,6 +118,9 @@ fun BeanListScreen(
         // 同时刷新最近购买单价和库存
         reloadLatestUnitPrices()
         reloadInventory()
+        // 加载豆子评分（冲煮记录平均分）
+        val ratings = AppDatabase.getInstance(context).brewRecordDao().getBeanRatings()
+        beanRatingsMap = ratings.associate { it.beanId to (it.avgRating to it.ratingCount) }
     }
 
     // 从详情页/购买记录页返回时刷新最近购买单价
@@ -157,6 +171,12 @@ fun BeanListScreen(
         showArchivedOnly -> archivedBeans
         showFavoritesOnly -> beans.filter { it.isFavorite }
         else -> beans
+    }.let { list ->
+        when (sortMode) {
+            BeanSortMode.CUSTOM -> list
+            BeanSortMode.RATING_DESC -> list.sortedByDescending { beanRatingsMap[it.id]?.first ?: -1.0 }
+            BeanSortMode.COUNT_DESC -> list.sortedByDescending { beanRatingsMap[it.id]?.second ?: -1 }
+        }
     }
 
     Scaffold(
@@ -197,8 +217,36 @@ fun BeanListScreen(
                         IconButton(onClick = { isSearchMode = !isSearchMode }) {
                             Icon(Icons.Default.Search, contentDescription = "搜索")
                         }
-                        IconButton(onClick = { isReorderMode = true }) {
-                            Icon(Icons.Default.SwapVert, contentDescription = "排序")
+                        Box {
+                            IconButton(onClick = { showSortMenu = true }) {
+                                Icon(Icons.Default.SwapVert, contentDescription = "排序")
+                            }
+                            DropdownMenu(
+                                expanded = showSortMenu,
+                                onDismissRequest = { showSortMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(if (sortMode == BeanSortMode.CUSTOM) "✓ 自定义排序" else "自定义排序") },
+                                    onClick = { sortMode = BeanSortMode.CUSTOM; showSortMenu = false }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(if (sortMode == BeanSortMode.RATING_DESC) "✓ 评分最高优先" else "评分最高优先") },
+                                    onClick = { sortMode = BeanSortMode.RATING_DESC; showSortMenu = false }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(if (sortMode == BeanSortMode.COUNT_DESC) "✓ 冲煮次数最多" else "冲煮次数最多") },
+                                    onClick = { sortMode = BeanSortMode.COUNT_DESC; showSortMenu = false }
+                                )
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("🎲 随机选豆") },
+                                    onClick = { showSortMenu = false; showRandomPicker = true }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("拖动排序") },
+                                    onClick = { showSortMenu = false; isReorderMode = true }
+                                )
+                            }
                         }
                         IconButton(onClick = { navController.navigate(Screen.BeanEdit.createRoute()) }) {
                             Icon(Icons.Default.Add, contentDescription = "添加豆子")
@@ -444,6 +492,73 @@ fun BeanListScreen(
             dismissButton = { TextButton(onClick = { showUnarchiveDialog = null }) { Text("取消") } }
         )
     }
+
+    // 随机选豆 Dialog
+    if (showRandomPicker) {
+        RandomBeanPickerDialog(
+            beans = if (showArchivedOnly) archivedBeans else beans,
+            onDismiss = { showRandomPicker = false },
+            onPick = { navController.navigate(Screen.BeanDetail.createRoute(it.id)) }
+        )
+    }
+}
+
+/**
+ * 随机选豆弹窗：从给定豆子列表中随机挑一包展示，可重新随机或直接进入详情。
+ */
+@Composable
+private fun RandomBeanPickerDialog(
+    beans: List<CoffeeBean>,
+    onDismiss: () -> Unit,
+    onPick: (CoffeeBean) -> Unit
+) {
+    val activeBeans = beans.filter { !it.isArchived }
+    val pool = if (activeBeans.isNotEmpty()) activeBeans else beans
+    var current by remember { mutableStateOf(pool.randomOrNull()) }
+    val selected = current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("🎲 随机选豆") },
+        text = {
+            if (pool.isEmpty()) {
+                Text("没有可选的豆子")
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = selected?.let { "${it.roaster} ${it.name}" } ?: "",
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = selected?.let { bean ->
+                            listOfNotNull(
+                                bean.origin.ifEmpty { null },
+                                bean.process.ifEmpty { null },
+                                bean.roastLevel.ifEmpty { null }
+                            ).joinToString(" · ")
+                        } ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (pool.isNotEmpty()) {
+                TextButton(onClick = { current = pool.randomOrNull() }) { Text("换一个") }
+            }
+        },
+        dismissButton = {
+            if (pool.isNotEmpty()) {
+                TextButton(onClick = { selected?.let(onPick) }) { Text("就喝这包") }
+            } else {
+                TextButton(onClick = onDismiss) { Text("知道了") }
+            }
+        }
+    )
 }
 
 @Composable

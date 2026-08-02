@@ -207,6 +207,17 @@ class CoffeeRepository(private val db: AppDatabase) {
     fun getBrewCountsByTimeSlotForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByTimeSlotForBean(beanId)
     fun getBrewCountsByRatingForBean(beanId: Long) = db.brewRecordDao().getBrewCountsByRatingForBean(beanId)
     fun getAvgRatingForBean(beanId: Long) = db.brewRecordDao().getAvgRatingForBean(beanId)
+    // ===== Stock Adjustments（库存调整/快捷扣减） =====
+    suspend fun getAdjustmentsForBeanOnce(beanId: Long) = db.stockAdjustmentDao().getForBeanOnce(beanId)
+    suspend fun insertStockAdjustment(adjustment: StockAdjustment): Long = db.stockAdjustmentDao().insert(adjustment)
+    suspend fun deleteStockAdjustment(adjustment: StockAdjustment) = db.stockAdjustmentDao().delete(adjustment)
+    suspend fun deleteAdjustmentsForBean(beanId: Long) = db.stockAdjustmentDao().deleteForBean(beanId)
+    suspend fun deleteAllStockAdjustments() = db.stockAdjustmentDao().deleteAll()
+
+    // ===== Bean Rating（豆子评分排行） =====
+    /** 各豆子的冲煮平均分与评分次数（overallRating > 0 的记录） */
+    suspend fun getBeanRatings() = db.brewRecordDao().getBeanRatings()
+
     // ===== Impression Tags =====
     val allImpressionTags: Flow<List<ImpressionTag>> = db.impressionTagDao().getAll()
     suspend fun getAllImpressionTagsOnce() = db.impressionTagDao().getAllOnce()

@@ -1,5 +1,12 @@
 # 咖啡笔记开发环境
 
+## 🚨 装机铁律（2026-08-02 两次事故教训，务必遵守）
+- **数据库升级不需要卸载重装**：Room 自带 migration 机制（`AppDatabaseMigrations`），升级 APK 用 `adb install -r` 覆盖即可，数据自动迁移保留。2026-08-02 的 v20→v21 迁移崩溃是迁移 SQL 写错（note 列 DEFAULT 与 schema 不符），修好 SQL 后 `install -r` 就正常升级了，数据没丢
+- **`adb uninstall` / `adb shell pm clear` / `adb shell pm reset` 是清空 app 私有数据（Room 数据库 + 豆子照片）的危险操作，无 root 不可恢复**。2026-08-02 两次犯同类错误（一次 uninstall、一次 pm clear），用户 7/27→8/2 数据反复丢失
+- 装机默认 `adb install -r`（保留数据）；迁移崩溃排查先看 logcat（Migration didn't properly handle / Expected vs Found 对比），改 SQL 后 `install -r` 重装，绝不先动数据
+- **确需卸载/清库（如迁移不可修复、测试空库）：第一步必须先让用户备份（app 内 设置→备份与恢复 → 导出到 /sdcard），或提醒用户备份并得到确认，确认备份文件存在后再动手**；否则禁止任何清库操作
+- 操作顺序永远是：备份 → 确认 → 才可清库；备份失败或不确定 = 不清库
+
 ## 开发环境
 - Java: Homebrew openjdk 21.0.11（`/usr/bin/java`），`/usr/libexec/java_home` 不可用
   - Gradle 用 21 跑，产物字节码降到 17（`app/build.gradle.kts`: sourceCompatibility/targetCompatibility = 17, jvmTarget = "17"）

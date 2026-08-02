@@ -7,6 +7,17 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BrewRecordDao {
+    // ===== Bean Rating（豆子评分排行） =====
+
+    /** 各豆子冲煮记录的平均分与次数（仅统计 overallRating > 0 的记录） */
+    @Query("""
+        SELECT beanId, AVG(overallRating) AS avgRating, COUNT(*) AS ratingCount
+        FROM brew_records
+        WHERE overallRating > 0
+        GROUP BY beanId
+    """)
+    suspend fun getBeanRatings(): List<BeanRating>
+
     // ===== Basic CRUD =====
 
     /** Get all records with equipment/grinder/bean names via JOIN */
@@ -306,3 +317,4 @@ data class RatingCount(val overallRating: Int, val cnt: Int)
 data class EquipmentRating(val equipmentName: String, val avgRating: Double)
 data class OriginCount(val origin: String, val cnt: Int)
 data class RoastLevelCount(val roastLevel: String, val cnt: Int)
+data class BeanRating(val beanId: Long, val avgRating: Double, val ratingCount: Int)

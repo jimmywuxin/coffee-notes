@@ -74,12 +74,13 @@ interface CoffeeBeanDao {
     @Query("UPDATE coffee_beans SET process = :newName WHERE process = :oldName")
     suspend fun updateProcessByName(oldName: String, newName: String)
 
-    // ===== 库存聚合查询（余量 = 累计购入 - 累计消耗，纯派生计算，无需新表） =====
+    // ===== 库存聚合查询（余量 = 累计购入 + 库存调整 − 累计消耗，纯派生计算，无需新表） =====
     /** 单个豆子的库存（不区分归档，详情页用；只算 stockResetAt 之后的记录） */
     @Query("""
         SELECT cb.id AS beanId,
             COALESCE((SELECT SUM(weightGrams) FROM purchase_records WHERE beanId = :beanId AND date >= COALESCE(cb.stockResetAt, 0)), 0) AS totalPurchased,
-            COALESCE((SELECT SUM(coffeeWeight) FROM brew_records WHERE beanId = :beanId AND dateTime >= COALESCE(cb.stockResetAt, 0)), 0) AS totalConsumed
+            COALESCE((SELECT SUM(coffeeWeight) FROM brew_records WHERE beanId = :beanId AND dateTime >= COALESCE(cb.stockResetAt, 0)), 0) AS totalConsumed,
+            COALESCE((SELECT SUM(changeGrams) FROM stock_adjustments WHERE beanId = :beanId AND createdAt >= COALESCE(cb.stockResetAt, 0)), 0) AS totalAdjusted
         FROM coffee_beans cb WHERE cb.id = :beanId
     """)
     suspend fun getInventoryForBean(beanId: Long): BeanInventory
@@ -88,7 +89,8 @@ interface CoffeeBeanDao {
     @Query("""
         SELECT cb.id AS beanId,
             COALESCE((SELECT SUM(weightGrams) FROM purchase_records WHERE beanId = cb.id AND date >= COALESCE(cb.stockResetAt, 0)), 0) AS totalPurchased,
-            COALESCE((SELECT SUM(coffeeWeight) FROM brew_records WHERE beanId = cb.id AND dateTime >= COALESCE(cb.stockResetAt, 0)), 0) AS totalConsumed
+            COALESCE((SELECT SUM(coffeeWeight) FROM brew_records WHERE beanId = cb.id AND dateTime >= COALESCE(cb.stockResetAt, 0)), 0) AS totalConsumed,
+            COALESCE((SELECT SUM(changeGrams) FROM stock_adjustments WHERE beanId = cb.id AND createdAt >= COALESCE(cb.stockResetAt, 0)), 0) AS totalAdjusted
         FROM coffee_beans cb WHERE cb.isArchived = 0
     """)
     suspend fun getInventoryForActiveBeans(): List<BeanInventory>
@@ -105,8 +107,9 @@ data class BeanBrewCount(
 data class BeanInventory(
     val beanId: Long,
     val totalPurchased: Long,
-    val totalConsumed: Double
+    val totalConsumed: Double,
+    val totalAdjusted: Double = 0.0
 ) {
-    /** 余量 = 累计购入 - 累计消耗 */
-    val remaining: Double get() = totalPurchased.toDouble() - totalConsumed
+    /** 余量 = 累计购入 + 库存调整（快捷扣减为负） − 累计消耗 */
+    val remaining: Double get() = totalPurchased.toDouble() + totalAdjusted - totalConsumed
 }

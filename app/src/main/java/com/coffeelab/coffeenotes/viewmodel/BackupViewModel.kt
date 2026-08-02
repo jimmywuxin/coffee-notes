@@ -77,6 +77,11 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 val purchaseRecords = repository.getAllPurchaseRecordsOnce()
                 val impressionTags = repository.getAllImpressionTagsOnce()
 
+                // Collect stock adjustments for each bean
+                val adjustmentsByBean = beans.associate { bean ->
+                    bean.id to repository.getAdjustmentsForBeanOnce(bean.id)
+                }
+
                 // Collect tags for each bean
                 val beansWithTags = beans.map { bean ->
                     val tags = repository.getTagsForBeanOnce(bean.id)
@@ -86,6 +91,18 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         "tags" to tags.map { it.name },
                         "impressionTagIds" to impTags.map { it.id }
                     )
+                }
+
+                // Stock adjustments use old beanId; remapped on import via beanIdMap
+                val stockAdjustmentsData = beans.flatMap { bean ->
+                    adjustmentsByBean[bean.id].orEmpty().map { adj ->
+                        mapOf(
+                            "beanId" to bean.id,
+                            "changeGrams" to adj.changeGrams,
+                            "note" to adj.note,
+                            "createdAt" to adj.createdAt
+                        )
+                    }
                 }
 
                 // Records include pouringDurationSeconds
@@ -131,7 +148,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     "restPeriodConfigs" to restPeriodConfigs,
                     "peakFlavorConfigs" to peakFlavorConfigs,
                     "purchaseRecords" to purchaseRecords,
-                    "impressionTags" to impressionTags
+                    "impressionTags" to impressionTags,
+                    "stockAdjustments" to stockAdjustmentsData
                 )
                 val dataJson = gson.toJson(dataMap)
 
@@ -314,6 +332,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 // Delete in FK-safe order: child/assoc tables first, then parent tables
                 recordDao.deleteAll()
                 purchaseRecordDao.deleteAll()
+                repository.deleteAllStockAdjustments()
                 beanDao.deleteAll()          // CASCADE deletes flavor_tags, bean_impression_tags
                 methodDao.deleteAll()
                 equipmentDao.deleteAll()
@@ -595,6 +614,21 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                         price = price,
                         weightGrams = weightGrams,
                         roastDate = roastDate
+                    ))
+                }
+
+                // Import stock adjustments (with mapped beanId; legacy backups have no key, skip)
+                val stockAdjustmentList: List<*> = data["stockAdjustments"] as? List<*> ?: emptyList<Any>()
+                for (sa in stockAdjustmentList) {
+                    val m = sa as Map<*, *>
+                    val oldBeanId = (m["beanId"] as? Double)?.toLong() ?: continue
+                    val newBeanId = beanIdMap[oldBeanId] ?: continue
+                    val changeGrams = (m["changeGrams"] as? Double) ?: 0.0
+                    repository.insertStockAdjustment(StockAdjustment(
+                        beanId = newBeanId,
+                        changeGrams = changeGrams,
+                        note = m["note"] as? String ?: "",
+                        createdAt = (m["createdAt"] as? Double)?.toLong() ?: System.currentTimeMillis()
                     ))
                 }
                 } // end withTransaction

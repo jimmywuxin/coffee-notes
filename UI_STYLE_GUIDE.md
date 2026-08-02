@@ -53,19 +53,24 @@
 
 ## 3. 间距规范
 
+> 以下为**当前实际落地值**（与代码实现一致）。紧凑为主，日系感靠留白节奏而非大间距。
+
 | 场景 | 间距值 | 说明 |
 |------|--------|------|
-| 页面水平留白 | `20dp` | 页面两侧留白，日系大留白感 |
-| 卡片内边距 | `16dp` | 卡片内部元素间距 |
-| 卡片间距 | `14dp` | 相邻卡片之间 |
-| 分组间距 | `24dp` | 不同区块之间 |
-| 元素间距 | `10dp~12dp` | 同行元素之间 |
-| 页面顶部安全区 | `16dp` | 内容与 TopAppBar 之间 |
+| 页面水平留白 | `16dp` | 列表/卡片页面两侧（BeanList / BrewList / Home / 详情页） |
+| 列表卡片内边距 | `12dp` | BeanCard / RecordCard 内部 padding |
+| 详情区块内边距 | `16dp` | 详情页各 Surface 区块（基础信息 / 备注 / 萃取建议等） |
+| 设置分组间距 | `14dp` | 设置页分组卡片之间（`spacedBy(14.dp)`） |
+| 列表卡片间距 | `8dp` | 豆子 / 冲煮 / 管理页列表、首页搜索结果（`spacedBy(8.dp)`） |
+| 首页主列表间距 | `12dp` | HomeScreen 主内容区（问候语 / 统计 / 卡片之间） |
+| 详情页区块间距 | `12dp` | BeanDetailScreen LazyColumn 各 item 之间 |
+| 元素间距 | `4dp~12dp` | 同行/同块元素，随密度：管理页行内 4dp、标签 6~8dp、按钮组 12dp |
+| 页面顶部安全区 | `8dp` | 搜索框等与 TopAppBar 之间（`padding(vertical = 8.dp)`） |
 
 **禁止使用：**
 - ❌ 硬线分割（`HorizontalDivider` 除非在危险操作区）
 - ❌ 高饱和色块背景
-- ❌ 过于紧凑的布局
+- ❌ 列表卡片间距低于 `8dp`（会显得挤压）
 
 ---
 
@@ -144,18 +149,18 @@ Modifier.shadow(
 
 ### 7.1 首页（HomeScreen）
 - **背景：** `#FAF8F5`
-- **筛选栏 Chip：** 圆角 18dp，背景 `#F5F1EB`，选中时背景 `#E8DFD0`
-- **冲煮记录卡片：**
-  - 圆角 18dp
-  - 背景白色，轻微阴影
-  - 去除所有硬线边框
-  - 评分星星颜色改为 `#D4A574`
-- **FAB：** 圆角 18dp，背景 `#C4A882`
+- **顶栏：** 原木棕 `#C4A882` + 白色 Coffee 图标 + 「咖啡笔记」标题（含 ☕ emoji 装饰，见 7.7）
+- **统计小卡（StatMiniCard）：** 圆角 18dp，主色 10% alpha 浅底，大数字 + 单位
+- **信息卡（最爱手法 / 最近在喝 / 赏味期倒计时）：** 圆角 18dp，语义色浅底（secondaryContainer / surfaceVariant / errorContainer）
+- **「开始冲煮」：** 全宽 `Button`（非 FAB），原木棕底白字，圆角 18dp
+- **列表间距：** 主内容区 `spacedBy(12.dp)`；搜索结果 `spacedBy(8.dp)`
 
 ### 7.2 豆子详情页（BeanDetailScreen）
-- **雷达图区域：** 背景 `#F5F1EB`，圆角 18dp，内边距加宽
-- **风味标签 Chip：** 圆角 18dp，背景 `#E8DFD0`，文字 `#8A8A8A`
-- **操作按钮：** `OutlinedButton` 圆角 18dp，边框色 `#E8E4DE`
+- **区块卡片：** 白色 Surface，圆角 18dp；顶部豆袋大图带 `clip(18.dp)` 圆角，照片网格缩略图 `clip(12.dp)`
+- **雷达图区域：** Canvas 绘制无背景卡，直接平铺在区块之间
+- **风味/印象标签 Chip：** `AssistChip` / `Surface` 圆角，印象标签用 tertiaryContainer 茶绿底、风味标签用默认 chip
+- **库存汇总卡：** surfaceVariant 浅底 + 进度条（低库存时 error 红）
+- **操作按钮：** `OutlinedButton` 圆角 18dp，边框默认 outline 色
 
 ### 7.3 设置页（SettingsScreen）
 - **背景：** `#FAF8F5`
@@ -165,18 +170,19 @@ Modifier.shadow(
 
 ### 7.4 关于页（AboutScreen）
 - **背景：** `#FAF8F5`
-- **主卡片：** 圆角 24dp，背景白色，阴影轻柔
-- **技术栈列表：** 背景 `#F5F1EB`，圆角 12dp
+- **布局：** 竖向列表式（无大卡片包裹），App 图标 + 应用名 + 版本 chip + 功能列表，页面留白 `24dp`
+- **版本 chip：** `Surface` primaryContainer 浅底，圆角 small
+- **技术栈/功能列表：** 纯文字行 + 小间距，无卡片
 
 ### 7.5 统计页（StatsScreen）
-- **卡片：** 圆角 18dp，背景白色，阴影 2dp
-- **进度条：** 背景 `#E8E4DE`，填充色 `#C4A882`
-- **各维度评分：** 星星颜色 `#D4A574`
+- **区块：** 白色 Surface 卡片，圆角 18dp，`spacedBy(16.dp)` 分组
+- **进度条：** `LinearProgressIndicator`，track 色 surfaceVariant（`#F5F1EB` 系），填充色主色 primary
+- **各维度评分：** 星星 `#D4A574`（secondary 焦糖色）
 
 ### 7.6 冲煮记录编辑页（BrewEditScreen）
-- **StarRatingRow：** 选中星色 `#D4A574`，未选中 `#E8E4DE`
-- **FilterChip：** 选中背景 `#E8DFD0`，圆角 18dp
-- **保存按钮：** 背景 `#C4A882`，圆角 18dp，文字白色
+- **StarRatingRow：** 选中星色 secondary `#D4A574`，未选中 surfaceVariant（与列表卡 RecordCard 图标星同款）
+- **FilterChip：** 默认 M3 样式（选中时 secondaryContainer 焦糖浅底），圆角 18dp（shapes 全局）
+- **保存按钮：** 背景 primary `#C4A882`，圆角 18dp，文字白色
 
 ### 7.7 全局通用
 - **TopAppBar：**
