@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -129,7 +130,21 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 windowInsets = WindowInsets(0),
-                title = { Text(if (isSearchMode) "搜索" else "☕ 咖啡笔记") },
+                title = {
+                    if (isSearchMode) {
+                        Text("搜索")
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("咖啡笔记")
+                        }
+                    }
+                },
                 actions = {
                     if (isSearchMode) {
                         TextButton(onClick = {
@@ -314,7 +329,14 @@ fun HomeScreen(
                                     modifier = Modifier.padding(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("🍳 最爱手法：", style = MaterialTheme.typography.bodyMedium)
+                                    Icon(
+                                        imageVector = Icons.Default.Favorite,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("最爱手法：", style = MaterialTheme.typography.bodyMedium)
                                     Text(
                                         text = "${mostUsedMethod.first} (${mostUsedMethod.second}次)",
                                         style = MaterialTheme.typography.bodyMedium,

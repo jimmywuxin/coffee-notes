@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.coffeelab.coffeenotes.MainActivity
 
 /**
  * 备份提醒：
@@ -58,6 +59,30 @@ object BackupReminder {
         )
     }
 
+    private fun postNotification(context: Context, days: Int) {
+        // 点击通知 → 打开 app 并进入「备份与恢复」页
+        val openIntent = Intent(context, com.coffeelab.coffeenotes.MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(MainActivity.EXTRA_NAVIGATE_TO_BACKUP, true)
+        }
+        val contentIntent = PendingIntent.getActivity(
+            context,
+            REQUEST_CODE,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_more)
+            .setContentTitle("☕ 该备份咖啡笔记了")
+            .setContentText("距离上次提醒已 ${days} 天，点击去备份，防止数据丢失")
+            .setContentIntent(contentIntent)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(REQUEST_CODE, notification)
+    }
+
     fun cancel(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(buildPendingIntent(context))
@@ -91,17 +116,7 @@ object BackupReminder {
             if (intent.action != ACTION_REMIND) return
             val days = getIntervalDays(context)
             if (days <= 0) return
-
-            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.stat_notify_more)
-                .setContentTitle("☕ 该备份咖啡笔记了")
-                .setContentText("距离上次提醒已 ${days} 天，建议导出一次备份，防止数据丢失")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setAutoCancel(true)
-                .build()
-
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.notify(REQUEST_CODE, notification)
+            postNotification(context, days)
         }
     }
 }

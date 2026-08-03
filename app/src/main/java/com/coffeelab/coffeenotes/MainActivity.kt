@@ -2,6 +2,7 @@ package com.coffeelab.coffeenotes
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.lifecycleScope
@@ -40,6 +42,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val PREFS_NAME = "coffee_notes_prefs"
         const val KEY_THEME_MODE = "theme_mode"
+        const val EXTRA_NAVIGATE_TO_BACKUP = "navigate_to_backup"
 
         fun setThemeModeAndRestart(activity: Activity, mode: String) {
             activity.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
@@ -49,6 +52,9 @@ class MainActivity : ComponentActivity() {
             activity.recreate()
         }
     }
+
+    private var navController: androidx.navigation.NavHostController? = null
+    private var pendingBackupNavigation = false
 
     /** 通知权限请求（Android 13+ 备份提醒用） */
     private val notificationPermissionLauncher =
@@ -73,8 +79,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_NAVIGATE_TO_BACKUP, false)) {
+            val controller = navController
+            if (controller != null) {
+                controller.navigate(Screen.Backup.route)
+            } else {
+                pendingBackupNavigation = true
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 通知点击进入备份页：冷启动时记录 pending，待 navController 就绪后导航
+        pendingBackupNavigation = intent.getBooleanExtra(EXTRA_NAVIGATE_TO_BACKUP, false)
 
         // Ensure default equipment and grinders exist on every startup
         lifecycleScope.launch {
@@ -106,6 +127,13 @@ class MainActivity : ComponentActivity() {
 
             CoffeeNotesTheme(darkTheme = darkTheme) {
                 val navController = rememberNavController()
+                this@MainActivity.navController = navController
+                LaunchedEffect(navController) {
+                    if (pendingBackupNavigation) {
+                        pendingBackupNavigation = false
+                        navController.navigate(Screen.Backup.route)
+                    }
+                }
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
