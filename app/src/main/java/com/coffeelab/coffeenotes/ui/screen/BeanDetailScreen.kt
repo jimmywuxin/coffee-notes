@@ -1,5 +1,7 @@
 package com.coffeelab.coffeenotes.ui.screen
 
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -804,10 +806,14 @@ fun BeanDetailScreen(
         )
     }
 
-    // Full-screen photo viewer
-    if (selectedPhotoPath != null) {
+    // Full-screen photo viewer (支持左右滑动查看多张)
+    val currentBean = bean
+    if (selectedPhotoPath != null && currentBean != null) {
+        val photoList = currentBean.localPhotoPaths
+        val startIndex = photoList.indexOf(selectedPhotoPath).coerceAtLeast(0)
         FullScreenPhotoDialog(
-            photoPath = selectedPhotoPath!!,
+            photoPaths = photoList,
+            startIndex = startIndex,
             context = context,
             onDismiss = { selectedPhotoPath = null }
         )
@@ -852,14 +858,16 @@ fun InfoRowCompact(label: String, value: String, modifier: Modifier = Modifier) 
 }
 
 
-// Full-screen photo viewer dialog
+// Full-screen photo viewer dialog（多图左右滑动 + 页码指示）
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun FullScreenPhotoDialog(
-    photoPath: String,
+    photoPaths: List<String>,
+    startIndex: Int,
     context: android.content.Context,
     onDismiss: () -> Unit
 ) {
-    val photoFile = ImageUtils.getBeanPhotoFile(context, photoPath)
+    val pagerState = rememberPagerState(initialPage = startIndex) { photoPaths.size }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -871,12 +879,38 @@ fun FullScreenPhotoDialog(
                 .clickable { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = File(photoFile.absolutePath),
-                contentDescription = "照片",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                val photoFile = ImageUtils.getBeanPhotoFile(context, photoPaths[page])
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) { onDismiss() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = File(photoFile.absolutePath),
+                        contentDescription = "照片 ${page + 1}/${photoPaths.size}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+            // 页码指示
+            if (photoPaths.size > 1) {
+                Text(
+                    text = "${pagerState.currentPage + 1} / ${photoPaths.size}",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 24.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                )
+            }
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier

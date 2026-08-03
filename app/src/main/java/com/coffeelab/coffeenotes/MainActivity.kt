@@ -1,9 +1,14 @@
 package com.coffeelab.coffeenotes
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -44,6 +49,30 @@ class MainActivity : ComponentActivity() {
             activity.recreate()
         }
     }
+
+    /** 通知权限请求（Android 13+ 备份提醒用） */
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            pendingNotificationCallback?.invoke(granted)
+            pendingNotificationCallback = null
+        }
+    private var pendingNotificationCallback: ((Boolean) -> Unit)? = null
+
+    fun requestNotificationPermission(callback: (Boolean) -> Unit) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED
+            ) {
+                callback(true)
+            } else {
+                pendingNotificationCallback = callback
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            callback(true)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

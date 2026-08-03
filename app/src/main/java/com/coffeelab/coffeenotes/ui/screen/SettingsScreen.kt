@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -31,6 +34,9 @@ fun SettingsScreen(
     val currentMode = prefs.getString(MainActivity.KEY_THEME_MODE, "system") ?: "system"
     var showClearDataDialog by remember { mutableStateOf(false) }
     var showClearProgress by remember { mutableStateOf(false) }
+    var showReminderDialog by remember { mutableStateOf(false) }
+    // 备份提醒周期（天）：0=关闭，7=每周，14=每两周，30=每月
+    val reminderDays = com.coffeelab.coffeenotes.util.BackupReminder.getIntervalDays(context)
 
     Scaffold(
         topBar = {
@@ -65,6 +71,12 @@ fun SettingsScreen(
                         title = "备份",
                         subtitle = "导出数据到本地文件",
                         onClick = { navController.navigate(Screen.Backup.route) }
+                    )
+                    SettingsItem(
+                        icon = Icons.Default.Notifications,
+                        title = "备份提醒",
+                        subtitle = if (reminderDays > 0) "每 ${reminderDays} 天提醒" else "关闭",
+                        onClick = { showReminderDialog = true }
                     )
                 }
             }
@@ -164,6 +176,61 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    // 备份提醒周期选择 Dialog（自定义天数）
+    if (showReminderDialog) {
+        var daysText by remember { mutableStateOf(if (reminderDays > 0) reminderDays.toString() else "7") }
+        AlertDialog(
+            onDismissRequest = { showReminderDialog = false },
+            title = { Text("备份提醒") },
+            text = {
+                Column {
+                    Text(
+                        "每隔几天提醒你导出备份，防止数据丢失。填 0 表示关闭。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = daysText,
+                        onValueChange = { input -> daysText = input.filter { it.isDigit() }.take(3) },
+                        label = { Text("提醒间隔（天）") },
+                        placeholder = { Text("如 7") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val days = daysText.toIntOrNull() ?: 0
+                    if (days > 0) {
+                        // Android 13+ 需要通知权限；未授权时先请求（回调里应用设置）
+                        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                        ) {
+                            (context as? MainActivity)?.requestNotificationPermission { granted ->
+                                if (granted) {
+                                    com.coffeelab.coffeenotes.util.BackupReminder.setIntervalDays(context, days)
+                                } else {
+                                    com.coffeelab.coffeenotes.util.BackupReminder.setIntervalDays(context, 0)
+                                }
+                            }
+                        } else {
+                            com.coffeelab.coffeenotes.util.BackupReminder.setIntervalDays(context, days)
+                        }
+                    } else {
+                        com.coffeelab.coffeenotes.util.BackupReminder.setIntervalDays(context, 0)
+                    }
+                    showReminderDialog = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReminderDialog = false }) { Text("取消") }
+            }
+        )
     }
 
     // Clear Data Confirmation Dialog
