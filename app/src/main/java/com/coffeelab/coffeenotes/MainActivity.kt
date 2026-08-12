@@ -96,6 +96,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // 通知点击进入备份页：冷启动时记录 pending，待 navController 就绪后导航
         pendingBackupNavigation = intent.getBooleanExtra(EXTRA_NAVIGATE_TO_BACKUP, false)
+        // 恢复备份提醒闹钟（install -r / 系统清理会取消已注册 alarm，启动时按锚点重建）
+        com.coffeelab.coffeenotes.util.BackupReminder.rescheduleIfNeeded(this)
 
         // Ensure default equipment and grinders exist on every startup
         lifecycleScope.launch {

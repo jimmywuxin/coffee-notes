@@ -25,6 +25,7 @@ object BackupReminder {
 
     const val PREFS_NAME = "backup_reminder_prefs"
     const val KEY_INTERVAL_DAYS = "backup_reminder_interval_days"
+    const val KEY_NEXT_TRIGGER = "backup_reminder_next_trigger"
     const val CHANNEL_ID = "backup_reminder"
     private const val REQUEST_CODE = 1001
     private const val ACTION_REMIND = "com.coffeelab.coffeenotes.ACTION_BACKUP_REMIND"
@@ -40,17 +41,45 @@ object BackupReminder {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit().putInt(KEY_INTERVAL_DAYS, days).apply()
         if (days > 0) {
-            schedule(context, days)
+            schedule(context, days, anchorTime = System.currentTimeMillis())
         } else {
             cancel(context)
         }
     }
 
-    private fun schedule(context: Context, days: Int) {
+    /**
+     * 启动时恢复闹钟：AlarmManager 的 alarm 在 `adb install -r` 覆盖安装或系统清理后
+     * 会被取消（PendingIntent 失效），而设置存在 SharedPreferences 里不会丢——
+     * 所以每次 app 启动检查设置，有提醒就按持久化的锚点时间重新注册。
+     *
+     * 锚点逻辑（关键）：不重新按"当前时间+间隔"计算，而是沿用上次存的下次触发时间。
+     * 否则用户每次打开 app 都会把周期往后推，永远不触发。若锚点已过期（比如装机后
+     * 错过了触发点），则立即补发一条提醒并重新锚定。
+     */
+    fun rescheduleIfNeeded(context: Context) {
+        val days = getIntervalDays(context)
+        if (days <= 0) return
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val nextTrigger = prefs.getLong(KEY_NEXT_TRIGGER, 0L)
+        val now = System.currentTimeMillis()
+        if (nextTrigger <= 0 || nextTrigger <= now) {
+            // 无锚点或已错过：补发一次 + 从此刻重新锚定
+            createChannel(context)
+            postNotification(context, days)
+            schedule(context, days, anchorTime = now)
+        } else {
+            // 锚点在未来：原计划注册
+            schedule(context, days, anchorTime = nextTrigger - days * 24L * 60 * 60 * 1000)
+        }
+    }
+
+    private fun schedule(context: Context, days: Int, anchorTime: Long) {
         createChannel(context)
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intervalMs = days * 24L * 60 * 60 * 1000
-        val triggerAt = System.currentTimeMillis() + intervalMs
+        val triggerAt = anchorTime + intervalMs
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putLong(KEY_NEXT_TRIGGER, triggerAt).apply()
         alarmManager.setRepeating(
             AlarmManager.RTC_WAKEUP,
             triggerAt,
