@@ -61,6 +61,13 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     val thisWeekCount: Flow<Int> = repository.getBrewCountThisWeek(weekStart)
     val lastWeekCount: Flow<Int> = repository.getBrewCountLastWeek(lastWeekStart, weekStart)
 
+    // ===== 消耗趋势（克）：近 12 个月每月粉量总和 =====
+    val monthlyConsumptionGrams: Flow<List<Double>> = repository.allRecords.map { records ->
+        groupByMonthSumWeight(records, twelveMonthsAgo)
+    }
+    fun getMonthlyConsumptionForBean(beanId: Long) = getRecordsForBean(beanId)
+        .map { records -> groupByMonthSumWeight(records, twelveMonthsAgo) }
+
     // ===== Brew Habits =====
     val equipmentCounts: Flow<List<EquipmentCount>> = repository.getBrewCountsByEquipment()
     val ratioCounts: Flow<List<RatioCount>> = repository.getBrewCountsByRatio()
@@ -105,4 +112,23 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
     fun getTimeSlotCountsForBean(beanId: Long) = repository.getBrewCountsByTimeSlotForBean(beanId)
     fun getRatingCountsForBean(beanId: Long) = repository.getBrewCountsByRatingForBean(beanId)
     fun getAvgRatingForBean(beanId: Long) = repository.getAvgRatingForBean(beanId)
+
+    // ===== 工具：按自然月汇总粉量（近 12 个月） =====
+    private fun groupByMonthSumWeight(records: List<com.coffeelab.coffeenotes.data.entity.BrewRecord>, since: Long): List<Double> {
+        val zone = java.time.ZoneId.of("Asia/Shanghai")
+        val now = java.time.LocalDate.now(zone)
+        // 近 12 个月，含当月；每月锚定到 1 号便于 indexOf 匹配
+        val months = (0 until 12).map { now.minusMonths((11 - it).toLong()).withDayOfMonth(1) }
+        val sums = DoubleArray(12)
+        val sinceMillis = months.first().atStartOfDay(zone).toInstant().toEpochMilli()
+        records.forEach { r ->
+            if (r.dateTime >= sinceMillis) {
+                val m = java.time.Instant.ofEpochMilli(r.dateTime)
+                    .atZone(zone).toLocalDate().withDayOfMonth(1)
+                val idx = months.indexOf(m)
+                if (idx >= 0) sums[idx] += r.coffeeWeight
+            }
+        }
+        return sums.toList()
+    }
 }

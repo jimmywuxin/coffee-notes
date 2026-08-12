@@ -108,6 +108,7 @@ private fun OverviewSection(viewModel: StatsViewModel) {
         StatRow("🏷 烘焙商", "$roasterCount 家")
         StatRow("🌍 产地", "$originCount 个")
         StatRow("☕ 总冲煮次数", "$totalBrews 次")
+        StatFootnote("口径：统计全部冲煮记录与豆子数据")
     }
 }
 
@@ -151,9 +152,22 @@ private fun BrewTrendSection(viewModel: StatsViewModel, beanId: Long) {
         Text("📈 冲煮趋势", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
 
+        // 消耗趋势（克）柱状图——近 12 个月
+        val consumption by (if (beanId > 0) viewModel.getMonthlyConsumptionForBean(beanId) else viewModel.monthlyConsumptionGrams)
+            .collectAsState(initial = emptyList())
+        if (consumption.any { it > 0 }) {
+            Text("⚖️ 消耗趋势（克）")
+            Spacer(modifier = Modifier.height(4.dp))
+            MonthlyConsumptionBar(consumption)
+            StatFootnote("口径：按月汇总冲煮记录粉量（近 12 个月），未记粉量的冲煮不计入")
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
         if (beanId > 0) {
             val monthlyCounts by viewModel.getMonthlyBrewCountsForBean(beanId).collectAsState(initial = emptyList())
             if (monthlyCounts.isNotEmpty()) {
+                Text("📅 月度冲煮次数（近12个月）")
+                Spacer(modifier = Modifier.height(4.dp))
                 MonthlyTrendBar(monthlyCounts)
             } else {
                 Text("暂无数据", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -164,7 +178,7 @@ private fun BrewTrendSection(viewModel: StatsViewModel, beanId: Long) {
             val lastWeek by viewModel.lastWeekCount.collectAsState(initial = 0)
 
             if (monthlyCounts.isNotEmpty()) {
-                Text("📅 月度趋势（近12个月）")
+                Text("📅 月度冲煮次数（近12个月）")
                 Spacer(modifier = Modifier.height(4.dp))
                 MonthlyTrendBar(monthlyCounts)
             }
@@ -179,8 +193,89 @@ private fun BrewTrendSection(viewModel: StatsViewModel, beanId: Long) {
                 WeekComparisonBox("本周", thisWeek, MaterialTheme.colorScheme.primary)
                 WeekComparisonBox("上周", lastWeek, MaterialTheme.colorScheme.secondary)
             }
+            StatFootnote("口径：本周自周一起算，与上周同期对比")
         }
     }
+}
+
+/** 消耗趋势柱状图：近 12 个月每月消耗克数 */
+@Composable
+private fun MonthlyConsumptionBar(counts: List<Double>) {
+    if (counts.isEmpty() || counts.none { it > 0 }) return
+    val maxCount = counts.max().coerceAtLeast(1.0)
+    val labels = generateMonthLabels(counts.size)
+    val barColor = MaterialTheme.colorScheme.tertiary
+    val gridColor = MaterialTheme.colorScheme.surfaceVariant
+    val textColor = MaterialTheme.colorScheme.onSurface
+
+    Column {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+        ) {
+            val w = size.width
+            val h = size.height
+            val padBottom = 20f
+            val padTop = 24f
+            val chartH = h - padBottom - padTop
+            val barGap = 6f
+            val barWidth = (w / counts.size - barGap).coerceAtLeast(4f)
+
+            // Grid lines (3 horizontal)
+            for (i in 0..2) {
+                val y = padTop + chartH * i / 2
+                drawLine(gridColor, Offset(0f, y), Offset(w, y), strokeWidth = 1f)
+            }
+
+            // Bars + value labels
+            counts.forEachIndexed { i, c ->
+                val barH = if (c > 0) (c / maxCount * chartH).toFloat().coerceAtLeast(2f) else 0f
+                val x = i * (w / counts.size) + (w / counts.size - barWidth) / 2
+                val y = padTop + chartH - barH
+                if (c > 0) {
+                    drawRoundRect(
+                        color = barColor,
+                        topLeft = Offset(x, y),
+                        size = androidx.compose.ui.geometry.Size(barWidth, barH),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+                    )
+                    // Value above bar
+                    drawContext.canvas.nativeCanvas.apply {
+                        val paint = android.graphics.Paint().apply {
+                            color = textColor.hashCode()
+                            textSize = 26f
+                            textAlign = android.graphics.Paint.Align.CENTER
+                        }
+                        drawText(String.format("%.0f", c), x + barWidth / 2, y - 8f, paint)
+                    }
+                }
+            }
+        }
+
+        // Month labels
+        Row(modifier = Modifier.fillMaxWidth()) {
+            labels.forEach { label ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.weight(1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+/** 统计口径说明：小字灰注 */
+@Composable
+private fun StatFootnote(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp)
+    )
 }
 
 @Composable
@@ -494,6 +589,7 @@ private fun RatingSection(viewModel: StatsViewModel, beanId: Long) {
             .collectAsState(initial = 0.0)
         if (avgRating > 0) {
             Text(text = "📊 整体平均评分：${String.format("%.1f", avgRating)} / 5")
+            StatFootnote("口径：仅统计有评分的冲煮记录，未评分的不计入")
         }
 
         Spacer(modifier = Modifier.height(8.dp))
