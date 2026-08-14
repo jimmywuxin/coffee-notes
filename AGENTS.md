@@ -73,9 +73,9 @@
 ### 性能（改到相关文件时顺手）
 - ~~collectAsState 未用 collectAsStateWithLifecycle~~ **已做（2026-08-15）**：全项目 17 个 screen 文件 ~70 处替换完成，无参调用补 `initialValue = flow.value`；gradle.properties 已开 caching+parallel（2.2）
 - ~~StatsScreen 每次重组新建 Flow 订阅~~ **已做（2026-08-15）**：getBrewCountForBean/getMonthlyBrewCountsForBean/getMonthlyConsumptionForBean/getTopFlavorTags 均包 remember
-- `BrewListScreen.kt:330`——`beans.find{it.id==record.beanId}` 线性查找 O(n×m)，应预构建 `Map<Long,CoffeeBean>`
-- `ImageUtils.kt:43`——`decodeStream` 无 `inSampleSize` 预采样，大图 OOM
-- `CoffeeBeanDao.kt:37-53`——`searchBeansFull` 10 列 LIKE + 3 表 JOIN 全表扫描
+- ~~BrewListScreen.kt:330 `beans.find` 线性查找~~ **已做（2026-08-15）**：预构建 `beansById = remember(beans) { beans.associateBy { it.id } }`
+- ~~ImageUtils.kt:43 decodeStream 无预采样~~ **已做（2026-08-15）**：inJustDecodeBounds 读尺寸 → calculateInSampleSize → 带采样解码
+- `CoffeeBeanDao.kt:37-53`——`searchBeansFull` 10 列 LIKE + 3 表 JOIN 全表扫描（数据量大再说，FTS 暂缓）
 - `CoffeeBeanDao.kt:86-92`——`getInventoryForActiveBeans` 每行两个相关子查询
 
 ### 代码质量（重构时顺手）

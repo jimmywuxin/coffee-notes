@@ -39,8 +39,20 @@ object ImageUtils {
      */
     fun compressAndSaveBeanPhoto(context: Context, uri: Uri): String? {
         return try {
+            // 1. 先 inJustDecodeBounds 只读尺寸（不加载像素），算采样率防大图 OOM
+            val boundsOptions = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use { ins ->
+                android.graphics.BitmapFactory.decodeStream(ins, null, boundsOptions)
+            }
+            val boundsWidth = boundsOptions.outWidth
+            val boundsHeight = boundsOptions.outHeight
+            if (boundsWidth <= 0 || boundsHeight <= 0) return null
+            val sampleSize = calculateInSampleSize(boundsWidth, boundsHeight, COMPRESS_MAX_DIM)
+
+            // 2. 按采样率解码（内存占用约降 sampleSize² 倍）
+            val decodeOptions = android.graphics.BitmapFactory.Options().apply { inSampleSize = sampleSize }
             val inputStream = context.contentResolver.openInputStream(uri) ?: return null
-            val originalBitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+            val originalBitmap = android.graphics.BitmapFactory.decodeStream(inputStream, null, decodeOptions)
             inputStream.close()
             if (originalBitmap == null) return null
 
@@ -69,6 +81,17 @@ object ImageUtils {
             e.printStackTrace()
             null
         }
+    }
+
+    /**
+     * 计算 inSampleSize（2 的幂）：使采样后最长边不超过 maxDim 的 2 倍（由调用方再精确缩放）。
+     */
+    private fun calculateInSampleSize(width: Int, height: Int, maxDim: Int): Int {
+        var sampleSize = 1
+        while (width / (sampleSize * 2) >= maxDim || height / (sampleSize * 2) >= maxDim) {
+            sampleSize *= 2
+        }
+        return sampleSize
     }
 
     fun getBeanPhotoFile(context: Context, relativePath: String): File {

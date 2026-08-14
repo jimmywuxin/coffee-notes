@@ -63,6 +63,8 @@ fun BrewListScreen(
     var visibleCount by remember { mutableIntStateOf(30) }
     val PAGE_SIZE = 30
     val beans by beanViewModel.allBeans.collectAsStateWithLifecycle(initialValue = emptyList())
+    // 预构建 id→bean 映射，避免每条记录线性查找 beans（O(n×m) → O(n)）
+    val beansById = remember(beans) { beans.associateBy { it.id } }
 
     // Week range filter (only for all records view, hidden when searching)
     var selectedWeekRange by remember { mutableStateOf("全部") }
@@ -328,7 +330,7 @@ fun BrewListScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(filteredRecords.take(visibleCount), key = { it.id }, contentType = { "record" }) { record ->
-                        val beanName = beans.find { it.id == record.beanId }?.let {
+                        val beanName = beansById[record.beanId]?.let {
                             "${it.roaster} - ${it.name}"
                         } ?: record.beanRoaster.let { if (it.isNotEmpty()) "$it - ${record.beanName}" else "未知豆子" }
 
