@@ -1,3 +1,22 @@
+## v2.9.4 (2026-08-15)
+
+### Bug 修复：v20→v21 迁移 SQL 与实体不一致（数据安全）
+
+- **问题**：`MIGRATION_20_21` 建 `stock_adjustments` 表时多写了 `FOREIGN KEY(beanId) REFERENCES coffee_beans(id) ON DELETE CASCADE`，而实体 `StockAdjustment` 未声明外键 → Room schema 校验失败（`Migration didn't properly handle: stock_adjustments`），从 v20 升级的用户会被卡住
+- **修复**：迁移 SQL 去掉多余外键子句，与实体定义完全一致（对已升级到 v21 的用户无影响，迁移只执行一次）
+
+### 改进：Room 迁移自动化测试（装机前防线）
+
+- 新增 `MigrationTest.kt`（androidTest）：从 v20 schema 建库插入数据 → 执行迁移 → 断言旧数据逐列保留 + 新表可插入可查询
+- 首次运行即抓出上述 FK 不一致问题，以后迁移 SQL 写错会在装机前被测试拦下
+- 配套：`build.gradle.kts` 加 `room-testing:2.7.1` 依赖，schemas 目录挂到 androidTest assets
+
+### 版本信息
+
+- versionCode: 88 → 89
+- versionName: 2.9.3 → 2.9.4
+- 数据库版本不变（21）
+
 ## v2.9.3 (2026-08-13)
 
 ### 新功能：统计页消耗趋势图（借鉴 brew-guide）

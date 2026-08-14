@@ -289,7 +289,10 @@ object AppDatabaseMigrations {
     }
 
     // Migration from v20 → v21: 新建 stock_adjustments 表（库存调整/快捷扣减）
-    private val MIGRATION_20_21 = object : Migration(20, 21) {
+    // 注意：表结构与 StockAdjustment 实体完全一致（Room schema 校验严格比对，
+    // 实体未声明外键，故此处也不可写 FOREIGN KEY 子句——2026-08-15 经 MigrationTest 发现并修正）
+    // internal：供 androidTest 的 MigrationTest 引用
+    internal val MIGRATION_20_21 = object : Migration(20, 21) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("""
                 CREATE TABLE stock_adjustments (
@@ -297,8 +300,7 @@ object AppDatabaseMigrations {
                     beanId INTEGER NOT NULL,
                     changeGrams REAL NOT NULL,
                     note TEXT NOT NULL,
-                    createdAt INTEGER NOT NULL,
-                    FOREIGN KEY(beanId) REFERENCES coffee_beans(id) ON DELETE CASCADE
+                    createdAt INTEGER NOT NULL
                 )
             """.trimIndent())
             db.execSQL("CREATE INDEX index_stock_adjustments_beanId ON stock_adjustments(beanId)")

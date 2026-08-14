@@ -13,8 +13,8 @@ android {
         applicationId = "com.coffeelab.coffeenotes"
         minSdk = 30
         targetSdk = 35
-        versionCode = 88
-        versionName = "2.9.3"
+        versionCode = 89
+        versionName = "2.9.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -45,6 +45,11 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    // MigrationTestHelper 需要从 assets 读取 schema JSON（app/schemas/）
+    sourceSets {
+        getByName("androidTest").assets.srcDirs(files("$projectDir/schemas"))
     }
 
     packaging {
@@ -87,6 +92,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.room:room-testing:2.7.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2025.05.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
