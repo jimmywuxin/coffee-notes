@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -99,12 +100,12 @@ fun BeanDetailScreen(
         }
     }
 
-    val bean by beanViewModel.selectedBean.collectAsState(initial = null)
-    val tags by beanViewModel.tags.collectAsState(initial = emptyList())
-    val impressionTags by beanViewModel.impressionTags.collectAsState(initial = emptyList())
-    val records by brewViewModel.recordsForBean.collectAsState(initial = emptyList())
-    val roastDegrees by beanViewModel.allRoastDegrees.collectAsState(initial = emptyList())
-    val processMethods by beanViewModel.allProcessMethods.collectAsState(initial = emptyList())
+    val bean by beanViewModel.selectedBean.collectAsStateWithLifecycle(initialValue = beanViewModel.selectedBean.value)
+    val tags by beanViewModel.tags.collectAsStateWithLifecycle(initialValue = emptyList())
+    val impressionTags by beanViewModel.impressionTags.collectAsStateWithLifecycle(initialValue = emptyList())
+    val records by brewViewModel.recordsForBean.collectAsStateWithLifecycle(initialValue = emptyList())
+    val roastDegrees by beanViewModel.allRoastDegrees.collectAsStateWithLifecycle(initialValue = emptyList())
+    val processMethods by beanViewModel.allProcessMethods.collectAsStateWithLifecycle(initialValue = emptyList())
 
     // 计算雷达图数据（取有评分记录的维度平均分）
     val radarValues = remember(records) {

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -32,7 +33,7 @@ fun EquipmentManagementScreen(
     navController: NavController,
     equipmentViewModel: EquipmentViewModel = viewModel()
 ) {
-    val equipmentList by equipmentViewModel.allEquipment.collectAsState(initial = emptyList())
+    val equipmentList by equipmentViewModel.allEquipment.collectAsStateWithLifecycle(initialValue = emptyList())
     val mutableList = remember { mutableStateListOf(*equipmentList.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
 

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
@@ -49,18 +50,18 @@ enum class BeanSortMode { CUSTOM, RATING_DESC, COUNT_DESC }
 fun BeanListScreen(
     navController: NavController,
     viewModel: BeanViewModel = viewModel()
-) {    val beans by viewModel.activeBeans.collectAsState(initial = emptyList())
-    val archivedBeans by viewModel.archivedBeans.collectAsState(initial = emptyList())
+) {    val beans by viewModel.activeBeans.collectAsStateWithLifecycle(initialValue = emptyList())
+    val archivedBeans by viewModel.archivedBeans.collectAsStateWithLifecycle(initialValue = emptyList())
     val mutableBeans = remember { mutableStateListOf(*beans.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
-    val showArchivedOnly by viewModel.showArchivedOnly.collectAsState()
-    val showFavoritesOnly by viewModel.showFavoritesOnly.collectAsState()
+    val showArchivedOnly by viewModel.showArchivedOnly.collectAsStateWithLifecycle(initialValue = viewModel.showArchivedOnly.value)
+    val showFavoritesOnly by viewModel.showFavoritesOnly.collectAsStateWithLifecycle(initialValue = viewModel.showFavoritesOnly.value)
 
     // ===== Search state =====
     var isSearchMode by remember { mutableStateOf(false) }
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState(initial = emptyList())
-    val isSearching by viewModel.isSearching.collectAsState(initial = false)
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle(initialValue = viewModel.searchQuery.value)
+    val searchResults by viewModel.searchResults.collectAsStateWithLifecycle(initialValue = emptyList())
+    val isSearching by viewModel.isSearching.collectAsStateWithLifecycle(initialValue = false)
     val focusRequester = remember { FocusRequester() }
 
     // ===== 排序模式（自定义 / 评分 / 次数）=====

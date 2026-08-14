@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,7 +27,7 @@ fun ArchiveListScreen(
     navController: NavController,
     viewModel: BeanViewModel = viewModel()
 ) {
-    val archivedBeans by viewModel.archivedBeans.collectAsState(initial = emptyList())
+    val archivedBeans by viewModel.archivedBeans.collectAsStateWithLifecycle(initialValue = emptyList())
     var showUnarchiveDialog by remember { mutableStateOf<CoffeeBean?>(null) }
 
     Scaffold(

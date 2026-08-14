@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -25,7 +26,7 @@ fun ImportScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val importState by viewModel.importState.collectAsState()
+    val importState by viewModel.importState.collectAsStateWithLifecycle(initialValue = viewModel.importState.value)
 
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()

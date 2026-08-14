@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -96,10 +97,10 @@ fun StatsScreen(
 // ===================== 总览卡片 =====================
 @Composable
 private fun OverviewSection(viewModel: StatsViewModel) {
-    val beanCount by viewModel.beanCount.collectAsState()
-    val roasterCount by viewModel.roasterCount.collectAsState()
-    val originCount by viewModel.originCount.collectAsState()
-    val totalBrews by viewModel.totalBrewCount.collectAsState()
+    val beanCount by viewModel.beanCount.collectAsStateWithLifecycle(initialValue = viewModel.beanCount.value)
+    val roasterCount by viewModel.roasterCount.collectAsStateWithLifecycle(initialValue = viewModel.roasterCount.value)
+    val originCount by viewModel.originCount.collectAsStateWithLifecycle(initialValue = viewModel.originCount.value)
+    val totalBrews by viewModel.totalBrewCount.collectAsStateWithLifecycle(initialValue = viewModel.totalBrewCount.value)
 
     StatCard {
         Text("📦 总览", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -115,7 +116,7 @@ private fun OverviewSection(viewModel: StatsViewModel) {
 // ===================== 豆子详情统计 =====================
 @Composable
 private fun BeanStatsSection(viewModel: StatsViewModel, beanId: Long) {
-    val beans by viewModel.allBeans.collectAsState(initial = emptyList())
+    val beans by viewModel.allBeans.collectAsStateWithLifecycle(initialValue = emptyList())
     val bean = beans.find { it.id == beanId }
 
     if (bean != null) {
@@ -123,7 +124,8 @@ private fun BeanStatsSection(viewModel: StatsViewModel, beanId: Long) {
             Text("${bean.roaster} - ${bean.name}", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(8.dp))
 
-            val brewCount by viewModel.getBrewCountForBean(beanId).collectAsState(initial = 0)
+            val brewCount by remember(beanId) { viewModel.getBrewCountForBean(beanId) }
+                .collectAsStateWithLifecycle(initialValue = 0)
             StatRow("☕ 冲煮次数", "$brewCount 次")
 
             if (bean.origin.isNotEmpty()) StatRow("🌍 产地", bean.origin)
@@ -153,8 +155,10 @@ private fun BrewTrendSection(viewModel: StatsViewModel, beanId: Long) {
         Spacer(modifier = Modifier.height(8.dp))
 
         // 消耗趋势（克）柱状图——近 12 个月
-        val consumption by (if (beanId > 0) viewModel.getMonthlyConsumptionForBean(beanId) else viewModel.monthlyConsumptionGrams)
-            .collectAsState(initial = emptyList())
+        val consumptionFlow = remember(beanId) {
+            if (beanId > 0) viewModel.getMonthlyConsumptionForBean(beanId) else viewModel.monthlyConsumptionGrams
+        }
+        val consumption by consumptionFlow.collectAsStateWithLifecycle(initialValue = emptyList())
         if (consumption.any { it > 0 }) {
             Text("⚖️ 消耗趋势（克）")
             Spacer(modifier = Modifier.height(4.dp))
@@ -164,7 +168,8 @@ private fun BrewTrendSection(viewModel: StatsViewModel, beanId: Long) {
         }
 
         if (beanId > 0) {
-            val monthlyCounts by viewModel.getMonthlyBrewCountsForBean(beanId).collectAsState(initial = emptyList())
+            val monthlyCounts by remember(beanId) { viewModel.getMonthlyBrewCountsForBean(beanId) }
+                .collectAsStateWithLifecycle(initialValue = emptyList())
             if (monthlyCounts.isNotEmpty()) {
                 Text("📅 月度冲煮次数（近12个月）")
                 Spacer(modifier = Modifier.height(4.dp))
@@ -173,9 +178,9 @@ private fun BrewTrendSection(viewModel: StatsViewModel, beanId: Long) {
                 Text("暂无数据", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            val monthlyCounts by viewModel.monthlyBrewCounts.collectAsState(initial = emptyList())
-            val thisWeek by viewModel.thisWeekCount.collectAsState(initial = 0)
-            val lastWeek by viewModel.lastWeekCount.collectAsState(initial = 0)
+            val monthlyCounts by viewModel.monthlyBrewCounts.collectAsStateWithLifecycle(initialValue = emptyList())
+            val thisWeek by viewModel.thisWeekCount.collectAsStateWithLifecycle(initialValue = 0)
+            val lastWeek by viewModel.lastWeekCount.collectAsStateWithLifecycle(initialValue = 0)
 
             if (monthlyCounts.isNotEmpty()) {
                 Text("📅 月度冲煮次数（近12个月）")
@@ -381,7 +386,7 @@ private fun BrewHabitsSection(viewModel: StatsViewModel, beanId: Long) {
 
         // 器具排行
         val equipmentCnt by (if (isPerBean) viewModel.getEquipmentCountsForBean(beanId) else viewModel.equipmentCounts)
-            .collectAsState(initial = emptyList())
+            .collectAsStateWithLifecycle(initialValue = emptyList())
         if (equipmentCnt.isNotEmpty()) {
             Text("🔧 器具使用排行")
             Spacer(modifier = Modifier.height(4.dp))
@@ -420,7 +425,7 @@ private fun BrewHabitsSection(viewModel: StatsViewModel, beanId: Long) {
 
         // 粉水比分布
         val ratioCnt by (if (isPerBean) viewModel.getRatioCountsForBean(beanId) else viewModel.ratioCounts)
-            .collectAsState(initial = emptyList())
+            .collectAsStateWithLifecycle(initialValue = emptyList())
         if (ratioCnt.isNotEmpty()) {
             Text("💧 常用粉水比")
             Spacer(modifier = Modifier.height(4.dp))
@@ -455,7 +460,7 @@ private fun BrewHabitsSection(viewModel: StatsViewModel, beanId: Long) {
 
         // 水温分布
         val tempCnt by (if (isPerBean) viewModel.getTempCountsForBean(beanId) else viewModel.tempCounts)
-            .collectAsState(initial = emptyList())
+            .collectAsStateWithLifecycle(initialValue = emptyList())
         if (tempCnt.isNotEmpty()) {
             Text("🌡 常用水温区间")
             Spacer(modifier = Modifier.height(4.dp))
@@ -491,7 +496,7 @@ private fun BrewHabitsSection(viewModel: StatsViewModel, beanId: Long) {
 
         // 冲煮时段分布
         val timeSlotCnt by (if (isPerBean) viewModel.getTimeSlotCountsForBean(beanId) else viewModel.timeSlotCounts)
-            .collectAsState(initial = emptyList())
+            .collectAsStateWithLifecycle(initialValue = emptyList())
         if (timeSlotCnt.isNotEmpty()) {
             Text("🕐 冲煮时段")
             Spacer(modifier = Modifier.height(4.dp))
@@ -533,7 +538,7 @@ private fun BeanSection(viewModel: StatsViewModel) {
         Spacer(modifier = Modifier.height(8.dp))
 
         // 冲煮排行 Top
-        val topBeans by viewModel.topBrewedBeans.collectAsState(initial = emptyList())
+        val topBeans by viewModel.topBrewedBeans.collectAsStateWithLifecycle(initialValue = emptyList())
         if (topBeans.isNotEmpty()) {
             Text("🥇 冲煮最多豆子 Top 5")
             Spacer(modifier = Modifier.height(4.dp))
@@ -548,7 +553,7 @@ private fun BeanSection(viewModel: StatsViewModel) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // 产地分布
-        val origins by viewModel.beanCountByOrigin.collectAsState(initial = emptyList())
+        val origins by viewModel.beanCountByOrigin.collectAsStateWithLifecycle(initialValue = emptyList())
         if (origins.isNotEmpty()) {
             Text("🌍 产地分布")
             Spacer(modifier = Modifier.height(4.dp))
@@ -563,7 +568,7 @@ private fun BeanSection(viewModel: StatsViewModel) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // 烘焙度分布
-        val roasts by viewModel.beanCountByRoastLevel.collectAsState(initial = emptyList())
+        val roasts by viewModel.beanCountByRoastLevel.collectAsStateWithLifecycle(initialValue = emptyList())
         if (roasts.isNotEmpty()) {
             Text("🔥 烘焙度分布")
             Spacer(modifier = Modifier.height(4.dp))
@@ -586,7 +591,7 @@ private fun RatingSection(viewModel: StatsViewModel, beanId: Long) {
         Spacer(modifier = Modifier.height(8.dp))
 
         val avgRating by (if (isPerBean) viewModel.getAvgRatingForBean(beanId).map { v -> v ?: 0.0 } else viewModel.overallAvgRating)
-            .collectAsState(initial = 0.0)
+            .collectAsStateWithLifecycle(initialValue = 0.0)
         if (avgRating > 0) {
             Text(text = "📊 整体平均评分：${String.format("%.1f", avgRating)} / 5")
             StatFootnote("口径：仅统计有评分的冲煮记录，未评分的不计入")
@@ -596,7 +601,7 @@ private fun RatingSection(viewModel: StatsViewModel, beanId: Long) {
 
         // 评分分布
         val ratings by (if (isPerBean) viewModel.getRatingCountsForBean(beanId) else viewModel.ratingCounts)
-            .collectAsState(initial = emptyList())
+            .collectAsStateWithLifecycle(initialValue = emptyList())
         val totalRated = ratings.sumOf { it.cnt }
 
         if (ratings.isNotEmpty() && totalRated > 0) {
@@ -635,7 +640,7 @@ private fun RatingSection(viewModel: StatsViewModel, beanId: Long) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // 各器具平均评分
-        val equipRatings by viewModel.avgRatingByEquipment.collectAsState(initial = emptyList())
+        val equipRatings by viewModel.avgRatingByEquipment.collectAsStateWithLifecycle(initialValue = emptyList())
         if (equipRatings.isNotEmpty() && !isPerBean) {
             Text("🔧 各器具平均评分")
             Spacer(modifier = Modifier.height(4.dp))
@@ -656,7 +661,7 @@ private fun FlavorSection(viewModel: StatsViewModel) {
         Text("🔥 风味词统计 Top 10", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
 
-        val topFlavors by viewModel.getTopFlavorTags(10).collectAsState(initial = emptyList())
+        val topFlavors by remember { viewModel.getTopFlavorTags(10) }.collectAsStateWithLifecycle(initialValue = emptyList())
 
         if (topFlavors.isNotEmpty()) {
             val maxCnt = topFlavors.maxOfOrNull { it.cnt } ?: 1

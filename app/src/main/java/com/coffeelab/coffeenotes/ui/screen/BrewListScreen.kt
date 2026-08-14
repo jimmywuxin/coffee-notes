@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -36,9 +37,9 @@ fun BrewListScreen(
 ) {
     // ===== Search state =====
     var isSearchMode by remember { mutableStateOf(false) }
-    val searchQuery by brewViewModel.searchQuery.collectAsState()
-    val searchResults by brewViewModel.searchResults.collectAsState(initial = emptyList())
-    val isSearching by brewViewModel.isSearching.collectAsState(initial = false)
+    val searchQuery by brewViewModel.searchQuery.collectAsStateWithLifecycle(initialValue = brewViewModel.searchQuery.value)
+    val searchResults by brewViewModel.searchResults.collectAsStateWithLifecycle(initialValue = emptyList())
+    val isSearching by brewViewModel.isSearching.collectAsStateWithLifecycle(initialValue = false)
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
@@ -52,16 +53,16 @@ fun BrewListScreen(
 
     val rawRecords by if (beanId > 0) {
         brewViewModel.loadRecordsForBean(beanId)
-        brewViewModel.recordsForBean.collectAsState(initial = emptyList())
+        brewViewModel.recordsForBean.collectAsStateWithLifecycle(initialValue = emptyList())
     } else {
-        brewViewModel.allRecords.collectAsState(initial = emptyList())
+        brewViewModel.allRecords.collectAsStateWithLifecycle(initialValue = emptyList())
     }
     val records = if (isSearching) searchResults else rawRecords
 
     // Paging
     var visibleCount by remember { mutableIntStateOf(30) }
     val PAGE_SIZE = 30
-    val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
+    val beans by beanViewModel.allBeans.collectAsStateWithLifecycle(initialValue = emptyList())
 
     // Week range filter (only for all records view, hidden when searching)
     var selectedWeekRange by remember { mutableStateOf("全部") }

@@ -71,8 +71,8 @@
 - `README.md` 版本号滞后（写 2.6.1，实际 2.9.3）
 
 ### 性能（改到相关文件时顺手）
-- `collectAsState` 未用 `collectAsStateWithLifecycle`（全项目）——后台仍采集 Flow，切 `lifecycle-runtime-compose` 已在依赖里
-- `StatsScreen.kt`——每次重组新建 Flow 订阅，应 `remember(beanId)`
+- ~~collectAsState 未用 collectAsStateWithLifecycle~~ **已做（2026-08-15）**：全项目 17 个 screen 文件 ~70 处替换完成，无参调用补 `initialValue = flow.value`；gradle.properties 已开 caching+parallel（2.2）
+- ~~StatsScreen 每次重组新建 Flow 订阅~~ **已做（2026-08-15）**：getBrewCountForBean/getMonthlyBrewCountsForBean/getMonthlyConsumptionForBean/getTopFlavorTags 均包 remember
 - `BrewListScreen.kt:330`——`beans.find{it.id==record.beanId}` 线性查找 O(n×m)，应预构建 `Map<Long,CoffeeBean>`
 - `ImageUtils.kt:43`——`decodeStream` 无 `inSampleSize` 预采样，大图 OOM
 - `CoffeeBeanDao.kt:37-53`——`searchBeansFull` 10 列 LIKE + 3 表 JOIN 全表扫描

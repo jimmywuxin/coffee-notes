@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.compose.runtime.snapshots.SnapshotStateList
 
@@ -178,10 +179,10 @@ fun BeanEditScreen(
 
     val isEditing = beanId > 0
 
-    val recResult by viewModel.recognitionResult.collectAsState(initial = null)
+    val recResult by viewModel.recognitionResult.collectAsStateWithLifecycle(initialValue = viewModel.recognitionResult.value)
 
-    val recProcessing by viewModel.recognitionProcessing.collectAsState(initial = false)
-    val blurWarning by viewModel.blurWarning.collectAsState()
+    val recProcessing by viewModel.recognitionProcessing.collectAsStateWithLifecycle(initialValue = false)
+    val blurWarning by viewModel.blurWarning.collectAsStateWithLifecycle(initialValue = viewModel.blurWarning.value)
 
     // OCR 纠错回流：记录 OCR 填入表单时的原始值快照（field -> ocrRaw），保存时与最终值对比
     var ocrSnapshot by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -248,7 +249,7 @@ fun BeanEditScreen(
 
 
 
-    val allImpressionTags by viewModel.allImpressionTags.collectAsState(initial = emptyList())
+    val allImpressionTags by viewModel.allImpressionTags.collectAsStateWithLifecycle(initialValue = emptyList())
 
     var showPhotoOptions by remember { mutableStateOf(false) }
 
@@ -365,11 +366,11 @@ fun BeanEditScreen(
 
 
 
-    val bean by viewModel.selectedBean.collectAsState(initial = null)
+    val bean by viewModel.selectedBean.collectAsStateWithLifecycle(initialValue = viewModel.selectedBean.value)
 
-    val existingTags by viewModel.tags.collectAsState(initial = emptyList())
+    val existingTags by viewModel.tags.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    val existingImpressionTags by viewModel.impressionTags.collectAsState(initial = emptyList())
+    val existingImpressionTags by viewModel.impressionTags.collectAsStateWithLifecycle(initialValue = emptyList())
 
     LaunchedEffect(existingImpressionTags) {
 
@@ -385,9 +386,9 @@ fun BeanEditScreen(
 
 
 
-    val roastDegrees by viewModel.allRoastDegrees.collectAsState(initial = emptyList())
+    val roastDegrees by viewModel.allRoastDegrees.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    val processMethods by viewModel.allProcessMethods.collectAsState(initial = emptyList())
+    val processMethods by viewModel.allProcessMethods.collectAsStateWithLifecycle(initialValue = emptyList())
 
 
 

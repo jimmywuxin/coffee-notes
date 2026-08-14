@@ -25,6 +25,7 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -73,8 +74,8 @@ fun BrewEditScreen(
     grinderViewModel: GrinderViewModel = viewModel()
 ) {
     val scope = rememberCoroutineScope()
-    val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
-    val methods by methodViewModel.allMethods.collectAsState(initial = emptyList())
+    val beans by beanViewModel.allBeans.collectAsStateWithLifecycle(initialValue = emptyList())
+    val methods by methodViewModel.allMethods.collectAsStateWithLifecycle(initialValue = emptyList())
 
     val isEditing = recordId > 0
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -170,10 +171,10 @@ fun BrewEditScreen(
     var selectedBeanExtraction by remember { mutableStateOf<ExtractionSuggestion?>(null) }
 
     // Equipment list
-    val equipmentList by equipmentViewModel.allEquipment.collectAsState(initial = emptyList())
+    val equipmentList by equipmentViewModel.allEquipment.collectAsStateWithLifecycle(initialValue = emptyList())
 
     // Grinder list
-    val grinderList by grinderViewModel.allGrinders.collectAsState(initial = emptyList())
+    val grinderList by grinderViewModel.allGrinders.collectAsStateWithLifecycle(initialValue = emptyList())
 
     // Auto-calculate waterAmount when coffeeWeight or coffeeWaterRatio changes
     LaunchedEffect(coffeeWeight, coffeeWaterRatio) {

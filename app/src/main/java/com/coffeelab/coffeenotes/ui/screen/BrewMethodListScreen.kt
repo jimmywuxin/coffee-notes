@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -35,7 +36,7 @@ fun BrewMethodListScreen(
     navController: NavController,
     viewModel: BrewMethodViewModel = viewModel()
 ) {
-    val methods by viewModel.allMethods.collectAsState(initial = emptyList())
+    val methods by viewModel.allMethods.collectAsStateWithLifecycle(initialValue = emptyList())
     val mutableList = remember { mutableStateListOf(*methods.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
     // 拖拽状态 — 使用 LazyListState 精确追踪位置

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -32,7 +33,7 @@ fun GrinderManagementScreen(
     navController: NavController,
     grinderViewModel: GrinderViewModel = viewModel()
 ) {
-    val grinderList by grinderViewModel.allGrinders.collectAsState(initial = emptyList())
+    val grinderList by grinderViewModel.allGrinders.collectAsStateWithLifecycle(initialValue = emptyList())
     val mutableList = remember { mutableStateListOf(*grinderList.toTypedArray()) }
     var isReorderMode by remember { mutableStateOf(false) }
 

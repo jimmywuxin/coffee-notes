@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -42,16 +43,16 @@ fun HomeScreen(
     methodViewModel: BrewMethodViewModel = viewModel(),
     homeViewModel: HomeViewModel = viewModel()
 ) {
-    val beans by beanViewModel.allBeans.collectAsState(initial = emptyList())
-    val recentRecords by brewViewModel.allRecords.collectAsState(initial = emptyList())
-    val allMethods by methodViewModel.allMethods.collectAsState(initial = emptyList())
-    val nearingBeans by beanViewModel.beansNearingPeakFlavorEnd.collectAsState(initial = emptyList())
+    val beans by beanViewModel.allBeans.collectAsStateWithLifecycle(initialValue = emptyList())
+    val recentRecords by brewViewModel.allRecords.collectAsStateWithLifecycle(initialValue = emptyList())
+    val allMethods by methodViewModel.allMethods.collectAsStateWithLifecycle(initialValue = emptyList())
+    val nearingBeans by beanViewModel.beansNearingPeakFlavorEnd.collectAsStateWithLifecycle(initialValue = emptyList())
 
     // ===== Search state =====
     var isSearchMode by remember { mutableStateOf(false) }
-    val searchQuery by homeViewModel.searchQuery.collectAsState()
-    val isSearching by homeViewModel.isSearching.collectAsState(initial = false)
-    val mixedResults by homeViewModel.mixedResults.collectAsState(initial = emptyList())
+    val searchQuery by homeViewModel.searchQuery.collectAsStateWithLifecycle(initialValue = homeViewModel.searchQuery.value)
+    val isSearching by homeViewModel.isSearching.collectAsStateWithLifecycle(initialValue = false)
+    val mixedResults by homeViewModel.mixedResults.collectAsStateWithLifecycle(initialValue = emptyList())
     val focusRequester = remember { FocusRequester() }
     var showRandomPicker by remember { mutableStateOf(false) }
 
