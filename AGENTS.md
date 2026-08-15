@@ -79,8 +79,8 @@
 - `CoffeeBeanDao.kt:86-92`——`getInventoryForActiveBeans` 每行两个相关子查询
 
 ### 代码质量（重构时顺手）
-- `BeanViewModel.kt`（309 行）——God Class：豆子+标签+OCR+图片+赏味期全混，应拆分
-- 6 个管理屏（Equipment/Grinder/ImpressionTag/ProcessMethod/RoastDegree/BrewMethod）——拖拽排序+删除弹窗逻辑复制粘贴，应抽可复用组件
+- ~~`BeanViewModel.kt`（309 行）God Class~~ **已瘦身（2026-08-15）**：抽 `PeakFlavorCalculator`（赏味期纯函数，带 6 个单测）+ `OcrCorrectionRecorder`（OCR 纠错回流），BeanViewModel 做门面，UI 零改动；后续可继续拆 Recognition/OCR 状态
+- ~~6 个管理屏拖拽排序+删除弹窗复制粘贴~~ **已抽组件（2026-08-15）**：`SingleNameManagementScreen<T>` 泛型组件，Equipment/Grinder/ImpressionTag/ProcessMethod 4 屏已套用（每屏 ~194 行 → ~40 行）；**RoastDegree（三字段布局）、BrewMethod（带 steps）结构特殊，保留原样**
 - `AppDatabase.kt:178-202`——suspend 版 populate（Equipment/Grinders/BrewMethods）无调用方，死代码（callback 里用的是 Sync 版）
 - `AppDatabaseMigrations.kt:185` MIGRATION_15_16——加 equipmentId/grinderId 未 DROP 旧 String 列
 

@@ -13,6 +13,8 @@ import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import com.coffeelab.coffeenotes.util.ImageUtils
+import com.coffeelab.coffeenotes.util.OcrCorrectionRecorder
+import com.coffeelab.coffeenotes.util.PeakFlavorCalculator
 import com.coffeelab.coffeenotes.util.OCRProcessor
 import com.coffeelab.coffeenotes.util.OCRResult
 import com.coffeelab.coffeenotes.util.engine.KeywordRecognitionEngine
@@ -88,29 +90,14 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     // 赏味期即将结束的豆子（距离赏味期结束 <= 15天，即提前15天开始倒计时），按倒计时升序排列
-    // 赏味期结束日 = 烘焙日 + 赏味期天数
+    // 计算逻辑见 PeakFlavorCalculator（纯函数，可独立测试）
     val beansNearingPeakFlavorEnd: StateFlow<List<Pair<CoffeeBean, Int>>> = combine(
         repository.activeBeans,
         repository.allRoastDegrees,
         repository.allPeakFlavorConfigs,
         repository.allRestPeriodConfigs
     ) { beans, roastDegrees, peakConfigs, _ ->
-        val now = System.currentTimeMillis()
-        val fifteenDaysFromNow = now + 15L * 24 * 60 * 60 * 1000
-        beans.filter { bean ->
-            bean.roastDate != null
-        }.mapNotNull { bean ->
-            val peakDays = bean.peakFlavorDays
-                ?: roastDegrees.find { it.name == bean.roastLevel }?.let { rd ->
-                    peakConfigs.find { it.roastDegreeId == rd.id }?.peakFlavorDays
-                }
-                ?: 14  // 赏味期默认 14 天
-            val peakEndDate = bean.roastDate!! + (peakDays * 86400000L)
-            if (peakEndDate in now..fifteenDaysFromNow) {
-                val daysLeft = ((peakEndDate - now) / (24 * 60 * 60 * 1000)).toInt()
-                bean to daysLeft
-            } else null
-        }.sortedBy { it.second }
+        PeakFlavorCalculator.filterNearingEnd(beans, roastDegrees, peakConfigs, System.currentTimeMillis())
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun loadBean(beanId: Long) {
@@ -256,21 +243,9 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         ocrSnapshot: Map<String, String>,
         finalValues: Map<String, String>
     ) {
-        if (ocrSnapshot.isEmpty()) return
         val dao = AppDatabase.getInstance(getApplication()).ocrCorrectionDao()
-        val now = System.currentTimeMillis()
-        ocrSnapshot.forEach { (field, ocrRaw) ->
-            if (ocrRaw.isBlank()) return@forEach
-            val userValue = finalValues[field] ?: return@forEach
-            if (userValue.isBlank()) return@forEach
-            // 没改不记；归一化后相等也不记
-            if (normalizeForCompare(ocrRaw) == normalizeForCompare(userValue)) return@forEach
-            runCatching { dao.upsert(field, ocrRaw, userValue, beanId, now) }
-        }
+        OcrCorrectionRecorder.record(dao, beanId, ocrSnapshot, finalValues)
     }
-
-    private fun normalizeForCompare(s: String): String =
-        s.trim().lowercase().replace(Regex("\\s+"), " ")
 
     fun clearRecognitionResult() {
         _recognitionResult.value = null
