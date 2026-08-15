@@ -4,10 +4,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.*
@@ -22,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.ui.theme.WoodPrimary
+import com.coffeelab.coffeenotes.util.CloudBackupPrefs
 import com.coffeelab.coffeenotes.viewmodel.BackupViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -69,6 +73,7 @@ fun BackupScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val backupState by viewModel.backupState.collectAsStateWithLifecycle(initialValue = viewModel.backupState.value)
+    val cloudState by viewModel.cloudState.collectAsStateWithLifecycle(initialValue = viewModel.cloudState.value)
 
     // ZIP Export launcher
     val zipExportLauncher = rememberLauncherForActivityResult(
@@ -105,7 +110,7 @@ fun BackupScreen(
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Export section
@@ -153,6 +158,143 @@ fun BackupScreen(
                 }
             }
 
+            // ===== 云端备份（WebDAV） =====
+            Surface(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("云端备份（坚果云/WebDAV）", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "配置后手动/自动上传 ZIP 到你的网盘，换机、丢手机也能恢复",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                    )
+
+                    val cloudConfigured = remember { CloudBackupPrefs.isConfigured(context) }
+                    var showConfig by remember { mutableStateOf(!cloudConfigured) }
+
+                    if (showConfig) {
+                        var baseUrl by remember { mutableStateOf("") }
+                        var username by remember { mutableStateOf("") }
+                        var password by remember { mutableStateOf("") }
+                        OutlinedTextField(
+                            value = baseUrl, onValueChange = { baseUrl = it },
+                            label = { Text("WebDAV 地址") },
+                            placeholder = { Text("https://dav.jianguoyun.com/dav/") },
+                            singleLine = true, modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = username, onValueChange = { username = it },
+                            label = { Text("账号（坚果云登录邮箱）") },
+                            singleLine = true, modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = password, onValueChange = { password = it },
+                            label = { Text("应用密码（账户信息页生成，非登录密码）") },
+                            singleLine = true, modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = {
+                                if (baseUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()) {
+                                    CloudBackupPrefs.saveConfig(
+                                        context,
+                                        CloudBackupPrefs.CloudConfig(baseUrl, username, password)
+                                    )
+                                    showConfig = false
+                                    viewModel.testCloudConnection(context)
+                                }
+                            }) { Text("保存并测试连接") }
+                            TextButton(onClick = { showConfig = false }) { Text("取消") }
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { viewModel.uploadToCloud(context) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Upload, contentDescription = null)
+                                Spacer(Modifier.width(6.dp))
+                                Text("上传到云端")
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = { viewModel.listCloudFiles(context) },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("云端文件") }
+                                TextButton(
+                                    onClick = {
+                                        CloudBackupPrefs.clearConfig(context)
+                                        viewModel.resetCloudState()
+                                        showConfig = true
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("修改配置") }
+                            }
+                        }
+                    }
+
+                    // Cloud status
+                    when (val cs = cloudState) {
+                        is BackupViewModel.CloudState.Loading -> {
+                            Spacer(Modifier.height(8.dp))
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
+                        is BackupViewModel.CloudState.Success -> {
+                            Spacer(Modifier.height(8.dp))
+                            Text(cs.message, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        is BackupViewModel.CloudState.Error -> {
+                            Spacer(Modifier.height(8.dp))
+                            Text(cs.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        is BackupViewModel.CloudState.Files -> {
+                            Spacer(Modifier.height(8.dp))
+                            if (cs.files.isEmpty()) {
+                                Text("云端暂无备份", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                            } else {
+                                var confirmRestore by remember { mutableStateOf<String?>(null) }
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    cs.files.forEach { name ->
+                                        Row(
+                                            Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                                            IconButton(onClick = { confirmRestore = name }) {
+                                                Icon(Icons.Default.Download, "从云端恢复", tint = MaterialTheme.colorScheme.primary)
+                                            }
+                                            IconButton(onClick = { viewModel.deleteCloudFile(context, name) }) {
+                                                Icon(Icons.Default.Delete, "删除", tint = MaterialTheme.colorScheme.error)
+                                            }
+                                        }
+                                    }
+                                }
+                                confirmRestore?.let { fileName ->
+                                    AlertDialog(
+                                        onDismissRequest = { confirmRestore = null },
+                                        title = { Text("确认恢复") },
+                                        text = { Text("将从「$fileName」恢复全部数据，覆盖当前内容。确定继续吗？") },
+                                        confirmButton = {
+                                            TextButton(onClick = {
+                                                viewModel.restoreFromCloud(context, fileName)
+                                                confirmRestore = null
+                                            }) { Text("恢复") }
+                                        },
+                                        dismissButton = {
+                                            TextButton(onClick = { confirmRestore = null }) { Text("取消") }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        is BackupViewModel.CloudState.Idle -> {}
+                    }
+                }
+            }
+
             // Status
             when (val state = backupState) {
                 is BackupViewModel.BackupState.Loading -> {
@@ -170,7 +312,7 @@ fun BackupScreen(
                             // Header
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(bottom = 12.dp)
+                                modifier = Modifier.padding(bottom = 8.dp)
                             ) {
                                 Icon(
                                     Icons.Default.CheckCircle,
@@ -180,12 +322,19 @@ fun BackupScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "恢复成功",
+                                    state.title,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
+
+                            Text(
+                                state.message,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
 
                             // Backup info row
                             Row(

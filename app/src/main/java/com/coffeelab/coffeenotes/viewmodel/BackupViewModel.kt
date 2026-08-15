@@ -9,7 +9,10 @@ import androidx.room.withTransaction
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.*
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
+import com.coffeelab.coffeenotes.util.BackupBuilder
+import com.coffeelab.coffeenotes.util.CloudBackupPrefs
 import com.coffeelab.coffeenotes.util.ImageUtils
+import com.coffeelab.coffeenotes.util.WebDavClient
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import kotlinx.coroutines.Dispatchers
@@ -44,12 +47,13 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
         object Idle : BackupState()
         object Loading : BackupState()
         data class Success(
-        val message: String,
-        val exportDate: String,
-        val version: String,
-        val beansCount: Int,
-        val recordsCount: Int
-    ) : BackupState()
+            val title: String,
+            val message: String,
+            val exportDate: String,
+            val version: String,
+            val beansCount: Int,
+            val recordsCount: Int
+        ) : BackupState()
         data class Error(val message: String) : BackupState()
     }
 
@@ -60,153 +64,133 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
         _backupState.value = BackupState.Idle
     }
 
+    // ===================== 云端备份（WebDAV） =====================
+
+    private val _cloudState = MutableStateFlow<CloudState>(CloudState.Idle)
+    val cloudState: StateFlow<CloudState> = _cloudState.asStateFlow()
+
+    sealed class CloudState {
+        object Idle : CloudState()
+        object Loading : CloudState()
+        data class Success(val message: String) : CloudState()
+        data class Error(val message: String) : CloudState()
+        data class Files(val files: List<String>) : CloudState()
+    }
+
+    fun resetCloudState() {
+        _cloudState.value = CloudState.Idle
+    }
+
+    private fun requireCloudClient(context: Context): WebDavClient? {
+        val config = CloudBackupPrefs.getConfig(context) ?: run {
+            _cloudState.value = CloudState.Error("请先在下方填写云端配置（地址/账号/应用密码）")
+            return null
+        }
+        return WebDavClient(config.baseUrl, config.username, config.password)
+    }
+
+    fun testCloudConnection(context: Context) {
+        viewModelScope.launch {
+            _cloudState.value = CloudState.Loading
+            val client = requireCloudClient(context) ?: return@launch
+            val ok = client.testConnection()
+            _cloudState.value = if (ok) CloudState.Success("连接成功，可以开始备份")
+            else CloudState.Error("连接失败：请检查地址、账号和应用密码")
+        }
+    }
+
+    fun uploadToCloud(context: Context) {
+        viewModelScope.launch {
+            _cloudState.value = CloudState.Loading
+            try {
+                val client = requireCloudClient(context) ?: return@launch
+                val (bytes, counts) = BackupBuilder.buildZipBytes(context, repository)
+                val fileName = WebDavClient.buildFileName()
+                val dirReady = client.ensureDirectory(WebDavClient.CLOUD_DIR)
+                if (!dirReady) {
+                    _cloudState.value = CloudState.Error("无法创建云端目录，请检查 WebDAV 写权限")
+                    return@launch
+                }
+                val uploaded = client.upload("${WebDavClient.CLOUD_DIR}/$fileName", bytes)
+                if (!uploaded) {
+                    _cloudState.value = CloudState.Error("上传失败：请检查网络或云端配置")
+                    return@launch
+                }
+                cleanupOldBackups(client)
+                _cloudState.value = CloudState.Success(
+                    "已上传 $fileName\n豆子 ${counts.beans} 个 / 记录 ${counts.records} 条"
+                )
+            } catch (e: Exception) {
+                _cloudState.value = CloudState.Error("上传失败: ${e.message}")
+            }
+        }
+    }
+
+    private suspend fun cleanupOldBackups(client: WebDavClient) {
+        val files = client.list(WebDavClient.CLOUD_DIR)
+            .filter { it.startsWith("CoffeeNotes_") && it.endsWith(".zip") }
+            .sortedDescending()
+        files.drop(WebDavClient.MAX_KEEP).forEach { fileName ->
+            client.delete("${WebDavClient.CLOUD_DIR}/$fileName")
+        }
+    }
+
+    fun listCloudFiles(context: Context) {
+        viewModelScope.launch {
+            _cloudState.value = CloudState.Loading
+            val client = requireCloudClient(context) ?: return@launch
+            val files = client.list(WebDavClient.CLOUD_DIR)
+                .filter { it.endsWith(".zip") }
+                .sortedDescending()
+            _cloudState.value = CloudState.Files(files)
+        }
+    }
+
+    fun deleteCloudFile(context: Context, fileName: String) {
+        viewModelScope.launch {
+            val client = requireCloudClient(context) ?: return@launch
+            client.delete("${WebDavClient.CLOUD_DIR}/$fileName")
+            listCloudFiles(context)
+        }
+    }
+
+    /** 从云端下载备份并恢复（覆盖当前数据，调用方需先确认）。 */
+    fun restoreFromCloud(context: Context, fileName: String) {
+        viewModelScope.launch {
+            _cloudState.value = CloudState.Loading
+            try {
+                val client = requireCloudClient(context) ?: return@launch
+                val bytes = client.download("${WebDavClient.CLOUD_DIR}/$fileName")
+                if (bytes == null) {
+                    _cloudState.value = CloudState.Error("下载失败，请检查网络后重试")
+                    return@launch
+                }
+                importBackupBytes(context, bytes)
+                _cloudState.value = CloudState.Success("已从云端恢复 $fileName")
+            } catch (e: Exception) {
+                _cloudState.value = CloudState.Error("恢复失败: ${e.message}")
+            }
+        }
+    }
+
     suspend fun exportBackup(context: Context, uri: Uri) {
         _backupState.value = BackupState.Loading
 
         try {
             withContext(Dispatchers.IO) {
-                val beans = repository.allBeans.first()
-                val methods = repository.allMethods.first()
-                val records = repository.allRecords.first()
-                val equipment = repository.getAllEquipmentOnce()
-                val grinders = repository.getAllGrindersOnce()
-                val roastDegrees = repository.getAllRoastDegreesOnce()
-                val processMethods = repository.getAllProcessMethodsOnce()
-                val restPeriodConfigs = repository.getAllRestPeriodConfigsOnce()
-                val peakFlavorConfigs = repository.getAllPeakFlavorConfigsOnce()
-                val purchaseRecords = repository.getAllPurchaseRecordsOnce()
-                val impressionTags = repository.getAllImpressionTagsOnce()
-
-                // Collect stock adjustments for each bean
-                val adjustmentsByBean = beans.associate { bean ->
-                    bean.id to repository.getAdjustmentsForBeanOnce(bean.id)
-                }
-
-                // Collect tags for each bean
-                val beansWithTags = beans.map { bean ->
-                    val tags = repository.getTagsForBeanOnce(bean.id)
-                    val impTags = repository.getImpressionTagsForBeanOnce(bean.id)
-                    mapOf(
-                        "bean" to bean,
-                        "tags" to tags.map { it.name },
-                        "impressionTagIds" to impTags.map { it.id }
-                    )
-                }
-
-                // Stock adjustments use old beanId; remapped on import via beanIdMap
-                val stockAdjustmentsData = beans.flatMap { bean ->
-                    adjustmentsByBean[bean.id].orEmpty().map { adj ->
-                        mapOf(
-                            "beanId" to bean.id,
-                            "changeGrams" to adj.changeGrams,
-                            "note" to adj.note,
-                            "createdAt" to adj.createdAt
-                        )
-                    }
-                }
-
-                // Records include pouringDurationSeconds
-                val recordsData = records.map { record ->
-                    mapOf(
-                        "beanId" to record.beanId,
-                        "methodId" to record.methodId,
-                        "dateTime" to record.dateTime,
-                        "equipmentId" to record.equipmentId,
-                        "coffeeWeight" to record.coffeeWeight,
-                        "coffeeWaterRatio" to record.coffeeWaterRatio,
-                        "waterAmount" to record.waterAmount,
-                        "waterTemp" to record.waterTemp,
-                        "grinderId" to record.grinderId,
-                        "grindSize" to record.grindSize,
-                        "extractionTime" to record.extractionTime,
-                        "pouringDurationSeconds" to record.pouringDurationSeconds,
-                        "acidity" to record.acidity,
-                        "sweetness" to record.sweetness,
-                        "bitterness" to record.bitterness,
-                        "mouthfeel" to record.mouthfeel,
-                        "aftertaste" to record.aftertaste,
-                        "overallRating" to record.overallRating,
-                        "flavorNotes" to record.flavorNotes,
-                        "imageUri" to record.imageUri,
-                        "isIced" to record.isIced,
-                        "iceAmount" to record.iceAmount,
-                        "bypassAmount" to record.bypassAmount,
-                        "createdAt" to record.createdAt,
-                        "updatedAt" to record.updatedAt
-                    )
-                }
-
-                // Build data.json content
-                val dataMap = mapOf(
-                    "beans" to beansWithTags,
-                    "records" to recordsData,
-                    "methods" to methods,
-                    "equipment" to equipment,
-                    "grinders" to grinders,
-                    "roastDegrees" to roastDegrees,
-                    "processMethods" to processMethods,
-                    "restPeriodConfigs" to restPeriodConfigs,
-                    "peakFlavorConfigs" to peakFlavorConfigs,
-                    "purchaseRecords" to purchaseRecords,
-                    "impressionTags" to impressionTags,
-                    "stockAdjustments" to stockAdjustmentsData
-                )
-                val dataJson = gson.toJson(dataMap)
-
-                // Build manifest
-                val manifest = mapOf(
-                    "version" to BACKUP_VERSION,
-                    "exportDate" to ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")),
-                    "appVersion" to "1.2.0",
-                    "counts" to mapOf(
-                        "beans" to beans.size,
-                        "records" to records.size,
-                        "methods" to methods.size,
-                        "equipment" to equipment.size,
-                        "grinders" to grinders.size,
-                        "impressionTags" to impressionTags.size
-                    )
-                )
-                val manifestJson = gson.toJson(manifest)
-
-                // Write ZIP
+                val (bytes, counts) = BackupBuilder.buildZipBytes(context, repository)
                 val os = context.contentResolver.openOutputStream(uri)
                     ?: throw IOException("无法写入备份文件")
-                ZipOutputStream(os).use { zos ->
-                    // Write manifest.json
-                    zos.putNextEntry(ZipEntry(MANIFEST_FILE))
-                    zos.write(manifestJson.toByteArray(Charsets.UTF_8))
-                    zos.closeEntry()
-
-                    // Write data.json
-                    zos.putNextEntry(ZipEntry(DATA_FILE))
-                    zos.write(dataJson.toByteArray(Charsets.UTF_8))
-                    zos.closeEntry()
-
-                    // Write bean photos
-                    val photosDir = ImageUtils.getBeanPhotosDir(context)
-                    if (photosDir.exists()) {
-                        photosDir.listFiles()?.forEach { file ->
-                            if (file.isFile && file.name.endsWith(".jpg")) {
-                                zos.putNextEntry(ZipEntry("$BEAN_PHOTOS_DIR/${file.name}"))
-                                FileInputStream(file).use { fis ->
-                                    fis.copyTo(zos)
-                                }
-                                zos.closeEntry()
-                            }
-                        }
-                    }
-
-                    zos.finish()
-                }
+                os.use { it.write(bytes) }
 
                 withContext(Dispatchers.Main) {
                     _backupState.value = BackupState.Success(
-                        message = "备份成功！\n豆子: ${beans.size} 个\n冲煮记录: ${records.size} 条\n冲煮手法: ${methods.size} 个\n器具: ${equipment.size} 个\n磨豆机: ${grinders.size} 个",
+                        title = "备份成功",
+                        message = "豆子 ${counts.beans} 个 · 冲煮记录 ${counts.records} 条 · 手法 ${counts.methods} 个 · 器具 ${counts.equipment} 个 · 磨豆机 ${counts.grinders} 个",
                         exportDate = "刚刚",
                         version = BACKUP_VERSION,
-                        beansCount = beans.size,
-                        recordsCount = records.size
+                        beansCount = counts.beans,
+                        recordsCount = counts.records
                     )
                 }
             }
@@ -219,12 +203,22 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
         _backupState.value = BackupState.Loading
 
         try {
-            withContext(Dispatchers.IO) {
-                // Read all bytes first to detect format (use 自动关闭)
-                val allBytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    ?: throw IOException("无法打开文件")
+            // Read all bytes first to detect format
+            val allBytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: throw IOException("无法打开文件")
+            importBackupBytes(context, allBytes)
+        } catch (e: Exception) {
+            _backupState.value = BackupState.Error("恢复失败: ${e.message}")
+        }
+    }
 
-                var manifestContent: String? = null
+    /**
+     * 从备份字节流恢复数据（本地文件恢复与云端下载恢复共用）。
+     * 内部逻辑沿用原 importBackup 实现；异常由调用方 catch。
+     */
+    private suspend fun importBackupBytes(context: Context, allBytes: ByteArray) {
+        withContext(Dispatchers.IO) {
+            var manifestContent: String? = null
                 var dataContent: String? = null
                 var exportDate = "unknown"
                 var manifestVersion = "unknown"
@@ -647,7 +641,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 val recordsCountVal = (counts["records"] as? Double)?.toInt() ?: 0
                 withContext(Dispatchers.Main) {
                     _backupState.value = BackupState.Success(
-                        message = if (manifestContent != null) "恢复成功！" else "恢复成功！",
+                        title = "恢复成功",
+                        message = if (manifestContent != null) "数据已从备份恢复" else "数据已从备份恢复",
                         exportDate = if (manifestContent != null) exportDate else "unknown",
                         version = manifestVersion,
                         beansCount = beansCountVal,
@@ -655,8 +650,5 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     )
                 }
             }
-        } catch (e: Exception) {
-            _backupState.value = BackupState.Error("恢复失败: ${e.message}")
-        }
     }
 }

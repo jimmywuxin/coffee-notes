@@ -11,6 +11,11 @@ import android.content.SharedPreferences
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.coffeelab.coffeenotes.MainActivity
+import com.coffeelab.coffeenotes.data.AppDatabase
+import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * 备份提醒：
@@ -139,13 +144,66 @@ object BackupReminder {
         }
     }
 
-    /** AlarmManager 触发：发一条"该备份了"通知 */
+    /** AlarmManager 触发：已配置云端则自动上传备份，否则发"该备份了"提醒 */
     class ReminderReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != ACTION_REMIND) return
             val days = getIntervalDays(context)
             if (days <= 0) return
-            postNotification(context, days)
+            if (CloudBackupPrefs.isConfigured(context)) {
+                autoUploadToCloud(context, days)
+            } else {
+                postNotification(context, days)
+            }
+        }
+
+        /** 自动生成备份 ZIP 并上传 WebDAV；失败回退为提醒通知 */
+        private fun autoUploadToCloud(context: Context, days: Int) {
+            val pending = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val config = CloudBackupPrefs.getConfig(context) ?: run {
+                        postNotification(context, days); return@launch
+                    }
+                    val repository = CoffeeRepository(AppDatabase.getInstance(context))
+                    val (bytes, counts) = BackupBuilder.buildZipBytes(context, repository)
+                    val client = WebDavClient(config.baseUrl, config.username, config.password)
+                    val fileName = WebDavClient.buildFileName()
+                    val dirReady = client.ensureDirectory(WebDavClient.CLOUD_DIR)
+                    val ok = dirReady && client.upload("${WebDavClient.CLOUD_DIR}/$fileName", bytes)
+                    if (ok) {
+                        // 清理旧备份，保留 MAX_KEEP
+                        runCatching {
+                            val files = client.list(WebDavClient.CLOUD_DIR)
+                                .filter { it.startsWith("CoffeeNotes_") && it.endsWith(".zip") }
+                                .sortedDescending()
+                            files.drop(WebDavClient.MAX_KEEP).forEach { f ->
+                                client.delete("${WebDavClient.CLOUD_DIR}/$f")
+                            }
+                        }
+                        postAutoBackupSuccess(context, counts)
+                    } else {
+                        postNotification(context, days)
+                    }
+                } catch (e: Exception) {
+                    postNotification(context, days)
+                } finally {
+                    pending.finish()
+                }
+            }
+        }
+
+        private fun postAutoBackupSuccess(context: Context, counts: BackupBuilder.BackupCounts) {
+            createChannel(context)
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.stat_notify_more)
+                .setContentTitle("☕ 已自动备份到云端")
+                .setContentText("豆子 ${counts.beans} 个 / 记录 ${counts.records} 条")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true)
+                .build()
+            manager.notify(REQUEST_CODE, notification)
         }
     }
 }
