@@ -72,12 +72,15 @@ fun SettingsScreen(
                         subtitle = "导出数据到本地文件",
                         onClick = { navController.navigate(Screen.Backup.route) }
                     )
-                    SettingsItem(
-                        icon = Icons.Default.Notifications,
-                        title = "备份提醒",
-                        subtitle = if (reminderDays > 0) "每 ${reminderDays} 天提醒" else "关闭",
-                        onClick = { showReminderDialog = true }
-                    )
+                    // 已配置云端时由「自动备份」接管，隐藏提醒入口（一个开关一个入口）
+                    if (!com.coffeelab.coffeenotes.util.CloudBackupPrefs.isConfigured(context)) {
+                        SettingsItem(
+                            icon = Icons.Default.Notifications,
+                            title = "备份提醒",
+                            subtitle = if (reminderDays > 0) "每 $reminderDays 天提醒" else "关闭",
+                            onClick = { showReminderDialog = true }
+                        )
+                    }
                 }
             }
 

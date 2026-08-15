@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -19,11 +20,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.ui.theme.WoodPrimary
+import com.coffeelab.coffeenotes.util.BackupReminder
 import com.coffeelab.coffeenotes.util.CloudBackupPrefs
 import com.coffeelab.coffeenotes.viewmodel.BackupViewModel
 import kotlinx.coroutines.launch
@@ -245,6 +248,79 @@ fun BackupScreen(
                                 Icon(Icons.Default.Download, contentDescription = null)
                                 Spacer(Modifier.width(6.dp))
                                 Text("恢复到本地")
+                            }
+                        }
+                        // 自动备份周期（与设置页共用同一开关；闹钟到点自动上传云端）
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                "自动备份周期",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            val presets = listOf(0 to "关闭", 3 to "每3天", 7 to "每周")
+                            var reminderDays by remember {
+                                mutableIntStateOf(BackupReminder.getIntervalDays(context))
+                            }
+                            var showCustomDays by remember { mutableStateOf(false) }
+                            val isCustom = reminderDays > 0 && presets.none { it.first == reminderDays }
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                presets.forEach { (days, label) ->
+                                    FilterChip(
+                                        selected = reminderDays == days && !isCustom,
+                                        onClick = {
+                                            reminderDays = days
+                                            BackupReminder.setIntervalDays(context, days)
+                                        },
+                                        label = { Text(label, style = MaterialTheme.typography.labelSmall) }
+                                    )
+                                }
+                                FilterChip(
+                                    selected = isCustom,
+                                    onClick = { showCustomDays = true },
+                                    label = { Text(if (isCustom) "自定义(${reminderDays}天)" else "自定义", style = MaterialTheme.typography.labelSmall) }
+                                )
+                            }
+                            if (showCustomDays) {
+                                var daysText by remember {
+                                    mutableStateOf(if (reminderDays > 0) reminderDays.toString() else "3")
+                                }
+                                AlertDialog(
+                                    onDismissRequest = { showCustomDays = false },
+                                    title = { Text("自动备份周期") },
+                                    text = {
+                                        Column {
+                                            Text(
+                                                "每隔几天自动备份到云端。填 0 表示关闭。",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Spacer(Modifier.height(12.dp))
+                                            OutlinedTextField(
+                                                value = daysText,
+                                                onValueChange = { input -> daysText = input.filter { it.isDigit() }.take(3) },
+                                                label = { Text("间隔（天）") },
+                                                placeholder = { Text("如 3") },
+                                                singleLine = true,
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            val days = daysText.toIntOrNull() ?: 0
+                                            reminderDays = days
+                                            BackupReminder.setIntervalDays(context, days)
+                                            showCustomDays = false
+                                        }) { Text("确定") }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { showCustomDays = false }) { Text("取消") }
+                                    }
+                                )
                             }
                         }
                         // 修改配置：小字弱化，点击仅进入编辑（不清空配置，密码留空保持不变），防误触

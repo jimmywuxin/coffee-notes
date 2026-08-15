@@ -144,26 +144,26 @@ object BackupReminder {
         }
     }
 
-    /** AlarmManager 触发：已配置云端则自动上传备份，否则发"该备份了"提醒 */
+    /** AlarmManager 触发：已配置云端则自动上传备份（成功/失败均通知结果），否则发"该备份了"提醒 */
     class ReminderReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != ACTION_REMIND) return
             val days = getIntervalDays(context)
             if (days <= 0) return
             if (CloudBackupPrefs.isConfigured(context)) {
-                autoUploadToCloud(context, days)
+                autoUploadToCloud(context)
             } else {
                 postNotification(context, days)
             }
         }
 
-        /** 自动生成备份 ZIP 并上传 WebDAV；失败回退为提醒通知 */
-        private fun autoUploadToCloud(context: Context, days: Int) {
+        /** 自动生成备份 ZIP 并上传 WebDAV；成功/失败均发结果通知（不再发"该备份了"提醒） */
+        private fun autoUploadToCloud(context: Context) {
             val pending = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val config = CloudBackupPrefs.getConfig(context) ?: run {
-                        postNotification(context, days); return@launch
+                        postNotification(context, getIntervalDays(context)); return@launch
                     }
                     val repository = CoffeeRepository(AppDatabase.getInstance(context))
                     val (bytes, counts) = BackupBuilder.buildZipBytes(context, repository)
@@ -183,10 +183,10 @@ object BackupReminder {
                         }
                         postAutoBackupSuccess(context, counts)
                     } else {
-                        postNotification(context, days)
+                        postAutoBackupFailure(context)
                     }
                 } catch (e: Exception) {
-                    postNotification(context, days)
+                    postAutoBackupFailure(context)
                 } finally {
                     pending.finish()
                 }
@@ -200,6 +200,19 @@ object BackupReminder {
                 .setSmallIcon(android.R.drawable.stat_notify_more)
                 .setContentTitle("☕ 已自动备份到云端")
                 .setContentText("豆子 ${counts.beans} 个 / 记录 ${counts.records} 条")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true)
+                .build()
+            manager.notify(REQUEST_CODE, notification)
+        }
+
+        private fun postAutoBackupFailure(context: Context) {
+            createChannel(context)
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.stat_notify_more)
+                .setContentTitle("☕ 自动备份失败")
+                .setContentText("请检查网络或云端配置，或手动点「备份到云端」")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
                 .build()
