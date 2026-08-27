@@ -1033,62 +1033,71 @@ fun BrewEditScreen(
         )
     }
 
-    // 冲煮时间选择器：分两步——日期 Dialog → 时间 Dialog
+    // 冲煮时间选择器：同一弹窗内分两步（日期 → 时间），点日期只高亮不跳页
     if (showDateTimePicker) {
         val zone = java.time.ZoneId.systemDefault()
         val initialLocalDate = java.time.Instant.ofEpochMilli(recordDateTime)
             .atZone(zone).toLocalDate()
         val initialLocalTime = java.time.Instant.ofEpochMilli(recordDateTime)
             .atZone(zone).toLocalTime()
-        // 临时日期 state（用户点确定后才提交到 recordDateTime）
-        var pendingDate by remember(showDateTimePicker) {
-            mutableStateOf<java.time.LocalDate?>(null)
+        // 第一步选日期（点击仅高亮，不跳页），第二步定时间；
+        // 弹窗放开宽度限制（usePlatformDefaultWidth=false），否则 M3 拨盘在 AlertDialog 里被压变形
+        var tempDate by remember(showDateTimePicker) {
+            mutableStateOf<java.time.LocalDate>(initialLocalDate)
         }
+        var showTimeStep by remember(showDateTimePicker) { mutableStateOf(false) }
         val timePickerState = rememberTimePickerState(
             initialHour = initialLocalTime.hour,
             initialMinute = initialLocalTime.minute,
             is24Hour = true
         )
         AlertDialog(
-            onDismissRequest = { showDateTimePicker = false; pendingDate = null },
-            title = { Text(if (pendingDate == null) "选择日期" else "选择时间") },
+            onDismissRequest = { showDateTimePicker = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            title = { Text(if (showTimeStep) "选择时间" else "选择日期") },
             text = {
-                if (pendingDate == null) {
+                if (!showTimeStep) {
                     CompactDatePicker(
                         initialDate = initialLocalDate,
-                        onDateSelected = { pendingDate = it }
+                        // 只记下选中日期用于「下一步」提交，不立刻跳转
+                        onDateSelected = { tempDate = it }
                     )
                 } else {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    // 拨盘按 M3 规范垫在圆角色块容器里，避免裸漂在弹窗底色上
+                    Surface(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         TimePicker(state = timePickerState)
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (pendingDate == null) {
-                        // 第一步：记录日期，进入时间选择
-                        pendingDate = initialLocalDate
+                    if (!showTimeStep) {
+                        // 第一步：锁定所选日期，进入时间选择
+                        showTimeStep = true
                     } else {
                         // 第二步：组合日期+时间，写回 recordDateTime
                         val picked = java.time.LocalDateTime.of(
-                            pendingDate!!,
+                            tempDate,
                             java.time.LocalTime.of(timePickerState.hour, timePickerState.minute)
                         )
                         recordDateTime = picked.atZone(zone).toInstant().toEpochMilli()
                         showDateTimePicker = false
-                        pendingDate = null
                     }
-                }) { Text(if (pendingDate == null) "下一步" else "确定") }
+                }) { Text(if (showTimeStep) "确定" else "下一步") }
             },
             dismissButton = {
                 TextButton(onClick = {
-                    if (pendingDate == null) {
+                    if (!showTimeStep) {
                         showDateTimePicker = false
                     } else {
-                        pendingDate = null
+                        showTimeStep = false
                     }
-                }) { Text(if (pendingDate == null) "取消" else "上一步") }
+                }) { Text(if (showTimeStep) "上一步" else "取消") }
             }
         )
     }
