@@ -26,6 +26,8 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            // 复用默认 debug 签名，使 release 与已装 debug 版同签名，可 adb install -r 无缝覆盖
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
