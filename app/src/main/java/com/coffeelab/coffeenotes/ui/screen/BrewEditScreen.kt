@@ -98,6 +98,8 @@ fun BrewEditScreen(
     var pouringDurationSeconds by remember { mutableStateOf("") }
     var flavorNotes by remember { mutableStateOf("") }
     var showCustomRatio by remember { mutableStateOf(false) }
+    // 品鉴评分折叠区（编辑已有评分时自动展开）
+    var ratingExpanded by remember { mutableStateOf(false) }
 
     // Rating states (1-5, 0 = not rated)
     var acidity by remember { mutableIntStateOf(0) }
@@ -218,6 +220,7 @@ fun BrewEditScreen(
                 isIced = r.isIced
                 iceAmount = if (r.iceAmount > 0) r.iceAmount.toString() else "100"
                 bypassAmount = if (r.bypassAmount > 0) r.bypassAmount.toString() else ""
+                ratingExpanded = r.overallRating > 0
             }
         }
     }
@@ -329,6 +332,16 @@ fun BrewEditScreen(
                     )
                 }
             }
+
+            // 风味笔记置顶：先写感受，参数后补（brew-guide 风格）
+            Text("风味笔记", style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(
+                value = flavorNotes,
+                onValueChange = { flavorNotes = it },
+                placeholder = { Text("记录一下这杯的感受…") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 4
+            )
 
             // Select Bean
             Text("选择咖啡豆", style = MaterialTheme.typography.titleMedium)
@@ -946,24 +959,67 @@ fun BrewEditScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            // Tasting Scores
-            Text("品鉴评分", style = MaterialTheme.typography.titleMedium)
-            StarRatingRow(label = "酸度", rating = acidity, onRatingChange = { acidity = it })
-            StarRatingRow(label = "甜感", rating = sweetness, onRatingChange = { sweetness = it })
-            StarRatingRow(label = "苦味", rating = bitterness, onRatingChange = { bitterness = it })
-            StarRatingRow(label = "口感", rating = mouthfeel, onRatingChange = { mouthfeel = it })
-            StarRatingRow(label = "回甘", rating = aftertaste, onRatingChange = { aftertaste = it })
-            HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-            StarRatingRow(label = "总评 ⭐", rating = overall, onRatingChange = { overall = it }, large = true)
-
-            // Flavor Notes
-            OutlinedTextField(
-                value = flavorNotes,
-                onValueChange = { flavorNotes = it },
-                label = { Text("风味笔记") },
+            // Tasting Scores（折叠区：收起时只显示摘要，展开后打分）
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                onClick = { ratingExpanded = !ratingExpanded }
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "品鉴评分",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = buildString {
+                                val parts = mutableListOf<String>()
+                                if (acidity > 0) parts.add("酸$acidity")
+                                if (sweetness > 0) parts.add("甜$sweetness")
+                                if (bitterness > 0) parts.add("苦$bitterness")
+                                if (mouthfeel > 0) parts.add("口$mouthfeel")
+                                if (aftertaste > 0) parts.add("回$aftertaste")
+                                if (overall > 0) parts.add("总评★$overall")
+                                append(if (parts.isEmpty()) "未评分" else parts.joinToString(" · "))
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Icon(
+                            if (ratingExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    AnimatedVisibility(visible = ratingExpanded) {
+                        Column(modifier = Modifier.padding(top = 8.dp)) {
+                            StarRatingRow(label = "酸度", rating = acidity, onRatingChange = { acidity = it })
+                            StarRatingRow(label = "甜感", rating = sweetness, onRatingChange = { sweetness = it })
+                            StarRatingRow(label = "苦味", rating = bitterness, onRatingChange = { bitterness = it })
+                            StarRatingRow(label = "口感", rating = mouthfeel, onRatingChange = { mouthfeel = it })
+                            StarRatingRow(label = "回甘", rating = aftertaste, onRatingChange = { aftertaste = it })
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                            StarRatingRow(label = "总评 ⭐", rating = overall, onRatingChange = { overall = it }, large = true)
+                        }
+                    }
+                }
+            }
 
             // Save
             Button(

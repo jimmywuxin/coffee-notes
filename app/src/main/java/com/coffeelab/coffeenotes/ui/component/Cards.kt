@@ -234,6 +234,30 @@ fun BeanCard(
     }
 }
 
+// ==================== RecordCard 辅助 ====================
+
+/** 去尾零格式化：15.0 → "15"，15.5 → "15.5" */
+private fun formatNum(value: Double): String {
+    val s = String.format("%.1f", value)
+    return if (s.endsWith(".0")) s.dropLast(2) else s
+}
+
+/** RecordCard 参数胶囊 tag */
+@Composable
+private fun ParamTag(text: String) {
+    Surface(
+        shape = MaterialTheme.shapes.extraSmall,
+        color = MaterialTheme.colorScheme.secondaryContainer
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+    }
+}
+
 // ==================== RecordCard ====================
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -295,40 +319,34 @@ fun RecordCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "${record.coffeeWeight}g",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                // 参数 tag 预览（胶囊样式，一眼扫到关键参数）
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (record.coffeeWeight > 0) {
+                        ParamTag("${formatNum(record.coffeeWeight)}g")
+                    }
                     if (!record.grinderName.isNullOrEmpty()) {
-                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(record.grinderName ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ParamTag(record.grinderName!!)
                     }
                     if (record.grindSize.isNotEmpty()) {
-                        Text(record.grindSize, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ParamTag("格数 ${record.grindSize}")
                     }
-                    Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("1:${String.format("%.1f", record.coffeeWaterRatio)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (record.coffeeWaterRatio > 0) {
+                        ParamTag("1:${formatNum(record.coffeeWaterRatio)}")
+                    }
                     if (record.waterTemp > 0) {
-                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${record.waterTemp}℃", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ParamTag("${formatNum(record.waterTemp)}℃")
                     }
-                    if (record.pouringDurationSeconds != null) {
-                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("注水${record.pouringDurationSeconds}s", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (record.pouringDurationSeconds != null && record.pouringDurationSeconds > 0) {
+                        ParamTag("注水${record.pouringDurationSeconds}s")
                     }
                     if (record.extractionTime > 0) {
-                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("萃取${record.extractionTime}s", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ParamTag("萃取${record.extractionTime}s")
                     }
                     if (record.isIced) {
-                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("❄️${record.iceAmount}g", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ParamTag("❄️${record.iceAmount}g")
                     }
                     if (record.bypassAmount > 0) {
-                        Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("+${record.bypassAmount}ml bypass", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ParamTag("+${record.bypassAmount}ml bypass")
                     }
                 }
             }
