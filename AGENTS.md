@@ -37,7 +37,7 @@
 
 ## 常用命令
 - 构建 Debug: ./gradlew assembleDebug
-- 构建 Release: ./gradlew assembleRelease（当前未配 signingConfig，产出 `app-release-unsigned.apk`，需自己签名）
+- 构建 Release: ./gradlew assembleRelease（release 已复用 debug 签名，可与已装 debug 版 `install -r` 无缝覆盖）
 - 清理: ./gradlew clean
 - 运行测试: ./gradlew test
 - 设备列表: /opt/homebrew/share/android-commandlinetools/platform-tools/adb devices -l
@@ -68,7 +68,7 @@
 ### 测试/工程化（有空做）
 - `BackupViewModel.kt`（661 行）——纯逻辑最复杂却零测试，补「备份→恢复→数据一致」往返测试
 - 无 GitHub Actions CI——push 跑 test+assembleDebug、打 tag 自动出 release APK 挂 Releases（详见改进路线图 2.3）
-- `README.md` 版本号滞后（写 2.6.1，实际 2.9.3）
+- ~~`README.md` 版本号滞后~~ **已修（2026-09-16，同步为 2.9.10）**，后续发版顺手同步这一行
 
 ### 性能（改到相关文件时顺手）
 - ~~collectAsState 未用 collectAsStateWithLifecycle~~ **已做（2026-08-15）**：全项目 17 个 screen 文件 ~70 处替换完成，无参调用补 `initialValue = flow.value`；gradle.properties 已开 caching+parallel（2.2）
@@ -86,8 +86,8 @@
 
 ### 安全/构建（有空做）
 - `proguard-rules.pro:14`——`keep data.entity.**` 过宽
-- `app/build.gradle.kts:25-34`——release 未配 signingConfig（产出 unsigned）
-- `gradle.properties`——未启用 `caching=true` / `parallel=true`
+- ~~release 未配 signingConfig~~ **已做**：release 复用 debug 签名（`app/build.gradle.kts`），可与 debug 版 `install -r` 无缝覆盖
+- ~~gradle.properties 未启用 caching/parallel~~ **已做**：`org.gradle.caching=true` / `org.gradle.parallel=true` 已开
 
 ### 杂项
 - `!!` 强解引用散布（BeanDetailScreen/HomeScreen/各管理屏删除弹窗）
