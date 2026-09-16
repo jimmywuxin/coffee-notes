@@ -348,7 +348,9 @@ fun BeanListScreen(
             }
 
             // 固定的生命周期 Tab（不随列表滚动，全宽）
-            if (!isReorderMode && !isSearching && beans.isNotEmpty()) {
+            // 判断条件必须包含已归档豆子：豆子全部归档后 beans（在喝）为空，
+            // 若只看 beans 会导致 TabRow 整个不渲染，用户再也切不到「已归档」
+            if (!isReorderMode && !isSearching && (beans.isNotEmpty() || archivedBeans.isNotEmpty())) {
                 TabRow(
                     selectedTabIndex = if (showArchivedOnly) 1 else 0,
                     contentColor = MaterialTheme.colorScheme.primary
@@ -366,7 +368,8 @@ fun BeanListScreen(
                 }
             }
 
-            if (beans.isEmpty() && !isReorderMode && !isSearching) {
+            // 只有「在喝 + 已归档」都为空，才是真正的空数据库；否则要正常渲染列表
+            if (beans.isEmpty() && archivedBeans.isEmpty() && !isReorderMode && !isSearching) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("还没有咖啡豆\n点击 + 开始记录", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -386,6 +389,7 @@ fun BeanListScreen(
                                         else if (showArchivedOnly && showFavoritesOnly) "归档的收藏豆子为空"
                                         else if (showArchivedOnly) "还没有归档的豆子"
                                         else if (showFavoritesOnly) "还没有收藏的豆子"
+                                        else if (archivedBeans.isNotEmpty()) "在喝的豆子都归档了\n可切换到上方「已归档」查看"
                                         else "还没有咖啡豆\n点击 + 开始记录",
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -465,7 +469,8 @@ fun BeanListScreen(
             text = { Text("确定要删除这 ${selectedBeans.size} 条豆子吗？\n所有冲煮记录也会被删除，且无法恢复。") },
             confirmButton = {
                 TextButton(onClick = {
-                    beans.filter { selectedBeans.contains(it.id) }.forEach { viewModel.deleteBean(it) }
+                    // 以当前显示列表为准（含「已归档」Tab），否则归档豆子选不中删不掉
+                    displayedBeans.filter { selectedBeans.contains(it.id) }.forEach { viewModel.deleteBean(it) }
                     showDeleteDialog = false
                     isSelectionMode = false
                     selectedBeans = emptySet()

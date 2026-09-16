@@ -371,7 +371,9 @@ fun BeanDetailScreen(
                 // 库存汇总卡（余量 = 累计购入 - 累计消耗）
                 item {
                     val inv = inventory
-                    if (inv != null && (inv.totalPurchased > 0 || inv.totalConsumed > 0)) {
+                    // 只要该豆子有任何历史购买/冲煮/调整记录就显示整张卡（含「扣减」入口）。
+                    // 若只用「重置库存」之后的累计值判断，重置后累计值归零会把入口一起藏掉。
+                    if (inv != null && (inv.totalPurchased > 0 || inv.totalConsumed > 0 || inv.hasAnyRecord)) {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),

@@ -80,7 +80,10 @@ interface CoffeeBeanDao {
         SELECT cb.id AS beanId,
             COALESCE((SELECT SUM(weightGrams) FROM purchase_records WHERE beanId = :beanId AND date >= COALESCE(cb.stockResetAt, 0)), 0) AS totalPurchased,
             COALESCE((SELECT SUM(coffeeWeight) FROM brew_records WHERE beanId = :beanId AND dateTime >= COALESCE(cb.stockResetAt, 0)), 0) AS totalConsumed,
-            COALESCE((SELECT SUM(changeGrams) FROM stock_adjustments WHERE beanId = :beanId AND createdAt >= COALESCE(cb.stockResetAt, 0)), 0) AS totalAdjusted
+            COALESCE((SELECT SUM(changeGrams) FROM stock_adjustments WHERE beanId = :beanId AND createdAt >= COALESCE(cb.stockResetAt, 0)), 0) AS totalAdjusted,
+            EXISTS(SELECT 1 FROM purchase_records WHERE beanId = :beanId)
+                OR EXISTS(SELECT 1 FROM brew_records WHERE beanId = :beanId)
+                OR EXISTS(SELECT 1 FROM stock_adjustments WHERE beanId = :beanId) AS hasAnyRecord
         FROM coffee_beans cb WHERE cb.id = :beanId
     """)
     suspend fun getInventoryForBean(beanId: Long): BeanInventory
@@ -90,7 +93,10 @@ interface CoffeeBeanDao {
         SELECT cb.id AS beanId,
             COALESCE((SELECT SUM(weightGrams) FROM purchase_records WHERE beanId = cb.id AND date >= COALESCE(cb.stockResetAt, 0)), 0) AS totalPurchased,
             COALESCE((SELECT SUM(coffeeWeight) FROM brew_records WHERE beanId = cb.id AND dateTime >= COALESCE(cb.stockResetAt, 0)), 0) AS totalConsumed,
-            COALESCE((SELECT SUM(changeGrams) FROM stock_adjustments WHERE beanId = cb.id AND createdAt >= COALESCE(cb.stockResetAt, 0)), 0) AS totalAdjusted
+            COALESCE((SELECT SUM(changeGrams) FROM stock_adjustments WHERE beanId = cb.id AND createdAt >= COALESCE(cb.stockResetAt, 0)), 0) AS totalAdjusted,
+            EXISTS(SELECT 1 FROM purchase_records WHERE beanId = cb.id)
+                OR EXISTS(SELECT 1 FROM brew_records WHERE beanId = cb.id)
+                OR EXISTS(SELECT 1 FROM stock_adjustments WHERE beanId = cb.id) AS hasAnyRecord
         FROM coffee_beans cb WHERE cb.isArchived = 0
     """)
     suspend fun getInventoryForActiveBeans(): List<BeanInventory>
@@ -108,7 +114,9 @@ data class BeanInventory(
     val beanId: Long,
     val totalPurchased: Long,
     val totalConsumed: Double,
-    val totalAdjusted: Double = 0.0
+    val totalAdjusted: Double = 0.0,
+    /** 该豆子是否存在任何历史记录（不限时间）——用于「重置库存」后仍保留库存卡入口 */
+    val hasAnyRecord: Boolean = false
 ) {
     /** 余量 = 累计购入 + 库存调整（快捷扣减为负） − 累计消耗 */
     val remaining: Double get() = totalPurchased.toDouble() + totalAdjusted - totalConsumed
