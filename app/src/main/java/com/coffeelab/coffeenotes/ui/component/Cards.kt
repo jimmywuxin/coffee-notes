@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.coffeelab.coffeenotes.data.dao.BeanInventory
+import com.coffeelab.coffeenotes.data.entity.BedShape
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.util.DateUtils
@@ -329,6 +330,9 @@ fun RecordCard(
                     }
                     if (record.grindSize.isNotEmpty()) {
                         ParamTag("格数 ${record.grindSize}")
+                    }
+                    if (record.bedShape.isNotEmpty()) {
+                        ParamTag("坑·${BedShape.fromKey(record.bedShape)?.label ?: record.bedShape}")
                     }
                     if (record.coffeeWaterRatio > 0) {
                         ParamTag("1:${formatNum(record.coffeeWaterRatio)}")

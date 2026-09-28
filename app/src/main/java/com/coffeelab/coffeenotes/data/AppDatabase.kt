@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
         OcrCorrection::class,
         StockAdjustment::class
     ],
-    version = 21,
+    version = 22,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

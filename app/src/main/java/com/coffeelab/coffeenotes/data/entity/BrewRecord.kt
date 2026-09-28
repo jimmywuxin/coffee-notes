@@ -55,6 +55,8 @@ data class BrewRecord(
     val aftertaste: Int = 0,
     val overallRating: Int = 0,
     val flavorNotes: String = "",
+    /** 粉坑形状（BedShape.key），空串 = 未记录 */
+    val bedShape: String = "",
     val imageUri: String = "",
     val isIced: Boolean = false,
     val iceAmount: Int = 0,

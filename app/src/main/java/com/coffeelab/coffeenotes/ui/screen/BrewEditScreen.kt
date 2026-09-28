@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,6 +29,11 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -37,6 +43,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.data.entity.BrewMethod
+import com.coffeelab.coffeenotes.data.entity.BedShape
 import com.coffeelab.coffeenotes.data.entity.Grinder
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.DateUtils
@@ -97,6 +104,8 @@ fun BrewEditScreen(
     var extractionTime by remember { mutableStateOf("") }
     var pouringDurationSeconds by remember { mutableStateOf("") }
     var flavorNotes by remember { mutableStateOf("") }
+    // 粉坑形状（BedShape.key，空串 = 不记录）
+    var bedShape by remember { mutableStateOf("") }
     var showCustomRatio by remember { mutableStateOf(false) }
     // 品鉴评分折叠区（编辑已有评分时自动展开）
     var ratingExpanded by remember { mutableStateOf(false) }
@@ -211,6 +220,7 @@ fun BrewEditScreen(
                 extractionTime = if (r.extractionTime > 0) r.extractionTime.toString() else ""
                 pouringDurationSeconds = r.pouringDurationSeconds?.toString() ?: ""
                 flavorNotes = r.flavorNotes
+                bedShape = r.bedShape
                 acidity = r.acidity
                 sweetness = r.sweetness
                 bitterness = r.bitterness
@@ -928,6 +938,46 @@ fun BrewEditScreen(
                 )
             }
 
+            // 粉坑形状（前街咖啡六种粉床状态，选填）
+            Text("粉坑形状", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                BedShape.entries.take(3).forEach { shape ->
+                    BedShapeCard(
+                        shape = shape,
+                        selected = bedShape == shape.key,
+                        onClick = { bedShape = if (bedShape == shape.key) "" else shape.key },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                BedShape.entries.drop(3).forEach { shape ->
+                    BedShapeCard(
+                        shape = shape,
+                        selected = bedShape == shape.key,
+                        onClick = { bedShape = if (bedShape == shape.key) "" else shape.key },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = BedShape.fromKey(bedShape)?.hint ?: "选填：冲煮结束后粉坑的状态，辅助诊断研磨与注水",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+                FilterChip(
+                    selected = bedShape.isEmpty(),
+                    onClick = { bedShape = "" },
+                    label = { Text("不记录") }
+                )
+            }
+
             // Ice & Bypass
             Text("冰饮 & Bypass", style = MaterialTheme.typography.titleMedium)
             Row(
@@ -1046,6 +1096,7 @@ fun BrewEditScreen(
                             aftertaste = aftertaste,
                             overallRating = overall,
                             flavorNotes = flavorNotes,
+                            bedShape = bedShape,
                             isIced = isIced,
                             iceAmount = iceAmount.toIntOrNull() ?: 0,
                             bypassAmount = bypassAmount.toIntOrNull() ?: 0
@@ -1156,6 +1207,121 @@ fun BrewEditScreen(
                 }) { Text(if (showTimeStep) "上一步" else "取消") }
             }
         )
+    }
+}
+
+/** 粉坑形状选择小卡：迷你粉床截面示意 + 名称 */
+@Composable
+private fun BedShapeCard(
+    shape: BedShape,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+        border = if (selected) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        },
+        tonalElevation = if (selected) 0.dp else 1.dp
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(vertical = 8.dp, horizontal = 2.dp)
+        ) {
+            BedShapeIcon(
+                shape = shape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(30.dp)
+                    .padding(horizontal = 16.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = shape.label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+/** 粉坑形状迷你示意图（Canvas 绘制滤杯截面 + 粉床轮廓） */
+@Composable
+private fun BedShapeIcon(shape: BedShape, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        val wallColor = Color(0xFFB8B4AF)   // 雾灰：滤杯壁
+        val bedColor = Color(0xFFD4A574)    // 焦糖：粉床
+        val darkColor = Color(0xFFA68B5B)   // 原木深色：粉墙/盐粒
+        val waterColor = Color(0xFFA8B5A0)  // 茶绿：积水
+        val stroke = 1.5.dp.toPx()
+
+        drawLine(wallColor, Offset(w * 0.10f, h * 0.10f), Offset(w * 0.36f, h * 0.92f), stroke, StrokeCap.Round)
+        drawLine(wallColor, Offset(w * 0.90f, h * 0.10f), Offset(w * 0.64f, h * 0.92f), stroke, StrokeCap.Round)
+
+        fun flatBed(topY: Float): Path = Path().apply {
+            moveTo(w * 0.16f, topY)
+            lineTo(w * 0.84f, topY)
+            lineTo(w * 0.64f, h * 0.90f)
+            lineTo(w * 0.36f, h * 0.90f)
+            close()
+        }
+
+        when (shape) {
+            BedShape.DEEP_EVEN -> drawPath(Path().apply {
+                moveTo(w * 0.16f, h * 0.26f)
+                cubicTo(w * 0.36f, h * 1.05f, w * 0.64f, h * 1.05f, w * 0.84f, h * 0.26f)
+                lineTo(w * 0.64f, h * 0.90f)
+                lineTo(w * 0.36f, h * 0.90f)
+                close()
+            }, bedColor)
+            BedShape.DEEP_OFFSET -> drawPath(Path().apply {
+                moveTo(w * 0.16f, h * 0.26f)
+                cubicTo(w * 0.36f, h * 0.70f, w * 0.62f, h * 1.05f, w * 0.84f, h * 0.34f)
+                lineTo(w * 0.64f, h * 0.90f)
+                lineTo(w * 0.36f, h * 0.90f)
+                close()
+            }, bedColor)
+            BedShape.FLAT_WITH_WALL -> {
+                drawPath(flatBed(h * 0.42f), bedColor)
+                drawPath(Path().apply {
+                    moveTo(w * 0.105f, h * 0.16f)
+                    lineTo(w * 0.17f, h * 0.20f)
+                    lineTo(w * 0.17f, h * 0.42f)
+                    lineTo(w * 0.105f, h * 0.38f)
+                    close()
+                }, darkColor)
+                drawPath(Path().apply {
+                    moveTo(w * 0.895f, h * 0.16f)
+                    lineTo(w * 0.83f, h * 0.20f)
+                    lineTo(w * 0.83f, h * 0.42f)
+                    lineTo(w * 0.895f, h * 0.38f)
+                    close()
+                }, darkColor)
+            }
+            BedShape.FLAT_NO_WALL -> drawPath(flatBed(h * 0.42f), bedColor)
+            BedShape.MUD -> {
+                drawPath(flatBed(h * 0.58f), bedColor)
+                drawOval(waterColor, topLeft = Offset(w * 0.52f, h * 0.55f), size = Size(w * 0.30f, h * 0.14f))
+            }
+            BedShape.SALT -> {
+                drawPath(flatBed(h * 0.42f), bedColor)
+                listOf(
+                    Offset(w * 0.30f, h * 0.55f),
+                    Offset(w * 0.46f, h * 0.68f),
+                    Offset(w * 0.60f, h * 0.55f),
+                    Offset(w * 0.70f, h * 0.72f)
+                ).forEach { c -> drawCircle(darkColor, radius = 1.6.dp.toPx(), center = c) }
+            }
+        }
     }
 }
 
