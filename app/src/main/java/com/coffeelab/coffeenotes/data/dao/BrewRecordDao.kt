@@ -99,6 +99,10 @@ interface BrewRecordDao {
     @Delete
     suspend fun delete(record: BrewRecord)
 
+    /** 取某个豆子最近的一条冲煮记录（编辑页「沿用上一杯」用；excludeId 用于编辑时排除自身） */
+    @Query("SELECT * FROM brew_records WHERE beanId = :beanId AND id != :excludeId ORDER BY dateTime DESC LIMIT 1")
+    suspend fun getLastRecordForBean(beanId: Long, excludeId: Long): BrewRecord?
+
     @Query("SELECT COUNT(*) FROM brew_records WHERE beanId = :beanId")
     fun getBrewCountForBean(beanId: Long): Flow<Int>
 

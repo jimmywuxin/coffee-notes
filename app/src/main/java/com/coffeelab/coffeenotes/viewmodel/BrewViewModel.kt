@@ -70,4 +70,8 @@ class BrewViewModel(application: Application) : AndroidViewModel(application) {
     fun getBrewCountForBean(beanId: Long): Flow<Int> = repository.getBrewCountForBean(beanId)
     suspend fun getBestRecordForBean(beanId: Long) = repository.getBestRecordForBean(beanId)
     suspend fun getRecord(id: Long) = repository.getRecord(id)
+
+    /** 同豆子最近一条记录（编辑页「沿用上一杯」用，excludeId 排除正在编辑的那条） */
+    suspend fun getLastRecordForBean(beanId: Long, excludeId: Long = 0L) =
+        repository.getLastRecordForBean(beanId, excludeId)
 }

@@ -72,6 +72,10 @@ class CoffeeRepository(private val db: AppDatabase) {
     fun getBrewCountForBean(beanId: Long) = db.brewRecordDao().getBrewCountForBean(beanId)
     suspend fun getBestRecordForBean(beanId: Long) = db.brewRecordDao().getBestRecordForBean(beanId)?.record
 
+    /** 同豆子最近一条冲煮记录（编辑页「沿用上一杯」用，excludeId 排除正在编辑的那条） */
+    suspend fun getLastRecordForBean(beanId: Long, excludeId: Long = 0L) =
+        db.brewRecordDao().getLastRecordForBean(beanId, excludeId)
+
     suspend fun insertRecord(record: BrewRecord): Long = db.brewRecordDao().insert(record)
     suspend fun updateRecord(record: BrewRecord) = db.brewRecordDao().update(record)
     suspend fun deleteRecord(record: BrewRecord) = db.brewRecordDao().delete(record)
