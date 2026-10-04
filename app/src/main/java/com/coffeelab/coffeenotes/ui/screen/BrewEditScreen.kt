@@ -141,6 +141,7 @@ fun BrewEditScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDateTimePicker by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
+    var showResetTimerDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(isEditing) }
     var loadFailed by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
@@ -207,6 +208,16 @@ fun BrewEditScreen(
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 
+    // 注水段结束时定格注水时长并回填（不覆盖用户已手填的值）
+    fun commitPourPhase() {
+        if (currentPhase != 0) return
+        syncTimer()
+        pourPhaseSeconds = timerSeconds
+        if (pouringDurationSeconds.isEmpty() && timerSeconds > 0) {
+            pouringDurationSeconds = timerSeconds.toString()
+        }
+    }
+
     fun stopTimer() {
         syncTimer()
         timerRunning = false
@@ -218,7 +229,7 @@ fun BrewEditScreen(
             }
         } else {
             brewPhaseSeconds = (timerSeconds - pourPhaseSeconds).coerceAtLeast(0)
-            // 「萃取时长」口径 = 总时长（含注水）
+            // 「萃取时长」口径 = 总时长（注水也属于萃取过程）
             if (extractionTime.isEmpty() && timerSeconds > 0) {
                 extractionTime = timerSeconds.toString()
             }
@@ -226,11 +237,24 @@ fun BrewEditScreen(
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 
+    // 「下一阶段」＝注水结束、进入萃取：先定格并回填注水时长，再接着计萃取
     fun nextPhase() {
         if (currentPhase != 0) return
-        stopTimer()
+        commitPourPhase()
+        timerRunning = false
         currentPhase = 1
         startTimer()
+    }
+
+    // 「完成」＝萃取结束：萃取时长按总时长口径回填（注水段也算萃取）
+    fun finishTimer() {
+        if (currentPhase == 0) {
+            // 还在注水段就点完成：萃取时长＝已注水时长，萃取段时长留空让用户手填
+            commitPourPhase()
+            timerRunning = false
+        } else {
+            stopTimer()
+        }
     }
 
     fun resetTimer() {
@@ -329,8 +353,8 @@ fun BrewEditScreen(
         val m = methodsById[selectedMethodId] ?: return@LaunchedEffect
         val steps = Converters.parseSteps(m.steps)
         val lastWaterAmount = steps.lastOrNull { it.waterAmount != null }?.waterAmount
-        // 「萃取时长」按总时长口径：各步骤时长之和
-        val totalDuration = steps.sumOf { it.durationSeconds }
+        // 步骤时间是累计秒数，末步时刻就是整杯的萃取总时长
+        val lastDuration = steps.lastOrNull { it.durationSeconds > 0 }?.durationSeconds
         if (coffeeWeight.isEmpty() && m.coffeeWeight != null) coffeeWeight = formatNum(m.coffeeWeight)
         if (coffeeWaterRatio.isEmpty() && m.coffeeWaterRatio != null) coffeeWaterRatio = formatNum(m.coffeeWaterRatio)
         if (waterTemp.isEmpty() && m.waterTemp != null) waterTemp = m.waterTemp.toString()
@@ -338,7 +362,7 @@ fun BrewEditScreen(
             waterAmount = formatNum(lastWaterAmount.toDouble())
             waterAmountTouched = true
         }
-        if (extractionTime.isEmpty() && totalDuration > 0) extractionTime = totalDuration.toString()
+        if (extractionTime.isEmpty() && lastDuration != null) extractionTime = lastDuration.toString()
     }
 
     // ===== 带入操作 =====
@@ -743,7 +767,7 @@ fun BrewEditScreen(
                             suggestion.brewTime?.let { timeVal ->
                                 Column {
                                     Text(
-                                        "总时长", style = MaterialTheme.typography.labelSmall,
+                                        "萃取时长", style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                                     )
                                     Text(
@@ -836,16 +860,19 @@ fun BrewEditScreen(
                             val waterStr = step.waterAmount?.let { "${formatNum(it.toDouble())}ml" } ?: "至总水量"
                             val descStr = step.description?.let { " · $it" } ?: ""
                             Text(
-                                "步骤${index + 1}：$waterStr · ${step.durationSeconds}秒$descStr",
+                                "步骤${index + 1}：$waterStr · ${formatDuration(step.durationSeconds)}$descStr",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Text(
-                            "合计 ${formatDuration(selectedMethodSteps.sumOf { it.durationSeconds })}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        // 步骤时间是累计秒数（第 N 段结束的时刻），所以合计 = 最后一步，不是求和
+                        selectedMethodSteps.lastOrNull { it.durationSeconds > 0 }?.let { last ->
+                            Text(
+                                "合计 ${formatDuration(last.durationSeconds)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
@@ -897,7 +924,7 @@ fun BrewEditScreen(
                 if (waterAmount.isNotBlank()) add("${waterAmount}ml")
                 if (waterTemp.isNotBlank()) add("${waterTemp}℃")
                 if (pouringDurationSeconds.isNotBlank()) add("注水${pouringDurationSeconds}s")
-                if (extractionTime.isNotBlank()) add("总时长${extractionTime}s")
+                if (extractionTime.isNotBlank()) add("萃取${extractionTime}s")
             }.joinToString(" · ").ifEmpty { "未填写" }
 
             Surface(
@@ -1096,17 +1123,26 @@ fun BrewEditScreen(
 
                             AnimatedVisibility(visible = timerExpanded) {
                                 Column(modifier = Modifier.padding(top = 8.dp)) {
+                                    // 运行中实时显示当前段已走秒数：注水段显示累计，滴滤段显示本段
+                                    // 注意「萃取时长」字段的口径是**总时长**（注水也属萃取），
+                                    // 所以这里两格是「分段」参考，标签用「滴滤」避免与萃取时长混淆
+                                    val livePour = if (currentPhase == 0) timerSeconds else pourPhaseSeconds
+                                    val liveBrew = if (currentPhase == 1) {
+                                        (timerSeconds - pourPhaseSeconds).coerceAtLeast(0)
+                                    } else {
+                                        brewPhaseSeconds
+                                    }
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Text(
-                                            "注水：${formatTimer(pourPhaseSeconds)}",
+                                            "注水：${formatTimer(livePour)}",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.secondary
                                         )
                                         Text(
-                                            "萃取：${formatTimer(brewPhaseSeconds)}",
+                                            "滴滤：${formatTimer(liveBrew)}",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.tertiary
                                         )
@@ -1151,7 +1187,7 @@ fun BrewEditScreen(
                                                 Spacer(Modifier.width(4.dp))
                                                 Text(if (timerSeconds > 0) "继续" else "开始")
                                             }
-                                            if (currentPhase == 0 && pourPhaseSeconds > 0) {
+                                            if (currentPhase == 0 && timerSeconds > 0) {
                                                 OutlinedButton(
                                                     onClick = { nextPhase() },
                                                     modifier = Modifier.weight(1f)
@@ -1159,9 +1195,17 @@ fun BrewEditScreen(
                                                     Text("下一阶段")
                                                 }
                                             }
+                                            if (currentPhase == 1 && timerSeconds > 0) {
+                                                OutlinedButton(
+                                                    onClick = { finishTimer() },
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Text("完成")
+                                                }
+                                            }
                                             if (timerSeconds > 0) {
                                                 OutlinedButton(
-                                                    onClick = { resetTimer() },
+                                                    onClick = { showResetTimerDialog = true },
                                                     modifier = Modifier.weight(0.6f)
                                                 ) {
                                                     Icon(
@@ -1172,22 +1216,67 @@ fun BrewEditScreen(
                                                 }
                                             }
                                         }
-                                    } else {
-                                        Button(
-                                            onClick = { stopTimer() },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                                contentColor = MaterialTheme.colorScheme.onErrorContainer
-                                            )
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Pause,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text("暂停")
+                                    }
+
+                                    if (timerRunning) {
+                                        // 运行中：注水段可直点「下一阶段」切到萃取，不必先暂停
+                                        if (currentPhase == 0) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Button(
+                                                    onClick = { stopTimer() },
+                                                    modifier = Modifier.weight(1f),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                                    )
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Pause,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                    Spacer(Modifier.width(4.dp))
+                                                    Text("暂停")
+                                                }
+                                                OutlinedButton(
+                                                    onClick = { nextPhase() },
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Text("下一阶段")
+                                                }
+                                            }
+                                        } else {
+                                            // 萃取段：完成＝收尾并回填萃取时长
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Button(
+                                                    onClick = { stopTimer() },
+                                                    modifier = Modifier.weight(1f),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                                                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                                    )
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Pause,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                    Spacer(Modifier.width(4.dp))
+                                                    Text("暂停")
+                                                }
+                                                OutlinedButton(
+                                                    onClick = { finishTimer() },
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Text("完成")
+                                                }
+                                            }
                                         }
                                     }
 
@@ -1207,14 +1296,13 @@ fun BrewEditScreen(
                                             enabled = timerSeconds > 0,
                                             modifier = Modifier.weight(1f)
                                         ) {
-                                            Text("→ 总时长")
+                                            Text("→ 萃取时长")
                                         }
                                     }
                                 }
                             }
                         }
                     }
-
                     OutlinedTextField(
                         value = waterTemp,
                         onValueChange = { waterTemp = it },
@@ -1455,6 +1543,30 @@ fun BrewEditScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDiscardDialog = false }) { Text("继续编辑") }
+            }
+        )
+    }
+
+    // 计时器重置确认：已回填到表单的时长不会被清，但重新计时的意图容易被误点打断
+    if (showResetTimerDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetTimerDialog = false },
+            title = { Text("重置计时器？") },
+            text = {
+                Text(
+                    if (pouringDurationSeconds.isNotBlank() || extractionTime.isNotBlank())
+                        "计时归零。已填入表单的注水时长 / 萃取时长不会被清除，需要的话请手动改。"
+                    else "计时归零，从头开始。"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showResetTimerDialog = false
+                    resetTimer()
+                }) { Text("重置", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetTimerDialog = false }) { Text("取消") }
             }
         )
     }

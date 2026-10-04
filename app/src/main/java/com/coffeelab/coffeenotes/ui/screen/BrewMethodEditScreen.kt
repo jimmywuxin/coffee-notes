@@ -379,10 +379,13 @@ private fun StepCard(
                         val secs = newVal.toIntOrNull() ?: 0
                         onStepChange(step.copy(durationSeconds = secs))
                     },
-                    label = { Text("时间 (s)") },
+                    label = { Text("累计时间 (s)") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = {
+                        Text("本步骤结束的时刻，合计取最后一步", style = MaterialTheme.typography.bodySmall)
+                    }
                 )
             }
 
