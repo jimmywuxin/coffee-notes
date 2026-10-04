@@ -1,12 +1,13 @@
 package com.coffeelab.coffeenotes.data.repository
 
-import androidx.room.Transaction
+import androidx.room.withTransaction
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.*
 import com.coffeelab.coffeenotes.data.entity.BrewRecordWithNames
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import com.coffeelab.coffeenotes.data.dao.BeanBrewCount
+import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.data.dao.EquipmentCount
 import com.coffeelab.coffeenotes.data.dao.RatioCount
 import com.coffeelab.coffeenotes.data.dao.TempBucket
@@ -39,8 +40,9 @@ class CoffeeRepository(private val db: AppDatabase) {
     ))
     suspend fun unarchiveBean(bean: CoffeeBean) = db.coffeeBeanDao().update(bean.copy(isArchived = false, updatedAt = System.currentTimeMillis()))
     suspend fun resetStock(bean: CoffeeBean) = db.coffeeBeanDao().update(bean.copy(stockResetAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis()))
-    @Transaction
-    suspend fun saveBeanOrder(items: List<CoffeeBean>) {
+    // 注意：@Transaction 只对 @Dao/@Database 生效，挂在 Repository 上是空注解，故一律用
+    // db.withTransaction { } 保证原子性（否则写到一半失败会留下半套排序）。
+    suspend fun saveBeanOrder(items: List<CoffeeBean>) = db.withTransaction {
         items.forEachIndexed { index, bean ->
             if (bean.id > 0) {
                 db.coffeeBeanDao().update(bean.copy(sortOrder = index))
@@ -88,8 +90,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun insertMethod(method: BrewMethod): Long = db.brewMethodDao().insert(method)
     suspend fun updateMethod(method: BrewMethod) = db.brewMethodDao().update(method)
     suspend fun deleteMethod(method: BrewMethod) = db.brewMethodDao().delete(method)
-    @Transaction
-    suspend fun saveMethodOrder(items: List<BrewMethod>) {
+    suspend fun saveMethodOrder(items: List<BrewMethod>) = db.withTransaction {
         items.forEachIndexed { index, method ->
             if (method.id > 0) {
                 db.brewMethodDao().updateSortOrder(method.id, index)
@@ -115,8 +116,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun deleteGrinder(grinder: Grinder) = db.grinderDao().delete(grinder)
     suspend fun getMaxGrinderSortOrder() = db.grinderDao().getMaxSortOrder()
 
-    @Transaction
-    suspend fun saveEquipmentOrder(items: List<Equipment>) {
+    suspend fun saveEquipmentOrder(items: List<Equipment>) = db.withTransaction {
         // Update sortOrder for each item without deleting
         items.forEachIndexed { index, equipment ->
             if (equipment.id > 0) {
@@ -125,8 +125,7 @@ class CoffeeRepository(private val db: AppDatabase) {
         }
     }
 
-    @Transaction
-    suspend fun saveGrinderOrder(items: List<Grinder>) {
+    suspend fun saveGrinderOrder(items: List<Grinder>) = db.withTransaction {
         items.forEachIndexed { index, grinder ->
             if (grinder.id > 0) {
                 db.grinderDao().update(grinder.copy(sortOrder = index))
@@ -143,8 +142,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun deleteRoastDegree(roastDegree: RoastDegree) = db.roastDegreeDao().delete(roastDegree)
     suspend fun getMaxRoastDegreeSortOrder() = db.roastDegreeDao().getMaxSortOrder()
 
-    @Transaction
-    suspend fun saveRoastDegreeOrder(items: List<RoastDegree>) {
+    suspend fun saveRoastDegreeOrder(items: List<RoastDegree>) = db.withTransaction {
         items.forEachIndexed { index, roastDegree ->
             if (roastDegree.id > 0) {
                 db.roastDegreeDao().update(roastDegree.copy(sortOrder = index))
@@ -160,8 +158,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun deleteProcessMethod(processMethod: ProcessMethod) = db.processMethodDao().delete(processMethod)
     suspend fun getMaxProcessMethodSortOrder() = db.processMethodDao().getMaxSortOrder()
 
-    @Transaction
-    suspend fun saveProcessMethodOrder(items: List<ProcessMethod>) {
+    suspend fun saveProcessMethodOrder(items: List<ProcessMethod>) = db.withTransaction {
         items.forEachIndexed { index, processMethod ->
             if (processMethod.id > 0) {
                 db.processMethodDao().update(processMethod.copy(sortOrder = index))
@@ -232,13 +229,12 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun getImpressionTagsForBeanOnce(beanId: Long) = db.impressionTagDao().getTagsForBeanOnce(beanId)
     suspend fun getMaxImpressionTagSortOrder() = db.impressionTagDao().getMaxSortOrder()
 
-    @Transaction
-    suspend fun saveImpressionTagsForBean(beanId: Long, tagIds: List<Long>) {
-        db.impressionTagDao().saveTagsForBean(beanId, tagIds)
-    }
+    suspend fun saveImpressionTagsForBean(beanId: Long, tagIds: List<Long>) =
+        db.withTransaction {
+            db.impressionTagDao().saveTagsForBean(beanId, tagIds)
+        }
 
-    @Transaction
-    suspend fun saveImpressionTagOrder(items: List<ImpressionTag>) {
+    suspend fun saveImpressionTagOrder(items: List<ImpressionTag>) = db.withTransaction {
         items.forEachIndexed { index, tag ->
             if (tag.id > 0) {
                 db.impressionTagDao().update(tag.copy(sortOrder = index))
@@ -250,4 +246,53 @@ class CoffeeRepository(private val db: AppDatabase) {
     private fun BrewRecordWithNames.toRecord() = record.withNames(equipmentName, grinderName, beanName, beanRoaster)
     suspend fun updateRoastLevelOnBeans(oldName: String, newName: String) = db.coffeeBeanDao().updateRoastLevelByName(oldName, newName)
     suspend fun updateProcessOnBeans(oldName: String, newName: String) = db.coffeeBeanDao().updateProcessByName(oldName, newName)
+
+    // ===== 页面一次性快照（原先由 UI 直接调 DAO，收敛到 Repository，审计 #5） =====
+
+    /** 豆子列表：beanId → 最近一次购买单价（元/克）。只算重量 > 0 的记录 */
+    suspend fun getLatestUnitPriceMap(): Map<Long, Float> =
+        db.purchaseRecordDao().getLatestForAllBeansOnce()
+            .filter { it.weightGrams > 0 }
+            .associate { it.beanId to it.unitPrice }
+
+    /** 豆子列表：beanId → 库存（仅未归档豆子；口径见 CoffeeBeanDao.getInventoryForActiveBeans） */
+    suspend fun getInventoryMapForActiveBeans(): Map<Long, BeanInventory> =
+        db.coffeeBeanDao().getInventoryForActiveBeans().associateBy { it.beanId }
+
+    /** 豆子列表：beanId → 印象标签名。一次批量查询，替代逐豆查询的 N+1 */
+    suspend fun getImpressionTagNamesByBean(): Map<Long, List<String>> =
+        db.impressionTagDao().getAllBeanTagNamesOnce()
+            .groupBy({ it.beanId }, { it.name })
+
+    /** 豆子列表：beanId → (平均评分, 评分次数) */
+    suspend fun getBeanRatingMap(): Map<Long, Pair<Double, Int>> =
+        db.brewRecordDao().getBeanRatings()
+            .associate { it.beanId to (it.avgRating to it.ratingCount) }
+
+    /** 豆子详情：该豆子的购买记录 */
+    suspend fun getPurchaseRecordsForBeanOnce(beanId: Long) = db.purchaseRecordDao().getByBeanIdOnce(beanId)
+
+    /** 豆子详情：单个豆子的库存（口径见 CoffeeBeanDao.getInventoryForBean） */
+    suspend fun getInventoryForBean(beanId: Long) = db.coffeeBeanDao().getInventoryForBean(beanId)
+
+    // ===== 设置页：清空全部用户数据 =====
+
+    /**
+     * 清空所有用户数据。整体放在一个事务里：原先设置页逐个 DAO 调 deleteAll()，
+     * 中途失败会留下「删了一半」的残库（同审计 #4 的类别）。
+     */
+    suspend fun clearAllUserData() = db.withTransaction {
+        db.brewRecordDao().deleteAll()
+        db.brewMethodDao().deleteAll()
+        db.coffeeBeanDao().deleteAll()
+        db.equipmentDao().deleteAll()
+        db.grinderDao().deleteAll()
+        db.roastDegreeDao().deleteAll()
+        db.processMethodDao().deleteAll()
+        db.restPeriodConfigDao().deleteAll()
+        db.peakFlavorConfigDao().deleteAll()
+        db.purchaseRecordDao().deleteAll()
+        db.impressionTagDao().deleteAll()
+        db.stockAdjustmentDao().deleteAll()
+    }
 }

@@ -33,6 +33,7 @@ import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
 import com.coffeelab.coffeenotes.viewmodel.HomeViewModel
 import java.util.*
+import com.coffeelab.coffeenotes.util.AppConstants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,7 +92,7 @@ fun HomeScreen(
         var streak = 0
         while (true) {
             val dayStart = cal.timeInMillis
-            val dayEnd = dayStart + 24 * 60 * 60 * 1000L
+            val dayEnd = dayStart + AppConstants.MILLIS_PER_DAY
             val hasBrew = recentRecords.any { it.dateTime in dayStart until dayEnd }
             if (!hasBrew && streak > 0) break
             if (hasBrew) streak++
@@ -106,7 +107,7 @@ fun HomeScreen(
     val avgPerWeek = remember(recentRecords) {
         if (recentRecords.isEmpty()) return@remember 0.0
         val now = System.currentTimeMillis()
-        val fourWeeksAgo = now - 28L * 24 * 60 * 60 * 1000
+        val fourWeeksAgo = now - 28L * AppConstants.MILLIS_PER_DAY
         val recent4w = recentRecords.count { it.dateTime >= fourWeeksAgo }
         (recent4w / 4.0 * 10).toInt() / 10.0
     }
@@ -117,8 +118,7 @@ fun HomeScreen(
             .mapNotNull { record -> record.methodId?.let { id -> allMethods.find { it.id == id } } }
             .groupingBy { it.name }.eachCount()
         if (methodCounts.isEmpty()) null else {
-            val (name, count) = methodCounts.maxByOrNull { it.value }!!
-            name to count
+            methodCounts.maxByOrNull { it.value }?.let { (name, count) -> name to count }
         }
     }
 
@@ -365,18 +365,23 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.onSecondaryContainer
                                     )
                                     Spacer(Modifier.height(4.dp))
-                                    Text(
-                                        text = "${lastBean!!.roaster} - ${lastBean!!.name}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
-                                    if (lastBean!!.origin.isNotEmpty()) {
+                                    // 收进非空局部量：原写法连续三次 lastBean!! 解引用，
+                                    // 一旦外层判空条件被改动就会立刻崩
+                                    val last = lastBean
+                                    if (last != null) {
                                         Text(
-                                            text = lastBean!!.origin,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                            text = "${last.roaster} - ${last.name}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
                                         )
+                                        if (last.origin.isNotEmpty()) {
+                                            Text(
+                                                text = last.origin,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                            )
+                                        }
                                     }
                                 }
                             }

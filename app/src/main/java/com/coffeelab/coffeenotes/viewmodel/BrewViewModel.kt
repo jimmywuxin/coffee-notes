@@ -10,6 +10,7 @@ import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.coffeelab.coffeenotes.util.AppConstants
 
 class BrewViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -27,7 +28,7 @@ class BrewViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     val searchResults: StateFlow<List<BrewRecord>> = _searchQuery
-        .debounce(200)
+        .debounce(AppConstants.SEARCH_DEBOUNCE_MS)
         .flatMapLatest { query ->
             if (query.isBlank()) {
                 repository.allRecords

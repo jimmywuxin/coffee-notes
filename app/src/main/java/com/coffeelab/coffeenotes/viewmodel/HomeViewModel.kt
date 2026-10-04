@@ -9,6 +9,7 @@ import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.coffeelab.coffeenotes.util.AppConstants
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -25,7 +26,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Mixed results: beans first, then records, each sorted by recency */
     val mixedResults: StateFlow<List<Any>> = _searchQuery
-        .debounce(200)
+        .debounce(AppConstants.SEARCH_DEBOUNCE_MS)
         .flatMapLatest { query ->
             if (query.isBlank()) flowOf(emptyList())
             else combine(

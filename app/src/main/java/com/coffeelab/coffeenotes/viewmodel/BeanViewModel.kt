@@ -11,6 +11,7 @@ import com.coffeelab.coffeenotes.data.entity.FlavorTag
 import com.coffeelab.coffeenotes.util.BitmapLoader
 import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
+import com.coffeelab.coffeenotes.data.entity.StockAdjustment
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import com.coffeelab.coffeenotes.util.ImageUtils
 import com.coffeelab.coffeenotes.util.OcrCorrectionRecorder
@@ -24,6 +25,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.coffeelab.coffeenotes.util.AppConstants
 
 class BeanViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -55,7 +57,7 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     val searchResults: StateFlow<List<CoffeeBean>> = _searchQuery
-        .debounce(200)
+        .debounce(AppConstants.SEARCH_DEBOUNCE_MS)
         .flatMapLatest { query ->
             if (query.isBlank()) {
                 repository.activeBeans
@@ -193,6 +195,32 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun getPeakFlavorConfigByRoastDegreeId(roastDegreeId: Long): PeakFlavorConfig? =
         repository.getPeakFlavorConfigByRoastDegreeId(roastDegreeId)
 
+    // ===== 页面所需的一次性快照（原先 UI 直接调 DAO，见审计 #5） =====
+
+    /** 豆子列表：beanId → 最近购买单价（元/克） */
+    suspend fun getLatestUnitPriceMap() = repository.getLatestUnitPriceMap()
+
+    /** 豆子列表：beanId → 库存 */
+    suspend fun getInventoryMapForActiveBeans() = repository.getInventoryMapForActiveBeans()
+
+    /** 豆子列表：beanId → 印象标签名（一次批量查询，替代 N+1） */
+    suspend fun getImpressionTagNamesByBean() = repository.getImpressionTagNamesByBean()
+
+    /** 豆子列表：beanId → (平均评分, 评分次数) */
+    suspend fun getBeanRatingMap() = repository.getBeanRatingMap()
+
+    /** 豆子详情：该豆子的购买记录 */
+    suspend fun getPurchaseRecordsForBeanOnce(beanId: Long) = repository.getPurchaseRecordsForBeanOnce(beanId)
+
+    /** 豆子详情：单个豆子的库存 */
+    suspend fun getInventoryForBean(beanId: Long) = repository.getInventoryForBean(beanId)
+
+    /** 豆子详情：快捷扣减库存（note 为备注，可为空） */
+    suspend fun addStockAdjustment(beanId: Long, changeGrams: Double, note: String = "") =
+        repository.insertStockAdjustment(
+            StockAdjustment(beanId = beanId, changeGrams = changeGrams, note = note)
+        )
+
     // ===== Recognition (pluggable engine) =====
     private val keywordEngine = KeywordRecognitionEngine()
 
@@ -220,7 +248,7 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
                     val result = keywordEngine.recognize(bitmap, corrections)
                     blurScore to result
                 }
-                if (blurScore < 60f) {
+                if (blurScore < AppConstants.BLUR_WARNING_THRESHOLD) {
                     _blurWarning.value = true
                 }
                 _recognitionResult.value = result

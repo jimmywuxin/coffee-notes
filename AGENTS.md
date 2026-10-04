@@ -55,41 +55,40 @@
 - 本机当前没有 AVD（`~/Library/Android/sdk` 不存在，cmdline-tools 在 homebrew 路径下）
 - adb daemon 在 sandbox 里跑不起来，需要在主机环境执行（用 `require_escalated` 模式通过）
 
-## 已知技术债（审计 2026-07-27，更新 2026-08-14，详情见 `项目审计报告.md` 与 `改进路线图.md`）
+## 已知技术债（审计 2026-07-27，**清账复核 2026-10-04**，详情见 `项目审计报告.md` 与 `改进路线图.md`）
 
-> 已修的不再列（本次已移除：BrewEditScreen 手改 waterAmount、AppDatabase `val now`、依赖升级——CameraX 1.5.0/Coil 3.1.0/Kotlin 2.1.20 均已到位）。以下按「改到相关文件时顺手修」的原则，不急着集中发版。杨杨每次会话读到本文件，在相关改动时主动提醒。
+> **2026-10-04 全量清账**：审计报告的 23 条问题 + 7 条改进建议已全部处理完毕。其中 16 条已修、2 条为有意保留（勿再翻）、其余经**实测**确认「无需改/不适用」。清单里只剩「可做可不做」的增值项。以下按「改到相关文件时顺手修」的原则推进。杨杨每次会话读到本文件，在相关改动时主动提醒。
 
 ### 数据安全（最优先）
-- ~~无 Room Migration 全链路测试~~ **已做（2026-08-15）**：`app/src/androidTest/.../data/MigrationTest.kt` 落地，20→21 迁移测试通过；首次运行即发现并修复 **MIGRATION_20_21 多写 FOREIGN KEY 子句**（实体未声明 FK，schema 校验失败）。注意：schemas 仅 20/21.json，1→19 各段仍无法覆盖，后续补早期 schema JSON 再扩
-- 备份仅限本地 ZIP 导出，无云端通道——换机/丢手机即全丢，建议 WebDAV/飞书云盘自动备份（详见改进路线图 1.2）
+- ~~无 Room Migration 全链路测试~~ **已做（2026-08-15）**：`app/src/androidTest/.../data/MigrationTest.kt` 落地，20→21 迁移测试通过；首次运行即发现并修复 **MIGRATION_20_21 多写 FOREIGN KEY 子句**（实体未声明 FK，schema 校验失败）。注意：schemas 仅 20/21/22.json，1→19 各段仍无法覆盖，后续补早期 schema JSON 再扩
+- ~~备份仅限本地 ZIP，无云端通道~~ **已做（v2.9.7）**：WebDAV 云备份（上传/下载恢复/自动上传/云端保留 10 份）
 - 已拍板（2026-08-14）：备份保持**明文 ZIP** + `allowBackup=true`，数据不敏感，明文方便导出查看，**不要再建议加密**
 - **跑 androidTest 千万别用 `connectedDebugAndroidTest`（自动卸载 app），用 AGENTS.md 顶部的手动 am instrument 流程**——2026-08-15 事故实录，见装机铁律
 
 ### 测试/工程化（有空做）
-- `BackupViewModel.kt`（661 行）——纯逻辑最复杂却零测试，补「备份→恢复→数据一致」往返测试
-- 无 GitHub Actions CI——push 跑 test+assembleDebug、打 tag 自动出 release APK 挂 Releases（详见改进路线图 2.3）
-- ~~`README.md` 版本号滞后~~ **已修（2026-09-16，同步为 2.9.10）**，后续发版顺手同步这一行
+- `BackupViewModel.kt`（656 行）——**全项目唯一还剩的 God Class，且是数据安全关键路径却零测试**。⚠️ 正确顺序是**先写「导出→导入」往返测试、再拆类**：上一轮「没测试就动手」的教训就是 `CoffeeRepository` 上 8 处 `@Transaction` 挂在普通类上完全不生效、藏了很久才被发现。补起测试后可重新评估 CI（2.3）
+- 无 GitHub Actions CI——push 跑 test+assembleDebug、打 tag 自动出 release APK 挂 Releases（详见改进路线图 2.3；需求不成立，已搁置）
+- ~~`README.md` 版本号滞后~~ **已做**（2026-10-04 同步为 2.9.12），后续发版顺手同步这一行
 
 ### 性能（改到相关文件时顺手）
-- ~~collectAsState 未用 collectAsStateWithLifecycle~~ **已做（2026-08-15）**：全项目 17 个 screen 文件 ~70 处替换完成，无参调用补 `initialValue = flow.value`；gradle.properties 已开 caching+parallel（2.2）
-- ~~StatsScreen 每次重组新建 Flow 订阅~~ **已做（2026-08-15）**：getBrewCountForBean/getMonthlyBrewCountsForBean/getMonthlyConsumptionForBean/getTopFlavorTags 均包 remember
-- ~~BrewListScreen.kt:330 `beans.find` 线性查找~~ **已做（2026-08-15）**：预构建 `beansById = remember(beans) { beans.associateBy { it.id } }`
-- ~~ImageUtils.kt:43 decodeStream 无预采样~~ **已做（2026-08-15）**：inJustDecodeBounds 读尺寸 → calculateInSampleSize → 带采样解码
+- ~~collectAsState 未用 collectAsStateWithLifecycle~~ **已做（2026-08-15）**；~~StatsScreen 新建 Flow~~ **已做**；~~BrewListScreen beans.find 线性查找~~ **已做**；~~ImageUtils decodeStream 无预采样~~ **已做**
 - `CoffeeBeanDao.kt:37-53`——`searchBeansFull` 10 列 LIKE + 3 表 JOIN 全表扫描（数据量大再说，FTS 暂缓）
-- `CoffeeBeanDao.kt:86-92`——`getInventoryForActiveBeans` 每行两个相关子查询
+- ~~`getInventoryForActiveBeans` 相关子查询~~ **2026-10-04 实测判定不改**：真机库上原写法 0.008ms，改成 LEFT JOIN 预聚合反而 **0.106ms（慢 13 倍）**，且会破坏 `hasAnyRecord` 语义算错；即使 37 个豆子全算未归档原写法仍快 2.1 倍。**别再改这个查询**
 
 ### 代码质量（重构时顺手）
-- ~~`BeanViewModel.kt`（309 行）God Class~~ **已瘦身（2026-08-15）**：抽 `PeakFlavorCalculator`（赏味期纯函数，带 6 个单测）+ `OcrCorrectionRecorder`（OCR 纠错回流），BeanViewModel 做门面，UI 零改动；后续可继续拆 Recognition/OCR 状态
-- ~~6 个管理屏拖拽排序+删除弹窗复制粘贴~~ **已抽组件（2026-08-15）**：`SingleNameManagementScreen<T>` 泛型组件，Equipment/Grinder/ImpressionTag/ProcessMethod 4 屏已套用（每屏 ~194 行 → ~40 行）；**RoastDegree（三字段布局）、BrewMethod（带 steps）结构特殊，保留原样**
-- `AppDatabase.kt:178-202`——suspend 版 populate（Equipment/Grinders/BrewMethods）无调用方，死代码（callback 里用的是 Sync 版）
-- `AppDatabaseMigrations.kt:185` MIGRATION_15_16——加 equipmentId/grinderId 未 DROP 旧 String 列
+- ~~`BeanViewModel.kt` God Class~~ **已瘦身（2026-08-15）**：抽 `PeakFlavorCalculator` + `OcrCorrectionRecorder`；~~6 个管理屏复制粘贴~~ **已抽 `SingleNameManagementScreen<T>`**（4 屏套用，RoastDegree/BrewMethod 结构特殊保留）
+- ~~UI 层直访 DAO（12 处）~~ **已收敛（2026-10-04）**：`ui/` 下 `AppDatabase.getInstance` 归零，改走 ViewModel → Repository
+- ~~`BeanListScreen` 印象标签 N+1~~ **已修（2026-10-04）**：新增 `ImpressionTagDao.getAllBeanTagNamesOnce()` 批量查询，实测 **37 次查询 → 1 次**、结果逐行一致
+- ~~`AppDatabase` suspend 版 populate 死代码~~ **已删（2026-10-04）**
+- ~~MIGRATION_15_16 未 DROP 旧 String 列~~ **2026-10-04 实测确认无需处理**：真机库 `brew_records` 根本没有这两列（只影响「≤v15 连续升级且从未重建库」的历史库）；为不存在的列做整表重建迁移是净负收益
+- ⚠️ **写事务别用 `@Transaction`**：它只对 `@Dao`/`@Database` 生效，挂在 Repository 上是空注解（2026-10-04 发现 8 处全不生效，已改 `db.withTransaction { }`）
 
 ### 安全/构建（有空做）
 - `proguard-rules.pro:14`——`keep data.entity.**` 过宽
-- ~~release 未配 signingConfig~~ **已做**：release 复用 debug 签名（`app/build.gradle.kts`），可与 debug 版 `install -r` 无缝覆盖
-- ~~gradle.properties 未启用 caching/parallel~~ **已做**：`org.gradle.caching=true` / `org.gradle.parallel=true` 已开
+- ~~release 未配 signingConfig~~ **已做**：release 复用 debug 签名，可与 debug 版 `install -r` 无缝覆盖
+- ~~gradle.properties 未启用 caching/parallel~~ **已做**
 
 ### 杂项
-- `!!` 强解引用散布（BeanDetailScreen/HomeScreen/各管理屏删除弹窗）
-- 魔法数字散落（`86400000L`、`15`天、`28`天、`1600`px、`60f` 模糊阈值、`200`ms debounce）
+- ~~`!!` 强解引用散布~~ **已清零（2026-10-04）**：全项目 0 处。根因是一批屏幕写成 `val bean by x.collectAsStateWithLifecycle(...)`——**委托属性无法智能转换**，全文件被迫 `!!`；改成先取 `.value` 绑普通 val 即成批消除
+- ~~魔法数字散落~~ **已收编（2026-10-04）**：新建 `util/AppConstants.kt`（`MILLIS_PER_DAY`/`SEARCH_DEBOUNCE_MS`/`BLUR_WARNING_THRESHOLD`/`OCR_MAX_DIM`）
 - UI 文案硬编码约 873 处未走 `strings.xml`，不利于国际化（工程量最大，优先级垫底）

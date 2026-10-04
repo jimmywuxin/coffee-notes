@@ -26,7 +26,7 @@ object BitmapLoader {
                 }
 
                 // Calculate sample size to limit to ~1600px (higher res improves small-text OCR)
-                options.inSampleSize = calculateInSampleSize(options, 1600, 1600)
+                options.inSampleSize = calculateInSampleSize(options, AppConstants.OCR_MAX_DIM, AppConstants.OCR_MAX_DIM)
                 options.inJustDecodeBounds = false
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888
 

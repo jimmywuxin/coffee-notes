@@ -268,12 +268,13 @@ fun RoastDegreeConfigScreen(
         }
     }
 
-    if (showDeleteDialog && deletingItem != null) {
+    val itemToDelete = deletingItem
+    if (showDeleteDialog && itemToDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
-            text = { Text("确定要删除「${deletingItem!!.degree.name}」吗？相关的养豆/赏味配置也会被删除。") },
-            confirmButton = { TextButton(onClick = { viewModel.deleteDegree(deletingItem!!.degree); showDeleteDialog = false }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
+            text = { Text("确定要删除「${itemToDelete.degree.name}」吗？相关的养豆/赏味配置也会被删除。") },
+            confirmButton = { TextButton(onClick = { viewModel.deleteDegree(itemToDelete.degree); showDeleteDialog = false }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("取消") } }
         )
     }

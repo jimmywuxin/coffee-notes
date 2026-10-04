@@ -160,8 +160,8 @@ object DateUtils {
     fun getWeekLabel(timestamp: Long): String {
         val now = System.currentTimeMillis()
         val thisWeekStart = getWeekStart(now)
-        val lastWeekStart = thisWeekStart - 7 * 24 * 60 * 60 * 1000L
-        val twoWeeksAgoStart = lastWeekStart - 7 * 24 * 60 * 60 * 1000L
+        val lastWeekStart = thisWeekStart - 7 * AppConstants.MILLIS_PER_DAY
+        val twoWeeksAgoStart = lastWeekStart - 7 * AppConstants.MILLIS_PER_DAY
 
         val ts = getWeekStart(timestamp)
         return when {
@@ -175,8 +175,8 @@ object DateUtils {
     fun filterByWeekRange(records: List<BrewRecord>, range: String): List<BrewRecord> {
         val now = System.currentTimeMillis()
         val thisWeekStart = getWeekStart(now)
-        val lastWeekStart = thisWeekStart - 7 * 24 * 60 * 60 * 1000L
-        val twoWeeksAgoStart = lastWeekStart - 7 * 24 * 60 * 60 * 1000L
+        val lastWeekStart = thisWeekStart - 7 * AppConstants.MILLIS_PER_DAY
+        val twoWeeksAgoStart = lastWeekStart - 7 * AppConstants.MILLIS_PER_DAY
 
         return when (range) {
             "本周" -> records.filter { it.dateTime >= thisWeekStart }

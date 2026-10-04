@@ -60,9 +60,10 @@ object PeakFlavorCalculator {
         val threshold = now + NEARING_THRESHOLD_DAYS * DAY_MS
         return beans.mapNotNull { bean ->
             val peakDays = resolvePeakFlavorDays(bean, roastDegrees, peakConfigs) ?: return@mapNotNull null
-            val end = peakEndDate(bean.roastDate!!, peakDays)
+            val roastDate = bean.roastDate ?: return@mapNotNull null
+            val end = peakEndDate(roastDate, peakDays)
             if (end in now..threshold) {
-                bean to daysLeft(bean.roastDate!!, peakDays, now)
+                bean to daysLeft(roastDate, peakDays, now)
             } else null
         }.sortedBy { it.second }
     }

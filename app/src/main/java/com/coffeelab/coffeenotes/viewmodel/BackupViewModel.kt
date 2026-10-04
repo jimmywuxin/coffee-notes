@@ -345,8 +345,9 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     val m = it as Map<*, *>
                     val oldId = (m["id"] as? Double)?.toLong() ?: continue
                     val name = m["name"] as? String ?: continue
-                    val newId = if (name in existingImps) {
-                        existingImps[name]!!.id
+                    val matched = existingImps[name]
+                    val newId = if (matched != null) {
+                        matched.id
                     } else {
                         repository.insertImpressionTag(ImpressionTag(
                             name = name,
@@ -458,8 +459,9 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     val m = eq as Map<*, *>
                     val oldId = (m["id"] as? Double)?.toLong() ?: continue
                     val name = m["name"] as? String ?: continue
-                    val newId = if (name in existingEq) {
-                        existingEq[name]!!.id
+                    val matched = existingEq[name]
+                    val newId = if (matched != null) {
+                        matched.id
                     } else {
                         repository.insertEquipment(Equipment(
                             name = name,
@@ -478,8 +480,9 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     val m = gr as Map<*, *>
                     val oldId = (m["id"] as? Double)?.toLong() ?: continue
                     val name = m["name"] as? String ?: continue
-                    val newId = if (name in existingGr) {
-                        existingGr[name]!!.id
+                    val matched = existingGr[name]
+                    val newId = if (matched != null) {
+                        matched.id
                     } else {
                         repository.insertGrinder(Grinder(
                             name = name,

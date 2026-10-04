@@ -18,7 +18,6 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -34,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.ui.component.BeanCard
@@ -79,7 +77,6 @@ fun BeanListScreen(
     }
 
     // Load impression tags for all displayed beans
-    val context = LocalContext.current
     var beanImpressionTagsMap by remember { mutableStateOf<Map<Long, List<String>>>(emptyMap()) }
     // beanId -> 最近一次购买单价（元/克）
     var beanLatestUnitPriceMap by remember { mutableStateOf<Map<Long, Float>>(emptyMap()) }
@@ -87,38 +84,21 @@ fun BeanListScreen(
     var beanInventoryMap by remember { mutableStateOf<Map<Long, BeanInventory>>(emptyMap()) }
 
     suspend fun reloadLatestUnitPrices() {
-        val dao = AppDatabase.getInstance(context).purchaseRecordDao()
-        val records = dao.getLatestForAllBeansOnce()
-        val map = mutableMapOf<Long, Float>()
-        for (record in records) {
-            if (record.weightGrams > 0) {
-                map[record.beanId] = record.unitPrice
-            }
-        }
-        beanLatestUnitPriceMap = map
+        beanLatestUnitPriceMap = viewModel.getLatestUnitPriceMap()
     }
 
     suspend fun reloadInventory() {
-        val dao = AppDatabase.getInstance(context).coffeeBeanDao()
-        beanInventoryMap = dao.getInventoryForActiveBeans().associateBy { it.beanId }
+        beanInventoryMap = viewModel.getInventoryMapForActiveBeans()
     }
 
     LaunchedEffect(beans) {
-        val dao = AppDatabase.getInstance(context).impressionTagDao()
-        val map = mutableMapOf<Long, List<String>>()
-        for (bean in beans) {
-            val tags = dao.getTagsForBeanOnce(bean.id)
-            if (tags.isNotEmpty()) {
-                map[bean.id] = tags.map { it.name }
-            }
-        }
-        beanImpressionTagsMap = map
+        // 一次批量查询取回全部「豆子 → 印象标签」，替代原先逐豆查询的 N+1
+        beanImpressionTagsMap = viewModel.getImpressionTagNamesByBean()
         // 同时刷新最近购买单价和库存
         reloadLatestUnitPrices()
         reloadInventory()
         // 加载豆子评分（冲煮记录平均分）
-        val ratings = AppDatabase.getInstance(context).brewRecordDao().getBeanRatings()
-        beanRatingsMap = ratings.associate { it.beanId to (it.avgRating to it.ratingCount) }
+        beanRatingsMap = viewModel.getBeanRatingMap()
     }
 
     // 从详情页/购买记录页返回时刷新最近购买单价

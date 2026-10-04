@@ -39,8 +39,6 @@ import com.coffeelab.coffeenotes.data.entity.ProcessMethod
 import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
 import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.data.entity.PurchaseRecord
-import com.coffeelab.coffeenotes.data.entity.StockAdjustment
-import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.ui.component.RecordCard
 import com.coffeelab.coffeenotes.ui.navigation.Screen
@@ -77,10 +75,9 @@ fun BeanDetailScreen(
     LaunchedEffect(beanId) {
         reloadBeanData()
         // 加载购买记录
-        val records = AppDatabase.getInstance(context).purchaseRecordDao().getByBeanIdOnce(beanId)
-        purchaseRecords = records
+        purchaseRecords = beanViewModel.getPurchaseRecordsForBeanOnce(beanId)
         // 加载库存（累计购入 - 累计消耗）
-        inventory = AppDatabase.getInstance(context).coffeeBeanDao().getInventoryForBean(beanId)
+        inventory = beanViewModel.getInventoryForBean(beanId)
     }
     
     // 监听页面 resume 事件，从购买记录页等返回时刷新数据
@@ -89,8 +86,8 @@ fun BeanDetailScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 reloadBeanData()
                 refreshScope.launch {
-                    purchaseRecords = AppDatabase.getInstance(context).purchaseRecordDao().getByBeanIdOnce(beanId)
-                    inventory = AppDatabase.getInstance(context).coffeeBeanDao().getInventoryForBean(beanId)
+                    purchaseRecords = beanViewModel.getPurchaseRecordsForBeanOnce(beanId)
+                    inventory = beanViewModel.getInventoryForBean(beanId)
                 }
             }
         }
@@ -100,7 +97,12 @@ fun BeanDetailScreen(
         }
     }
 
-    val bean by beanViewModel.selectedBean.collectAsStateWithLifecycle(initialValue = beanViewModel.selectedBean.value)
+    // 注意：不要写成 `val bean by ...collectAsStateWithLifecycle(...)`——委托属性无法智能转换，
+    // 会导致全文件到处 `bean`。先取 .value 绑成普通 val，空判断即可自动转换。
+    val beanState = beanViewModel.selectedBean.collectAsStateWithLifecycle(
+        initialValue = beanViewModel.selectedBean.value
+    )
+    val bean = beanState.value
     val tags by beanViewModel.tags.collectAsStateWithLifecycle(initialValue = emptyList())
     val impressionTags by beanViewModel.impressionTags.collectAsStateWithLifecycle(initialValue = emptyList())
     val records by brewViewModel.recordsForBean.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -144,8 +146,8 @@ fun BeanDetailScreen(
                     if (bean != null) {
                         IconButton(onClick = { showArchiveDialog = true }) {
                             Icon(
-                                if (bean!!.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
-                                contentDescription = if (bean!!.isArchived) "取消归档" else "归档"
+                                if (bean.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
+                                contentDescription = if (bean.isArchived) "取消归档" else "归档"
                             )
                         }
                         IconButton(onClick = {
@@ -174,7 +176,7 @@ fun BeanDetailScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (bean != null) {
-                val b = bean!!
+                val b = bean
 
                 // Image
                 if (b.imageUri.isNotEmpty()) {
@@ -534,7 +536,7 @@ fun BeanDetailScreen(
                                 if (b.brewRatio?.isNotEmpty() == true || b.waterTemp != null) {
                                     Row(modifier = Modifier.fillMaxWidth()) {
                                         if (b.brewRatio?.isNotEmpty() == true) {
-                                            val ratioDisplay = if (b.brewRatio!!.startsWith("1:") || b.brewRatio!!.startsWith("1：")) b.brewRatio else "1:${b.brewRatio}"
+                                            val ratioDisplay = if (b.brewRatio.startsWith("1:") || b.brewRatio.startsWith("1：")) b.brewRatio else "1:${b.brewRatio}"
                                             InfoRowCompact("粉水比", ratioDisplay, Modifier.weight(1f))
                                         } else Spacer(Modifier.weight(1f))
                                         if (b.waterTemp != null) InfoRowCompact("水温", "${b.waterTemp}°C", Modifier.weight(1f))
@@ -664,14 +666,12 @@ fun BeanDetailScreen(
                         if (amount <= 0) return@TextButton
                         showAdjustStockDialog = false
                         coroutineScope.launch {
-                            AppDatabase.getInstance(context).stockAdjustmentDao().insert(
-                                StockAdjustment(
-                                    beanId = bean!!.id,
-                                    changeGrams = -amount,
-                                    note = noteText.trim()
-                                )
+                            beanViewModel.addStockAdjustment(
+                                beanId = bean.id,
+                                changeGrams = -amount,
+                                note = noteText.trim()
                             )
-                            inventory = AppDatabase.getInstance(context).coffeeBeanDao().getInventoryForBean(beanId)
+                            inventory = beanViewModel.getInventoryForBean(beanId)
                             snackbarHostState.showSnackbar("已扣减 ${amount.toInt()}g")
                         }
                     }
@@ -696,8 +696,8 @@ fun BeanDetailScreen(
                     onClick = {
                         showResetStockDialog = false
                         coroutineScope.launch {
-                            beanViewModel.resetStockSync(bean!!)
-                            inventory = AppDatabase.getInstance(context).coffeeBeanDao().getInventoryForBean(beanId)
+                            beanViewModel.resetStockSync(bean)
+                            inventory = beanViewModel.getInventoryForBean(beanId)
                             beanViewModel.loadBean(beanId)
                             snackbarHostState.showSnackbar("库存已重置")
                         }
@@ -712,7 +712,7 @@ fun BeanDetailScreen(
 
     // Archive Confirmation Dialog
     if (showArchiveDialog && bean != null) {
-        val isCurrentlyArchived = bean!!.isArchived
+        val isCurrentlyArchived = bean.isArchived
         AlertDialog(
             onDismissRequest = { showArchiveDialog = false },
             title = { Text(if (isCurrentlyArchived) "取消归档" else "归档") },
@@ -728,7 +728,7 @@ fun BeanDetailScreen(
                 if (isCurrentlyArchived) {
                     TextButton(
                         onClick = {
-                            beanViewModel.unarchiveBean(bean!!)
+                            beanViewModel.unarchiveBean(bean)
                             showArchiveDialog = false
                             coroutineScope.launch {
                                 snackbarHostState.showSnackbar("已取消归档", duration = SnackbarDuration.Indefinite)
@@ -743,7 +743,7 @@ fun BeanDetailScreen(
                     Row {
                         TextButton(
                             onClick = {
-                                beanViewModel.archiveBean(bean!!, clearStock = true)
+                                beanViewModel.archiveBean(bean, clearStock = true)
                                 showArchiveDialog = false
                                 coroutineScope.launch {
                                     snackbarHostState.showSnackbar("已归档（库存已清零）", duration = SnackbarDuration.Indefinite)
@@ -756,7 +756,7 @@ fun BeanDetailScreen(
                         ) { Text("已喝完", color = MaterialTheme.colorScheme.error) }
                         TextButton(
                             onClick = {
-                                beanViewModel.archiveBean(bean!!, clearStock = false)
+                                beanViewModel.archiveBean(bean, clearStock = false)
                                 showArchiveDialog = false
                                 coroutineScope.launch {
                                     snackbarHostState.showSnackbar("已归档", duration = SnackbarDuration.Indefinite)

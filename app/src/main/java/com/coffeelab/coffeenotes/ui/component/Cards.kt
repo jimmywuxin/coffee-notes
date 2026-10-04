@@ -128,7 +128,9 @@ fun BeanCard(
                 }
                 // 最近购买单价 + 库存余量角标
                 val showUnitPrice = latestUnitPrice != null && latestUnitPrice > 0f
-                val showInventory = inventory != null && inventory!!.remaining > 0
+                // 收进非空局部量，省掉后面两处 !!（原先靠 showInventory 布尔间接保证非空）
+                val inv = inventory?.takeIf { it.remaining > 0 }
+                val showInventory = inv != null
                 if (showUnitPrice || showInventory) {
                     Spacer(modifier = Modifier.height(4.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -145,8 +147,7 @@ fun BeanCard(
                                 )
                             }
                         }
-                        if (showInventory) {
-                            val inv = inventory!!
+                        if (inv != null) {
                             val lowStock = inv.remaining <= 50
                             Surface(
                                 shape = MaterialTheme.shapes.extraSmall,
@@ -325,8 +326,9 @@ fun RecordCard(
                     if (record.coffeeWeight > 0) {
                         ParamTag("${formatNum(record.coffeeWeight)}g")
                     }
-                    if (!record.grinderName.isNullOrEmpty()) {
-                        ParamTag(record.grinderName!!)
+                    // grinderName 是可变属性（由 JOIN 回填），无法智能转换，故用 ?.let 取非空副本
+                    record.grinderName?.takeIf { it.isNotEmpty() }?.let { grinder ->
+                        ParamTag(grinder)
                     }
                     if (record.grindSize.isNotEmpty()) {
                         ParamTag("格数 ${record.grindSize}")

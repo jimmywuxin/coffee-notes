@@ -366,7 +366,11 @@ fun BeanEditScreen(
 
 
 
-    val bean by viewModel.selectedBean.collectAsStateWithLifecycle(initialValue = viewModel.selectedBean.value)
+    // 普通 val（而非 by 委托）才能被智能转换，避免下面用 bean
+    val beanState = viewModel.selectedBean.collectAsStateWithLifecycle(
+        initialValue = viewModel.selectedBean.value
+    )
+    val bean = beanState.value
 
     val existingTags by viewModel.tags.collectAsStateWithLifecycle(initialValue = emptyList())
 
@@ -442,7 +446,7 @@ fun BeanEditScreen(
 
         if (isEditing && bean != null) {
 
-            val b = bean!!
+            val b = bean
 
             roaster = b.roaster
 

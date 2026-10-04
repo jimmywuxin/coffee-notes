@@ -192,12 +192,13 @@ fun <T : Any> SingleNameManagementScreen(
         }
     }
 
-    if (showDeleteDialog && deletingItem != null) {
+    val itemToDelete = deletingItem
+    if (showDeleteDialog && itemToDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
-            text = { Text("确定要删除「${getName(deletingItem!!)}」吗？") },
-            confirmButton = { TextButton(onClick = { onDelete(deletingItem!!); showDeleteDialog = false }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
+            text = { Text("确定要删除「${getName(itemToDelete)}」吗？") },
+            confirmButton = { TextButton(onClick = { onDelete(itemToDelete); showDeleteDialog = false }) { Text("删除", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("取消") } }
         )
     }

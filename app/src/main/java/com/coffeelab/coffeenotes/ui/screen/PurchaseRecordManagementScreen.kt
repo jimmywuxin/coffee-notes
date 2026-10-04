@@ -181,7 +181,8 @@ fun PurchaseRecordManagementScreen(
     }
 
     // 删除确认对话框
-    if (showDeleteDialog && recordToDelete != null) {
+    val recordPendingDelete = recordToDelete
+    if (showDeleteDialog && recordPendingDelete != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("确认删除") },
@@ -190,7 +191,7 @@ fun PurchaseRecordManagementScreen(
                 TextButton(
                     onClick = {
                         scope.launch {
-                            viewModel.delete(recordToDelete!!)
+                            viewModel.delete(recordPendingDelete)
                             showDeleteDialog = false
                             recordToDelete = null
                         }

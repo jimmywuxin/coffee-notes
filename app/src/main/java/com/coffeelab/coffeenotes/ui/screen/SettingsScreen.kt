@@ -17,24 +17,44 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.MainActivity
-import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.ui.navigation.Screen
-import kotlinx.coroutines.launch
+import com.coffeelab.coffeenotes.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    navController: NavController
+    navController: NavController,
+    settingsViewModel: SettingsViewModel = viewModel()
 ) {
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val prefs = context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
     val currentMode = prefs.getString(MainActivity.KEY_THEME_MODE, "system") ?: "system"
     var showClearDataDialog by remember { mutableStateOf(false) }
     var showClearProgress by remember { mutableStateOf(false) }
     var showReminderDialog by remember { mutableStateOf(false) }
+
+    // 清空跑在 viewModelScope（页面销毁不会腰斩写入），完成后由这里消费一次性事件
+    val cleared by settingsViewModel.cleared.collectAsStateWithLifecycle()
+    val clearFailed by settingsViewModel.clearFailed.collectAsStateWithLifecycle()
+    LaunchedEffect(cleared) {
+        if (cleared) {
+            settingsViewModel.onClearHandled()
+            showClearProgress = false
+            showClearDataDialog = false
+            navController.popBackStack()
+        }
+    }
+    LaunchedEffect(clearFailed) {
+        if (clearFailed) {
+            settingsViewModel.onClearFailedHandled()
+            showClearProgress = false
+        }
+    }
+
     // 备份提醒周期（天）：0=关闭，7=每周，14=每两周，30=每月
     val reminderDays = com.coffeelab.coffeenotes.util.BackupReminder.getIntervalDays(context)
 
@@ -259,28 +279,7 @@ fun SettingsScreen(
                     TextButton(
                         onClick = {
                             showClearProgress = true
-                            scope.launch {
-                                try {
-                                    val db = AppDatabase.getInstance(navController.context)
-                                    db.brewRecordDao().deleteAll()
-                                    db.brewMethodDao().deleteAll()
-                                    db.coffeeBeanDao().deleteAll()
-                                    db.equipmentDao().deleteAll()
-                                    db.grinderDao().deleteAll()
-                                    db.roastDegreeDao().deleteAll()
-                                    db.processMethodDao().deleteAll()
-                                    db.restPeriodConfigDao().deleteAll()
-                                    db.peakFlavorConfigDao().deleteAll()
-                                    db.purchaseRecordDao().deleteAll()
-                                    db.impressionTagDao().deleteAll()
-                                    db.stockAdjustmentDao().deleteAll()
-                                    showClearDataDialog = false
-                                    showClearProgress = false
-                                    navController.popBackStack()
-                                } catch (e: Exception) {
-                                    showClearProgress = false
-                                }
-                            }
+                            settingsViewModel.clearAllData()
                         }
                     ) { Text("确认清空", color = MaterialTheme.colorScheme.error) }
                 }

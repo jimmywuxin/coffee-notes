@@ -57,6 +57,18 @@ interface ImpressionTagDao {
     """)
     suspend fun getTagsForBeanOnce(beanId: Long): List<ImpressionTag>
 
+    /**
+     * 一次取回「豆子 → 印象标签名」的全量映射，替代逐豆查询的 N+1
+     * （原 BeanListScreen 里 `for (bean in beans) getTagsForBeanOnce(bean.id)` 是 N 次查询）。
+     */
+    @Query("""
+        SELECT bit.beanId AS beanId, it.name AS name
+        FROM bean_impression_tags bit
+        JOIN impression_tags it ON bit.tagId = it.id
+        ORDER BY bit.beanId ASC, it.sortOrder ASC
+    """)
+    suspend fun getAllBeanTagNamesOnce(): List<BeanTagName>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBeanTag(tag: BeanImpressionTag): Long
 
@@ -71,3 +83,6 @@ interface ImpressionTagDao {
         }
     }
 }
+
+/** 批量查询结果行：某豆子的一个印象标签名 */
+data class BeanTagName(val beanId: Long, val name: String)
