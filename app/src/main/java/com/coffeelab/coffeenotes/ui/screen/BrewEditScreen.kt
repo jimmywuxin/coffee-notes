@@ -127,7 +127,9 @@ fun BrewEditScreen(
     var mouthfeel by rememberSaveable { mutableIntStateOf(0) }
     var aftertaste by rememberSaveable { mutableIntStateOf(0) }
     var overall by rememberSaveable { mutableIntStateOf(0) }
-    var ratingExpanded by rememberSaveable { mutableStateOf(false) }
+    // 品鉴评分默认展开：首次录入时「喝完顺手打个分」是必经步骤，藏起来等于多一次点击。
+    // 编辑既有记录时会被 loadRecord 里的 `r.overallRating > 0` 覆盖（没评分的保持收起）
+    var ratingExpanded by rememberSaveable { mutableStateOf(true) }
     var paramsExpanded by rememberSaveable { mutableStateOf(true) }
     var timerExpanded by rememberSaveable { mutableStateOf(false) }
 
@@ -586,16 +588,6 @@ fun BrewEditScreen(
                     )
                 }
             }
-
-            // 风味笔记置顶：先写感受，参数后补（brew-guide 风格）
-            Text("风味笔记", style = MaterialTheme.typography.titleMedium)
-            OutlinedTextField(
-                value = flavorNotes,
-                onValueChange = { flavorNotes = it },
-                placeholder = { Text("记录一下这杯的感受…") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 4
-            )
 
             // Select Bean
             Text("选择咖啡豆", style = MaterialTheme.typography.titleMedium)
@@ -1502,6 +1494,23 @@ fun BrewEditScreen(
                     }
                 }
             }
+
+            // 风味笔记放最底部：喝完才写得出来的感受，录完参数再补，顺序符合实际动作。
+            // 反过来在列表页 RecordCard 里，笔记是副行优先露出——录入顺序与阅读顺序刻意相反。
+            Text("风味笔记", style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(
+                value = flavorNotes,
+                onValueChange = { flavorNotes = it },
+                placeholder = { Text("喝完了？记一下这杯的感受…") },
+                supportingText = {
+                    Text(
+                        "选填。会显示在冲煮记录列表里，写了就能一眼翻到",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 4
+            )
         }
     }
 

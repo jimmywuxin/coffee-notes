@@ -2,10 +2,12 @@ package com.coffeelab.coffeenotes.ui.component
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Unarchive
@@ -18,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.data.entity.BedShape
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
@@ -321,6 +324,35 @@ fun RecordCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                // 风味笔记副行：翻阅历史时最先要看的是「这杯什么味」，参数胶囊是辅助。
+                // 只在有笔记时渲染（空笔记不占位）；过长截断，点进详情看全文。
+                if (record.flavorNotes.isNotBlank()) {
+                    // IntrinsicSize.Min 让竖线用 IntrinsicSize 撑到与文字等高，视觉上与文字上下齐平
+                    Row(
+                        modifier = Modifier
+                            .padding(top = 6.dp)
+                            .height(IntrinsicSize.Min)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(2.dp)
+                                .fillMaxHeight()
+                                .background(
+                                    MaterialTheme.colorScheme.secondary,
+                                    RoundedCornerShape(1.dp)
+                                )
+                        )
+                        Text(
+                            text = record.flavorNotes.trim(),
+                            // 15sp（比器具·时间的 13sp 大一号），行高收到 22sp 免得 2 行时过于松散
+                            style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 22.sp),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
                 // 参数 tag 预览（胶囊样式，一眼扫到关键参数）
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (record.coffeeWeight > 0) {

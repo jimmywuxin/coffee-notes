@@ -280,7 +280,7 @@ LazyColumn {
 
 ## 版本
 
-当前版本：**2.9.14** (versionCode 99)
+当前版本：**2.9.15** (versionCode 100)
 
 完整更新历史见 [CHANGELOG.md](./CHANGELOG.md)。
 
