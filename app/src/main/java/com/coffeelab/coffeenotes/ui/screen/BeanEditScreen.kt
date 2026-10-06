@@ -66,6 +66,7 @@ import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.BitmapLoader
 
 import com.coffeelab.coffeenotes.util.DateUtils
+import com.coffeelab.coffeenotes.util.Format
 
 import com.coffeelab.coffeenotes.util.ImageUtils
 
@@ -1267,7 +1268,7 @@ fun BeanEditScreen(
 
             val autoWater = waterAmount.toFloatOrNull() ?: 0f
 
-            val derivedRatio = if (autoDose > 0 && autoWater > 0) String.format("%.1f", autoWater / autoDose) else ""
+            val derivedRatio = if (autoDose > 0 && autoWater > 0) Format.num((autoWater / autoDose).toDouble()) else ""
 
             if (derivedRatio.isNotEmpty()) {
 

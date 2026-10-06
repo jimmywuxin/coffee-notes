@@ -42,6 +42,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.util.AppConstants
+import com.coffeelab.coffeenotes.util.Format
 import com.coffeelab.coffeenotes.data.Converters
 import com.coffeelab.coffeenotes.data.entity.BedShape
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
@@ -950,7 +952,7 @@ fun BrewEditScreen(
             AnimatedVisibility(visible = paramsExpanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     // ratioDisplay 存分母数值字符串（如 "15"、"4.5"），显示时加 "1:" 前缀
-                    val ratioOptions = listOf("2", "15", "16", "17")
+                    val ratioOptions = AppConstants.BREW_RATIO_PRESETS
                     Text("粉水比", style = MaterialTheme.typography.bodyMedium)
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1638,15 +1640,7 @@ fun BrewEditScreen(
 }
 
 /** 数值展示：整数不带小数点，否则保留一位（240.0 → 240，242.5 → 242.5） */
-private fun formatNum(value: Double): String {
-    if (value.isNaN() || value.isInfinite()) return ""
-    val rounded = Math.round(value * 10.0) / 10.0
-    return if (rounded == rounded.toLong().toDouble()) {
-        rounded.toLong().toString()
-    } else {
-        String.format(Locale.US, "%.1f", rounded)
-    }
-}
+private fun formatNum(value: Double): String = Format.num(value)
 
 /** 把 "1:15" / "15" / "1：15" 统一成 "15" */
 private fun normalizeRatio(raw: String): String {

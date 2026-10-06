@@ -2,6 +2,7 @@ package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.util.AppConstants
 import com.coffeelab.coffeenotes.ui.theme.WoodPrimary
 import com.coffeelab.coffeenotes.util.BackupReminder
 import com.coffeelab.coffeenotes.util.CloudBackupPrefs
@@ -107,13 +109,13 @@ fun BackupScreen(
         }
     }
 
-    // ZIP Import launcher
+    // ZIP Import launcher。恢复是「先全表清空再插入」，选错文件即全库不可恢复，
+    // 所以选中后先弹确认（与云端恢复一致），确认了才真正执行。
+    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
     val zipImportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let {
-            scope.launch { viewModel.importBackup(context, it) }
-        }
+        uri?.let { pendingRestoreUri = it }
     }
 
     Scaffold(
@@ -138,7 +140,7 @@ fun BackupScreen(
                     Button(
                         onClick = {
                             val dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss"))
-                            zipExportLauncher.launch("CoffeeNotes_$dateStr.zip")
+                            zipExportLauncher.launch("${AppConstants.BACKUP_FILE_PREFIX}$dateStr${AppConstants.BACKUP_FILE_EXT}")
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -377,6 +379,23 @@ fun BackupScreen(
                     }
                     is BackupViewModel.CloudState.Idle -> {}
                 }
+            }
+
+            pendingRestoreUri?.let { uri ->
+                AlertDialog(
+                    onDismissRequest = { pendingRestoreUri = null },
+                    title = { Text("确认恢复") },
+                    text = { Text("将从所选文件恢复全部数据，覆盖当前所有豆子与冲煮记录。\n\n建议先导出一份当前数据。确定继续吗？") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            scope.launch { viewModel.importBackup(context, uri) }
+                            pendingRestoreUri = null
+                        }) { Text("覆盖恢复") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingRestoreUri = null }) { Text("取消") }
+                    }
+                )
             }
         }
     }

@@ -21,14 +21,24 @@ class RoastDegreeConfigViewModel(application: Application) : AndroidViewModel(ap
 
     private val repository = CoffeeRepository(AppDatabase.getInstance(application))
 
+    init {
+        // 一次性折叠历史重复行（修updateRestDays 把每次编辑都插成新行）。
+        // 放在 ViewModel init 而不是 Room migration：只是清冗余行，不改 schema，不需要升版本。
+        viewModelScope.launch {
+            repository.collapseRestPeriodConfigs()
+            repository.collapsePeakFlavorConfigs()
+        }
+    }
+
     val configs: StateFlow<List<RoastDegreeConfigItem>> = combine(
         repository.allRoastDegrees,
         repository.allRestPeriodConfigs,
         repository.allPeakFlavorConfigs
     ) { degrees, restConfigs, peakConfigs ->
         degrees.map { degree ->
-            val rest = restConfigs.find { it.roastDegreeId == degree.id }
-            val peak = peakConfigs.find { it.roastDegreeId == degree.id }
+            // lastOrNull 而非 find：折叠后每组唯一，等价；未折叠时取最后写入的那条（= 用户最后设置的值）
+            val rest = restConfigs.lastOrNull { it.roastDegreeId == degree.id }
+            val peak = peakConfigs.lastOrNull { it.roastDegreeId == degree.id }
             RoastDegreeConfigItem(
                 degree = degree,
                 restDays = rest?.restDays ?: 0,
@@ -58,15 +68,28 @@ class RoastDegreeConfigViewModel(application: Application) : AndroidViewModel(ap
         }
     }
 
+    // RestPeriodConfig / PeakFlavorConfig 的 id 是 autoGenerate，roastDegreeId 上没有 unique 索引，
+    // 直接 insert 会每次新增一行；而读取侧是 find{} 取 ORDER BY id ASC 的第一条（即最旧那行），
+    // 于是「编辑」永远不生效。必须先查再决定 insert / update。
     fun updateRestDays(roastDegreeId: Long, restDays: Int) {
         viewModelScope.launch {
-            repository.insertRestPeriodConfig(RestPeriodConfig(roastDegreeId = roastDegreeId, restDays = restDays))
+            val existing = repository.getRestPeriodConfigByRoastDegreeId(roastDegreeId)
+            if (existing == null) {
+                repository.insertRestPeriodConfig(RestPeriodConfig(roastDegreeId = roastDegreeId, restDays = restDays))
+            } else {
+                repository.updateRestPeriodConfig(existing.copy(restDays = restDays))
+            }
         }
     }
 
     fun updatePeakFlavorDays(roastDegreeId: Long, peakFlavorDays: Int) {
         viewModelScope.launch {
-            repository.insertPeakFlavorConfig(PeakFlavorConfig(roastDegreeId = roastDegreeId, peakFlavorDays = peakFlavorDays))
+            val existing = repository.getPeakFlavorConfigByRoastDegreeId(roastDegreeId)
+            if (existing == null) {
+                repository.insertPeakFlavorConfig(PeakFlavorConfig(roastDegreeId = roastDegreeId, peakFlavorDays = peakFlavorDays))
+            } else {
+                repository.updatePeakFlavorConfig(existing.copy(peakFlavorDays = peakFlavorDays))
+            }
         }
     }
 

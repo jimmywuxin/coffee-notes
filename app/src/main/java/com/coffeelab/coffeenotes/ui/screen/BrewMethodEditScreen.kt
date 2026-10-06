@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.util.AppConstants
 import com.coffeelab.coffeenotes.data.Converters
 import com.coffeelab.coffeenotes.data.entity.BrewMethod
 import com.coffeelab.coffeenotes.data.entity.BrewMethodStep
@@ -135,7 +136,7 @@ fun BrewMethodEditScreen(
             }
             Text("粉水比", style = MaterialTheme.typography.bodyMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                val ratioOptions = listOf("2", "15", "16", "17")
+                val ratioOptions = AppConstants.BREW_RATIO_PRESETS
                 ratioOptions.forEach { ratio ->
                     FilterChip(
                         selected = coffeeWaterRatioText == ratio,

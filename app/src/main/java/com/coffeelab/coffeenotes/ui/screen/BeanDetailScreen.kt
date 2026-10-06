@@ -43,6 +43,7 @@ import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.ui.component.RecordCard
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.DateUtils
+import com.coffeelab.coffeenotes.util.Format
 import com.coffeelab.coffeenotes.util.ImageUtils
 import com.coffeelab.coffeenotes.ui.component.RadarChart
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
@@ -411,7 +412,7 @@ fun BeanDetailScreen(
                                         Text("已购", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("${String.format("%.1f", inv.totalConsumed)}g", style = MaterialTheme.typography.titleMedium)
+                                        Text("${Format.num(inv.totalConsumed)}g", style = MaterialTheme.typography.titleMedium)
                                         Text("已用", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {

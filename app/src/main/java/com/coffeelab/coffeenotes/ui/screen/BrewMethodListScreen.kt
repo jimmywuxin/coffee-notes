@@ -24,6 +24,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.ui.component.rememberDragReorderState
 import com.coffeelab.coffeenotes.data.Converters
 import com.coffeelab.coffeenotes.data.entity.BrewMethod
 import com.coffeelab.coffeenotes.ui.component.EmptyState
@@ -41,28 +42,22 @@ fun BrewMethodListScreen(
     var isReorderMode by remember { mutableStateOf(false) }
     // 拖拽状态 — 使用 LazyListState 精确追踪位置
     val lazyListState = rememberLazyListState()
-    var draggingItemIndex by remember { mutableIntStateOf(-1) }
-    var dragStartItemOffset by remember { mutableFloatStateOf(0f) }
-    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
-    val smoothDragOffset by animateFloatAsState(
-        targetValue = accumulatedDrag,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
-    )
+    // 拖拽状态机已抽到 rememberDragReorderState（原先此文件与另三处各写一遍且已漂移）
+    val dragState = rememberDragReorderState(lazyListState, mutableList) { ordered ->
+        isReorderMode = false
+        viewModel.saveMethodOrder(ordered)
+    }
 
     // Keep mutableList in sync with methods when not in reorder mode
     LaunchedEffect(methods, isReorderMode) {
         if (!isReorderMode) {
             mutableList.clear()
             mutableList.addAll(methods)
-            draggingItemIndex = -1
-            accumulatedDrag = 0f
         }
     }
 
     fun saveOrder() {
         isReorderMode = false
-        draggingItemIndex = -1
-        accumulatedDrag = 0f
         viewModel.saveMethodOrder(mutableList.toList())
     }
 
@@ -110,58 +105,14 @@ fun BrewMethodListScreen(
         ) {
             if (isReorderMode) {
                 itemsIndexed(mutableList, key = { _, item -> item.id }) { index, method ->
-                    val isDraggingThisItem = isReorderMode && draggingItemIndex == index
+                    val isDraggingThisItem = dragState.draggingItemIndex == index
                     DraggableMethodItem(
                         method = method,
                         isDragging = isDraggingThisItem,
-                        dragOffset = if (isDraggingThisItem) smoothDragOffset else 0f,
-                        onDragStart = {
-                            draggingItemIndex = index
-                            accumulatedDrag = 0f
-                            // 使用 layoutInfo 获取 item 在列表中的真实像素位置
-                            val layoutInfo = lazyListState.layoutInfo
-                            val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
-                            dragStartItemOffset = myInfo?.offset?.toFloat() ?: 0f
-                        },
-                        onDrag = { dragAmount ->
-                            accumulatedDrag += dragAmount.y
-                            // 当前 item 中心在列表坐标系中的位置（含拖动偏移）
-                            val layoutInfo = lazyListState.layoutInfo
-                            val myInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggingItemIndex }
-                            if (myInfo != null) {
-                                val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
-                                // 与相邻 item 中心比较，确定目标位置
-                                var targetIndex = draggingItemIndex
-                                layoutInfo.visibleItemsInfo
-                                    .filter { it.index != draggingItemIndex }
-                                    .forEach { info ->
-                                        val itemCenter = info.offset + info.size / 2
-                                        if (accumulatedDrag > 0 && info.index > draggingItemIndex && currentCenterY > itemCenter) {
-                                            targetIndex = maxOf(targetIndex, info.index)
-                                        } else if (accumulatedDrag < 0 && info.index < draggingItemIndex && currentCenterY < itemCenter) {
-                                            targetIndex = minOf(targetIndex, info.index)
-                                        }
-                                    }
-                                targetIndex = targetIndex.coerceIn(0, mutableList.lastIndex)
-                                if (targetIndex != draggingItemIndex) {
-                                    val item = mutableList.removeAt(draggingItemIndex)
-                                    mutableList.add(targetIndex, item)
-                                    draggingItemIndex = targetIndex
-                                    // 重置拖动偏移，避免 item 闪跳
-                                    accumulatedDrag = 0f
-                                    // 更新起始偏移为 item 的新位置
-                                    val newLayoutInfo = lazyListState.layoutInfo
-                                    val newInfo = newLayoutInfo.visibleItemsInfo.firstOrNull { it.index == targetIndex }
-                                    dragStartItemOffset = newInfo?.offset?.toFloat() ?: 0f
-                                }
-                            }
-                        },
-                        onDragEnd = {
-                            draggingItemIndex = -1
-                            accumulatedDrag = 0f
-                            viewModel.saveMethodOrder(mutableList.toList())
-                            isReorderMode = false
-                        }
+                        dragOffset = if (isDraggingThisItem) dragState.smoothDragOffset else 0f,
+                        onDragStart = { dragState.onDragStart(index) },
+                        onDrag = { dragState.onDrag(it.y) },
+                        onDragEnd = { dragState.onDragEnd() }
                     )
                 }
             } else {

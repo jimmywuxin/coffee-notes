@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.coffeelab.coffeenotes.util.Format
 import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.data.entity.BedShape
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
@@ -241,11 +242,8 @@ fun BeanCard(
 
 // ==================== RecordCard 辅助 ====================
 
-/** 去尾零格式化：15.0 → "15"，15.5 → "15.5" */
-private fun formatNum(value: Double): String {
-    val s = String.format("%.1f", value)
-    return if (s.endsWith(".0")) s.dropLast(2) else s
-}
+/** 统一走 [Format.num]：原先此处无 Locale 且无 NaN 保护，与 BrewEditScreen 的同名私有函数口径已漂移 */
+private fun formatNum(value: Double): String = Format.num(value)
 
 /** RecordCard 参数胶囊 tag */
 @Composable

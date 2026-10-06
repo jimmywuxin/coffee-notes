@@ -22,6 +22,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.ui.component.rememberDragReorderState
+import com.coffeelab.coffeenotes.ui.component.DragReorderState
 import com.coffeelab.coffeenotes.ui.component.DraggableManagementItem
 import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.viewmodel.RoastDegreeConfigItem
@@ -37,19 +39,13 @@ fun RoastDegreeConfigScreen(
     val mutableList = remember { mutableStateListOf<RoastDegreeConfigItem>() }
     var isReorderMode by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
-    var draggingIndex by remember { mutableIntStateOf(-1) }
-    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
-    val smoothDragOffset by animateFloatAsState(
-        targetValue = if (draggingIndex >= 0) accumulatedDrag else 0f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
-    )
+    // 拖拽状态机已抽到 rememberDragReorderState（原先四处各写一遍且已漂移）
+    val dragState = rememberDragReorderState(lazyListState, mutableList)
 
     LaunchedEffect(items, isReorderMode) {
         if (!isReorderMode) {
             mutableList.clear()
             mutableList.addAll(items)
-            draggingIndex = -1
-            accumulatedDrag = 0f
         }
     }
 
@@ -140,38 +136,15 @@ fun RoastDegreeConfigScreen(
 
                 if (isReorderMode) {
                     itemsIndexed(mutableList, key = { _, item -> item.degree.id }) { index, item ->
-                        val isDragging = draggingIndex == index
+                        val isDragging = dragState.draggingItemIndex == index
                         DraggableManagementItem(
                             name = item.degree.name,
                             isDragging = isDragging,
-                            dragOffset = if (isDragging) smoothDragOffset else 0f,
-                            onDragStart = { draggingIndex = index; accumulatedDrag = 0f },
-                            onDrag = { dragAmount ->
-                                accumulatedDrag += dragAmount.y
-                                val info = lazyListState.layoutInfo
-                                val myInfo = info.visibleItemsInfo.firstOrNull { it.index == draggingIndex } ?: return@DraggableManagementItem
-                                val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
-                                var targetIndex = draggingIndex
-                                info.visibleItemsInfo
-                                    .filter { it.index != draggingIndex }
-                                    .forEach { other ->
-                                        val itemCenter = other.offset + other.size / 2
-                                        if (accumulatedDrag > 0 && other.index > draggingIndex && currentCenterY > itemCenter) {
-                                            targetIndex = maxOf(targetIndex, other.index)
-                                        } else if (accumulatedDrag < 0 && other.index < draggingIndex && currentCenterY < itemCenter) {
-                                            targetIndex = minOf(targetIndex, other.index)
-                                        }
-                                    }
-                                targetIndex = targetIndex.coerceIn(0, mutableList.lastIndex)
-                                if (targetIndex != draggingIndex) {
-                                    val movedItem = mutableList.removeAt(draggingIndex)
-                                    mutableList.add(targetIndex, movedItem)
-                                    draggingIndex = targetIndex
-                                    accumulatedDrag = 0f
-                                }
-                            },
+                            dragOffset = if (isDragging) dragState.smoothDragOffset else 0f,
+                            onDragStart = { dragState.onDragStart(index) },
+                            onDrag = { dragState.onDrag(it.y) },
                             onDragEnd = {
-                                draggingIndex = -1; accumulatedDrag = 0f
+                                dragState.onDragEnd()
                                 viewModel.saveOrder(mutableList.map { it.degree })
                                 isReorderMode = false
                             }

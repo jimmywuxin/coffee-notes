@@ -17,4 +17,13 @@ object AppConstants {
 
     /** OCR 前 Bitmap 预采样最长边（像素）。高分辨率有利于小字识别 */
     const val OCR_MAX_DIM = 1600
+
+    /** 粉水比快捷选项。冲煮记录页与手法编辑页共用 */
+    val BREW_RATIO_PRESETS = listOf("12", "15", "16", "17")
+
+    /** 备份文件名前缀（不含扩展名）。本地导出、云端上传、自动备份统一用 */
+    const val BACKUP_FILE_PREFIX = "CoffeeNotes_"
+
+    /** 备份文件扩展名 */
+    const val BACKUP_FILE_EXT = ".zip"
 }

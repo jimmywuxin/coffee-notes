@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.util.Format
 import com.coffeelab.coffeenotes.data.dao.*
 import com.coffeelab.coffeenotes.viewmodel.StatsViewModel
 import kotlinx.coroutines.flow.*
@@ -139,7 +140,7 @@ private fun BeanStatsSection(viewModel: StatsViewModel, beanId: Long) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("🏆 最佳冲煮", style = MaterialTheme.typography.titleMedium)
                 Text("  器具：${best.equipmentName ?: ""}")
-                Text("  粉量：${best.coffeeWeight}g · 1:${String.format("%.1f", best.coffeeWaterRatio)}")
+                Text("  粉量：${best.coffeeWeight}g · 1:${Format.num(best.coffeeWaterRatio)}")
                 Text("  水温：${best.waterTemp}℃")
                 Text("  总评分：${"★".repeat(best.overallRating)}")
             }
@@ -593,7 +594,7 @@ private fun RatingSection(viewModel: StatsViewModel, beanId: Long) {
         val avgRating by (if (isPerBean) viewModel.getAvgRatingForBean(beanId).map { v -> v ?: 0.0 } else viewModel.overallAvgRating)
             .collectAsStateWithLifecycle(initialValue = 0.0)
         if (avgRating > 0) {
-            Text(text = "📊 整体平均评分：${String.format("%.1f", avgRating)} / 5")
+            Text(text = "📊 整体平均评分：${Format.score(avgRating)} / 5")
             StatFootnote("口径：仅统计有评分的冲煮记录，未评分的不计入")
         }
 
@@ -646,7 +647,7 @@ private fun RatingSection(viewModel: StatsViewModel, beanId: Long) {
             Spacer(modifier = Modifier.height(4.dp))
             equipRatings.forEach { (equip, avg) ->
                 Text(
-                    text = "  $equip  ——  ${String.format("%.1f", avg)} / 5",
+                    text = "  $equip  ——  ${Format.score(avg)} / 5",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

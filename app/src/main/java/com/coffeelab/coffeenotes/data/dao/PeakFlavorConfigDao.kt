@@ -15,6 +15,10 @@ interface PeakFlavorConfigDao {
     @Query("SELECT * FROM peak_flavor_configs WHERE roastDegreeId = :roastDegreeId")
     suspend fun getByRoastDegreeId(roastDegreeId: Long): PeakFlavorConfig?
 
+    /** 折叠历史重复行，每个 roastDegreeId 只保留 id 最大那条。见 RoastDegreeConfigViewModel。 */
+    @Query("DELETE FROM peak_flavor_configs WHERE id NOT IN (SELECT MAX(id) FROM peak_flavor_configs GROUP BY roastDegreeId)")
+    suspend fun keepLatestPerRoastDegree()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(config: PeakFlavorConfig): Long
 

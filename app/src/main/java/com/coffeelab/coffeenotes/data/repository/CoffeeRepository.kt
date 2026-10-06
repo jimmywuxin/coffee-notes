@@ -54,7 +54,9 @@ class CoffeeRepository(private val db: AppDatabase) {
     fun getTagsForBean(beanId: Long) = db.flavorTagDao().getTagsForBean(beanId)
     suspend fun getTagsForBeanOnce(beanId: Long) = db.flavorTagDao().getTagsForBeanOnce(beanId)
 
-    suspend fun saveTagsForBean(beanId: Long, tags: List<String>) {
+    // 先删后插必须在一个事务里，否则中途失败/协程取消会留下「标签被清空且未补回」的残库
+    // （对照 saveImpressionTagsForBean，同类操作已用 withTransaction）
+    suspend fun saveTagsForBean(beanId: Long, tags: List<String>) = db.withTransaction {
         db.flavorTagDao().deleteAllForBean(beanId)
         val entities = tags.map { FlavorTag(beanId = beanId, name = it) }
         if (entities.isNotEmpty()) {
@@ -173,6 +175,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun insertRestPeriodConfig(config: RestPeriodConfig): Long = db.restPeriodConfigDao().insert(config)
     suspend fun updateRestPeriodConfig(config: RestPeriodConfig) = db.restPeriodConfigDao().update(config)
     suspend fun deleteRestPeriodConfig(config: RestPeriodConfig) = db.restPeriodConfigDao().delete(config)
+    suspend fun collapseRestPeriodConfigs() = db.restPeriodConfigDao().keepLatestPerRoastDegree()
 
     // ===== Peak Flavor Configs =====
     val allPeakFlavorConfigs: Flow<List<PeakFlavorConfig>> = db.peakFlavorConfigDao().getAll()
@@ -181,6 +184,7 @@ class CoffeeRepository(private val db: AppDatabase) {
     suspend fun insertPeakFlavorConfig(config: PeakFlavorConfig): Long = db.peakFlavorConfigDao().insert(config)
     suspend fun updatePeakFlavorConfig(config: PeakFlavorConfig) = db.peakFlavorConfigDao().update(config)
     suspend fun deletePeakFlavorConfig(config: PeakFlavorConfig) = db.peakFlavorConfigDao().delete(config)
+    suspend fun collapsePeakFlavorConfigs() = db.peakFlavorConfigDao().keepLatestPerRoastDegree()
 
     // ===== Purchase Records =====
     suspend fun getAllPurchaseRecordsOnce() = db.purchaseRecordDao().getAllOnce()
@@ -294,5 +298,7 @@ class CoffeeRepository(private val db: AppDatabase) {
         db.purchaseRecordDao().deleteAll()
         db.impressionTagDao().deleteAll()
         db.stockAdjustmentDao().deleteAll()
+        // ocr_corrections 无外键，不被任何 CASCADE 带走，漏删会让 OCR 纠错跨「清空」残留
+        db.ocrCorrectionDao().deleteAll()
     }
 }

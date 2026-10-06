@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.coffeelab.coffeenotes.ui.component.rememberDragReorderState
+import com.coffeelab.coffeenotes.ui.component.DragReorderState
 import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.ui.component.BeanCard
@@ -115,23 +117,20 @@ fun BeanListScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Drag state
+    // 拖拽状态机已抽到 rememberDragReorderState。
+    // 本文件原先用「最近中心点」算法且换位后不重置 accumulatedDrag，
+    // 与另三处的方向算法已漂移（拖拽项会视觉上「甩」在手指后面）—— 抽取后统一。
     val lazyListState = rememberLazyListState()
-    var draggingItemIndex by remember { mutableIntStateOf(-1) }
-    var dragStartItemOffset by remember { mutableFloatStateOf(0f) }
-    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
-    val smoothDragOffset by animateFloatAsState(
-        targetValue = accumulatedDrag,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
-    )
+    val dragState = rememberDragReorderState(lazyListState, mutableBeans) { ordered ->
+        isReorderMode = false
+        viewModel.saveBeanOrder(ordered)
+    }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(beans, isReorderMode) {
         if (!isReorderMode) {
             mutableBeans.clear()
             mutableBeans.addAll(beans)
-            draggingItemIndex = -1
-            accumulatedDrag = 0f
         }
     }
 
@@ -383,37 +382,15 @@ fun BeanListScreen(
                         if (isReorderMode) mutableBeans else displayedBeans,
                         key = { index, bean -> if (isReorderMode) mutableBeans[index].id else bean.id }
                     ) { index, bean ->
-                        val isDraggingThisItem = isReorderMode && draggingItemIndex == index
+                        val isDraggingThisItem = isReorderMode && dragState.draggingItemIndex == index
                         if (isReorderMode) {
                             DraggableBeanItem(
                                 bean = bean,
                                 isDragging = isDraggingThisItem,
-                                dragOffset = if (isDraggingThisItem) smoothDragOffset else 0f,
-                                onDragStart = {
-                                    draggingItemIndex = index
-                                    accumulatedDrag = 0f
-                                    dragStartItemOffset = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }?.offset?.toFloat() ?: 0f
-                                },
-                                onDrag = { dragAmount ->
-                                    accumulatedDrag += dragAmount.y
-                                    val myInfo = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == draggingItemIndex }
-                                    if (myInfo != null) {
-                                        val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
-                                        val targetIndex = lazyListState.layoutInfo.visibleItemsInfo
-                                            .minByOrNull { kotlin.math.abs(it.offset + it.size / 2 - currentCenterY) }?.index
-                                        if (targetIndex != null && targetIndex != draggingItemIndex) {
-                                            val moved = mutableBeans.removeAt(draggingItemIndex)
-                                            mutableBeans.add(targetIndex, moved)
-                                            draggingItemIndex = targetIndex
-                                        }
-                                    }
-                                },
-                                onDragEnd = {
-                                    draggingItemIndex = -1
-                                    accumulatedDrag = 0f
-                                    isReorderMode = false
-                                    viewModel.saveBeanOrder(mutableBeans.toList())
-                                }
+                                dragOffset = if (isDraggingThisItem) dragState.smoothDragOffset else 0f,
+                                onDragStart = { dragState.onDragStart(index) },
+                                onDrag = { dragState.onDrag(it.y) },
+                                onDragEnd = { dragState.onDragEnd() }
                             )
                         } else {
                             BeanCard(

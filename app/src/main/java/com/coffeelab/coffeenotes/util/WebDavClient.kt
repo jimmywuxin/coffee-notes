@@ -8,6 +8,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.net.URLDecoder
 import java.util.concurrent.TimeUnit
 
 /**
@@ -143,13 +144,30 @@ class WebDavClient(
 
     private fun parseHrefNames(xml: String): List<String> {
         val names = mutableListOf<String>()
-        val regex = Regex("<D:href>([^<]+)</D:href>|<d:href>([^<]+)</d:href>")
+        // WebDAV 服务端的命名空间前缀五花八门（Nextcloud 无前缀、Synology 用 hp:、
+        // Apache 用 D:/d:），只匹配两种会让 listCloudFiles 恒返回空、「保留 10 份」静默失效。
+        val regex = Regex("<([A-Za-z0-9_-]+:)?href>([^<]+)</([A-Za-z0-9_-]+:)?href>", RegexOption.IGNORE_CASE)
         regex.findAll(xml).forEach { match ->
-            val href = match.groupValues[1].ifEmpty { match.groupValues[2] }
+            val href = match.groupValues[2]
             val name = href.trimEnd('/').substringAfterLast('/')
-            if (name.isNotBlank()) names.add(name)
+            if (name.isNotBlank() && name != "..") names.add(URLDecoder.decode(name, "UTF-8"))
         }
         return names.distinct()
+    }
+
+    /**
+     * 清理旧备份，只保留最近 [MAX_KEEP] 份。
+     * 原先这段逻辑在 BackupViewModel 与 BackupReminder 各写一份（一份包了 runCatching 一份没包），
+     * 改份数/前缀要同步两处。
+     * @return 被删除的份数
+     */
+    suspend fun pruneOldBackups(): Int {
+        val files = list(CLOUD_DIR)
+            .filter { it.startsWith(AppConstants.BACKUP_FILE_PREFIX) && it.endsWith(AppConstants.BACKUP_FILE_EXT) }
+            .sortedDescending()
+        val stale = files.drop(MAX_KEEP)
+        stale.forEach { delete("$CLOUD_DIR/$it") }
+        return stale.size
     }
 
     companion object {
@@ -162,7 +180,9 @@ class WebDavClient(
         /** 生成云端文件名：CoffeeNotes_yyyy-MM-dd_HHmmss.zip */
         fun buildFileName(timestamp: Long = System.currentTimeMillis()): String {
             val sdf = java.text.SimpleDateFormat("yyyy-MM-dd_HHmmss", java.util.Locale.US)
-            return "CoffeeNotes_${sdf.format(java.util.Date(timestamp))}.zip"
+            return AppConstants.BACKUP_FILE_PREFIX +
+                sdf.format(java.util.Date(timestamp)) +
+                AppConstants.BACKUP_FILE_EXT
         }
     }
 }

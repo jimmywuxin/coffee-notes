@@ -34,6 +34,7 @@ import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
 import com.coffeelab.coffeenotes.viewmodel.HomeViewModel
 import java.util.*
 import com.coffeelab.coffeenotes.util.AppConstants
+import com.coffeelab.coffeenotes.util.StreakCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,19 +88,14 @@ fun HomeScreen(
 
     val streakDays = remember(recentRecords) {
         if (recentRecords.isEmpty()) return@remember 0
-        val cal = Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
-        var streak = 0
-        while (true) {
-            val dayStart = cal.timeInMillis
-            val dayEnd = dayStart + AppConstants.MILLIS_PER_DAY
-            val hasBrew = recentRecords.any { it.dateTime in dayStart until dayEnd }
-            if (!hasBrew && streak > 0) break
-            if (hasBrew) streak++
-            cal.add(Calendar.DAY_OF_MONTH, -1)
-            if (streak > 365) break
-        }
-        streak
+        val todayStart = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        StreakCalculator.streakDays(
+            recordTimes = recentRecords.map { it.dateTime },
+            todayStart = todayStart,
+            millisPerDay = AppConstants.MILLIS_PER_DAY
+        )
     }
 
     val totalCount = recentRecords.size

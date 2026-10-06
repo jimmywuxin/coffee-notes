@@ -101,6 +101,7 @@ object BackupBuilder {
                     "aftertaste" to record.aftertaste,
                     "overallRating" to record.overallRating,
                     "flavorNotes" to record.flavorNotes,
+                    "bedShape" to record.bedShape,
                     "imageUri" to record.imageUri,
                     "isIced" to record.isIced,
                     "iceAmount" to record.iceAmount,

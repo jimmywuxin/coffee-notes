@@ -42,7 +42,7 @@ object PeakFlavorCalculator {
         if (bean.roastDate == null) return null
         return bean.peakFlavorDays
             ?: roastDegrees.find { it.name == bean.roastLevel }?.let { rd ->
-                peakConfigs.find { it.roastDegreeId == rd.id }?.peakFlavorDays
+                peakConfigs.lastOrNull { it.roastDegreeId == rd.id }?.peakFlavorDays
             }
             ?: DEFAULT_PEAK_FLAVOR_DAYS
     }

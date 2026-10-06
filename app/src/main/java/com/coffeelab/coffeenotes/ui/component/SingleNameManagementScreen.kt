@@ -48,17 +48,12 @@ fun <T : Any> SingleNameManagementScreen(
     var isReorderMode by remember { mutableStateOf(false) }
 
     val lazyListState = rememberLazyListState()
-    var draggingItemIndex by remember { mutableIntStateOf(-1) }
-    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
-    val smoothDragOffset by animateFloatAsState(
-        targetValue = if (draggingItemIndex >= 0) accumulatedDrag else 0f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
-    )
+    // 拖拽状态机已抽到 rememberDragReorderState（原先四处各写一遍且已漂移）
+    val dragState = rememberDragReorderState(lazyListState, mutableList)
 
     LaunchedEffect(items, isReorderMode) {
         if (!isReorderMode) {
             mutableList.clear(); mutableList.addAll(items)
-            draggingItemIndex = -1; accumulatedDrag = 0f
         }
     }
 
@@ -129,39 +124,14 @@ fun <T : Any> SingleNameManagementScreen(
 
                 if (isReorderMode) {
                     itemsIndexed(mutableList, key = { _, item -> getId(item) }) { index, item ->
-                        val isDragging = draggingItemIndex == index
+                        val isDragging = dragState.draggingItemIndex == index
                         DraggableManagementItem(
                             name = getName(item), isDragging = isDragging,
-                            dragOffset = if (isDragging) smoothDragOffset else 0f,
-                            onDragStart = { draggingItemIndex = index; accumulatedDrag = 0f },
-                            onDrag = { dragAmount ->
-                                accumulatedDrag += dragAmount.y
-                                val info = lazyListState.layoutInfo
-                                val myInfo = info.visibleItemsInfo.firstOrNull { it.index == draggingItemIndex }
-                                if (myInfo != null) {
-                                    val currentCenterY = myInfo.offset + myInfo.size / 2 + accumulatedDrag
-                                    var targetIndex = draggingItemIndex
-                                    info.visibleItemsInfo
-                                        .filter { it.index != draggingItemIndex }
-                                        .forEach { other ->
-                                            val itemCenter = other.offset + other.size / 2
-                                            if (accumulatedDrag > 0 && other.index > draggingItemIndex && currentCenterY > itemCenter) {
-                                                targetIndex = maxOf(targetIndex, other.index)
-                                            } else if (accumulatedDrag < 0 && other.index < draggingItemIndex && currentCenterY < itemCenter) {
-                                                targetIndex = minOf(targetIndex, other.index)
-                                            }
-                                        }
-                                    targetIndex = targetIndex.coerceIn(0, mutableList.lastIndex)
-                                    if (targetIndex != draggingItemIndex) {
-                                        val movedItem = mutableList.removeAt(draggingItemIndex)
-                                        mutableList.add(targetIndex, movedItem)
-                                        draggingItemIndex = targetIndex
-                                        accumulatedDrag = 0f
-                                    }
-                                }
-                            },
+                            dragOffset = if (isDragging) dragState.smoothDragOffset else 0f,
+                            onDragStart = { dragState.onDragStart(index) },
+                            onDrag = { dragState.onDrag(it.y) },
                             onDragEnd = {
-                                draggingItemIndex = -1; accumulatedDrag = 0f
+                                dragState.onDragEnd()
                                 onSaveOrder(mutableList.toList())
                                 isReorderMode = false
                             }

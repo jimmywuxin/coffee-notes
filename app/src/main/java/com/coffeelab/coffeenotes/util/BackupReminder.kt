@@ -173,14 +173,7 @@ object BackupReminder {
                     val ok = dirReady && client.upload("${WebDavClient.CLOUD_DIR}/$fileName", bytes)
                     if (ok) {
                         // 清理旧备份，保留 MAX_KEEP
-                        runCatching {
-                            val files = client.list(WebDavClient.CLOUD_DIR)
-                                .filter { it.startsWith("CoffeeNotes_") && it.endsWith(".zip") }
-                                .sortedDescending()
-                            files.drop(WebDavClient.MAX_KEEP).forEach { f ->
-                                client.delete("${WebDavClient.CLOUD_DIR}/$f")
-                            }
-                        }
+                        runCatching { client.pruneOldBackups() }
                         postAutoBackupSuccess(context, counts)
                     } else {
                         postAutoBackupFailure(context)
