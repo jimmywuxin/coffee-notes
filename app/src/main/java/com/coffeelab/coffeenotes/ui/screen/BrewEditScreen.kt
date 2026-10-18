@@ -111,8 +111,9 @@ fun BrewEditScreen(
     var coffeeWeight by rememberSaveable { mutableStateOf("") }
     var coffeeWaterRatio by rememberSaveable { mutableStateOf("") }
     var waterAmount by rememberSaveable { mutableStateOf("") }
-    // 用户是否自己填过注水量：填过就不再被「粉量 × 比例」覆盖
-    var waterAmountTouched by rememberSaveable { mutableStateOf(false) }
+    // 粉水比双向联动的「基准字段」：用户最后手改的是哪一个，改比例时以它为准回填另一个。
+    // "weight" / "water"；空串 = 都还没手改（如刚落库载入），此时默认以粉量为准
+    var ratioAnchor by rememberSaveable { mutableStateOf("") }
     var waterTemp by rememberSaveable { mutableStateOf("") }
     var grindSize by rememberSaveable { mutableStateOf("") }
     var extractionTime by rememberSaveable { mutableStateOf("") }
@@ -269,12 +270,37 @@ fun BrewEditScreen(
         currentPhase = 0
     }
 
-    // 粉量 / 粉水比变化时反算注水量——仅在用户没自己填过时
-    LaunchedEffect(coffeeWeight, coffeeWaterRatio, waterAmountTouched) {
-        if (waterAmountTouched) return@LaunchedEffect
-        val weight = coffeeWeight.toDoubleOrNull() ?: 0.0
+    // ===== 粉水比双向联动：选了粉水比后，粉量 ↔ 注水量互为推导 =====
+    // 谁被手改谁作准；改比例时按最后手改的字段回填另一个（都没手改则默认以粉量为准）。
+    // 只在用户输入时触发，直接赋值（载入记录 / 带入建议）不会引起重算，实测值不会被冲掉。
+    fun onWeightEdited(v: String) {
+        coffeeWeight = v
+        ratioAnchor = "weight"
         val ratio = coffeeWaterRatio.toDoubleOrNull() ?: 0.0
-        waterAmount = if (weight > 0 && ratio > 0) formatNum(weight * ratio) else ""
+        val weight = v.toDoubleOrNull() ?: 0.0
+        if (ratio > 0 && weight > 0) waterAmount = formatNum(weight * ratio)
+    }
+
+    fun onWaterEdited(v: String) {
+        waterAmount = v
+        ratioAnchor = "water"
+        val ratio = coffeeWaterRatio.toDoubleOrNull() ?: 0.0
+        val amount = v.toDoubleOrNull() ?: 0.0
+        if (ratio > 0 && amount > 0) coffeeWeight = formatNum(amount / ratio)
+    }
+
+    fun onRatioEdited(r: String) {
+        coffeeWaterRatio = r
+        val ratio = r.toDoubleOrNull() ?: 0.0
+        if (ratio <= 0) return
+        val weight = coffeeWeight.toDoubleOrNull() ?: 0.0
+        val amount = waterAmount.toDoubleOrNull() ?: 0.0
+        when {
+            // 用户最后动的是注水量：守住水，把粉量按新比例算出来
+            ratioAnchor == "water" && amount > 0 -> coffeeWeight = formatNum(amount / ratio)
+            weight > 0 -> waterAmount = formatNum(weight * ratio)
+            amount > 0 -> coffeeWeight = formatNum(amount / ratio)
+        }
     }
 
     // ===== 载入已有记录 =====
@@ -296,8 +322,8 @@ fun BrewEditScreen(
             coffeeWeight = if (r.coffeeWeight > 0) formatNum(r.coffeeWeight) else ""
             coffeeWaterRatio = if (r.coffeeWaterRatio > 0) formatNum(r.coffeeWaterRatio) else ""
             waterAmount = if (r.waterAmount > 0) formatNum(r.waterAmount) else ""
-            // 库里存的注水量是实测值，不能被「粉量 × 比例」重算掉
-            waterAmountTouched = r.waterAmount > 0
+            // 载入的粉量/注水量都是实测值，两者都锁定，不触发联动重算
+            ratioAnchor = ""
             waterTemp = if (r.waterTemp > 0) formatNum(r.waterTemp) else ""
             grindSize = r.grindSize
             extractionTime = if (r.extractionTime > 0) r.extractionTime.toString() else ""
@@ -364,7 +390,6 @@ fun BrewEditScreen(
         if (waterTemp.isEmpty() && m.waterTemp != null) waterTemp = m.waterTemp.toString()
         if (waterAmount.isEmpty() && lastWaterAmount != null) {
             waterAmount = formatNum(lastWaterAmount.toDouble())
-            waterAmountTouched = true
         }
         if (extractionTime.isEmpty() && lastDuration != null) extractionTime = lastDuration.toString()
     }
@@ -376,7 +401,6 @@ fun BrewEditScreen(
         if (coffeeWaterRatio.isEmpty() && s.brewRatio != null) coffeeWaterRatio = normalizeRatio(s.brewRatio)
         if (waterAmount.isEmpty() && s.waterAmount != null) {
             waterAmount = formatNum(s.waterAmount.toDouble())
-            waterAmountTouched = true
         }
         if (waterTemp.isEmpty() && s.waterTemp != null) waterTemp = s.waterTemp.toString()
         if (extractionTime.isEmpty() && s.brewTime != null) extractionTime = s.brewTime.toString()
@@ -391,7 +415,6 @@ fun BrewEditScreen(
         if (coffeeWaterRatio.isEmpty() && r.coffeeWaterRatio > 0) coffeeWaterRatio = formatNum(r.coffeeWaterRatio)
         if (waterAmount.isEmpty() && r.waterAmount > 0) {
             waterAmount = formatNum(r.waterAmount)
-            waterAmountTouched = true
         }
         if (waterTemp.isEmpty() && r.waterTemp > 0) waterTemp = formatNum(r.waterTemp)
         if (grindSize.isEmpty()) grindSize = r.grindSize
@@ -962,7 +985,7 @@ fun BrewEditScreen(
                             FilterChip(
                                 selected = coffeeWaterRatio == ratio,
                                 onClick = {
-                                    coffeeWaterRatio = ratio
+                                    onRatioEdited(ratio)
                                     showCustomRatio = false
                                 },
                                 label = { Text("1:$ratio") }
@@ -993,7 +1016,7 @@ fun BrewEditScreen(
                                     BasicTextField(
                                         value = coffeeWaterRatio,
                                         onValueChange = {
-                                            coffeeWaterRatio = it
+                                            onRatioEdited(it)
                                             if (it.isNotEmpty()) showCustomRatio = true
                                         },
                                         textStyle = MaterialTheme.typography.labelLarge.copy(
@@ -1010,7 +1033,7 @@ fun BrewEditScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
                             value = coffeeWeight,
-                            onValueChange = { coffeeWeight = it },
+                            onValueChange = { onWeightEdited(it) },
                             label = { Text("粉量 (g)") },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
@@ -1018,21 +1041,30 @@ fun BrewEditScreen(
                         )
                         OutlinedTextField(
                             value = waterAmount,
-                            onValueChange = {
-                                waterAmount = it
-                                waterAmountTouched = true
-                            },
+                            onValueChange = { onWaterEdited(it) },
                             label = { Text("注水量 (ml)") },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                         )
                     }
+                    // 自动联动说明：选好粉水比后两个框互为推导，这里只做一句轻提示
+                    val linkedRatio = coffeeWaterRatio.toDoubleOrNull() ?: 0.0
+                    if (linkedRatio > 0) {
+                        Text(
+                            text = "已按 1:${formatNum(linkedRatio)} 联动：改粉量自动算注水量，改注水量自动算粉量",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     // Reverse calculation: derive ratio from actual coffeeWeight + waterAmount
                     val weight = coffeeWeight.toDoubleOrNull() ?: 0.0
                     val amount = waterAmount.toDoubleOrNull() ?: 0.0
                     val derivedRatio = if (weight > 0 && amount > 0) formatNum(amount / weight) else ""
-                    if (derivedRatio.isNotEmpty()) {
+                    // 反算实际粉水比：联动填出来的比例本来就等于所选比例，这时候不必再提示一次
+                    val ratioMatches = linkedRatio > 0 && weight > 0 && amount > 0 &&
+                        kotlin.math.abs(amount / weight - linkedRatio) < 0.05
+                    if (derivedRatio.isNotEmpty() && !ratioMatches) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
