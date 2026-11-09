@@ -6,17 +6,7 @@ import com.coffeelab.coffeenotes.data.entity.*
 import com.coffeelab.coffeenotes.data.entity.BrewRecordWithNames
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import com.coffeelab.coffeenotes.data.dao.BeanBrewCount
 import com.coffeelab.coffeenotes.data.dao.BeanInventory
-import com.coffeelab.coffeenotes.data.dao.EquipmentCount
-import com.coffeelab.coffeenotes.data.dao.RatioCount
-import com.coffeelab.coffeenotes.data.dao.TempBucket
-import com.coffeelab.coffeenotes.data.dao.RatingCount
-import com.coffeelab.coffeenotes.data.dao.EquipmentRating
-import com.coffeelab.coffeenotes.data.dao.OriginCount
-import com.coffeelab.coffeenotes.data.dao.RoastLevelCount
-import com.coffeelab.coffeenotes.data.dao.TimeSlotCount
-import com.coffeelab.coffeenotes.data.dao.FlavorTagCount
 
 class CoffeeRepository(private val db: AppDatabase) {
 

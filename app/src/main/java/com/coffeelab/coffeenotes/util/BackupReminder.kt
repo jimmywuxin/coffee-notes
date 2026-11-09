@@ -7,7 +7,6 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.coffeelab.coffeenotes.MainActivity
@@ -23,7 +22,7 @@ import kotlinx.coroutines.launch
  * - [cancel] 关闭提醒
  * - [ReminderReceiver] 到点发一条本地通知
  *
- * 周期存储：`backup_reminder_interval_days`（0 = 关闭；7/14/30 = 每周/每两周/每月）
+ * 周期存储：`backup_reminder_interval_days`（0 = 关闭；任意正数天，设置页提供 3/7 天预设）
  * 不引 WorkManager，用 AlarmManager.setRepeating 轻量实现。
  */
 object BackupReminder {

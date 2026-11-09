@@ -9,23 +9,6 @@ class Converters {
     private val gson = Gson()
 
     @TypeConverter
-    fun fromBrewMethodStepList(steps: List<BrewMethodStep>?): String? {
-        return steps?.let { gson.toJson(it) }
-    }
-
-    @TypeConverter
-    fun toBrewMethodStepList(json: String?): List<BrewMethodStep>? {
-        if (json.isNullOrBlank()) return emptyList()
-        return try {
-            val type = object : TypeToken<List<BrewMethodStep>>() {}.type
-            gson.fromJson(json, type) ?: emptyList()
-        } catch (e: Exception) {
-            // Defensive: if JSON is malformed, return empty instead of crashing
-            emptyList()
-        }
-    }
-
-    @TypeConverter
     fun fromStringList(list: List<String>?): String? = list?.let { gson.toJson(it) }
 
     @TypeConverter
@@ -42,7 +25,7 @@ class Converters {
     companion object {
         private val gson = Gson()
 
-        /** Parse JSON string to List<BrewMethodStep> (same logic as Room TypeConverter) */
+        /** Parse JSON string to List<BrewMethodStep>（steps 列是 String，由 UI 手工解析） */
         fun parseSteps(json: String?): List<BrewMethodStep> {
             if (json.isNullOrBlank()) return emptyList()
             return try {

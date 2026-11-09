@@ -13,12 +13,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Room 迁移全链路测试。
+ * Room 迁移测试。
  *
- * 现状说明：仓库 schemas/ 仅收录 20.json / 21.json（早期 1~19 的 schema JSON 未入仓库），
- * MigrationTestHelper 依赖 schema JSON 建旧库，故 1→20 各段目前无法覆盖。
- * 本次聚焦最近一次迁移 20→21（2026-08-02 曾因 SQL 写错导致迁移崩溃丢数据的迁移），
- * 后续若补全早期 schema JSON，可扩展为 1→21 全链路。
+ * 仓库 schemas/ 收录 20.json / 21.json / 22.json（早期 1~19 未入仓库），
+ * MigrationTestHelper 依赖 schema JSON 建旧库，故 1→20 各段无法覆盖。
+ * 当前用例只覆盖 20→21（2026-08-02 曾因 SQL 写错导致迁移崩溃丢数据的迁移）；
+ * DB 已到 v22，21→22 尚无用例，补全早期 schema JSON 后可扩为 1→22 全链路。
  */
 @RunWith(AndroidJUnit4::class)
 class MigrationTest {

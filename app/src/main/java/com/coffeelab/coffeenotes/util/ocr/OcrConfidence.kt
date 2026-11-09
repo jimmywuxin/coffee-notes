@@ -5,7 +5,7 @@ import android.graphics.Rect
 /**
  * 字段证据强度类型与常量。
  *
- * 不同抽取策略对应不同置信度，最后取最小值代表字段的整体可信度。
+ * 不同抽取策略对应不同置信度；字段由首次命中的策略填充（fill 首次填充即锁定），不取最小值。
  * 阈值 [LOW_CONFIDENCE_THRESHOLD] 以下会被记入 `lowConfidenceFields`。
  */
 object OcrConfidence {

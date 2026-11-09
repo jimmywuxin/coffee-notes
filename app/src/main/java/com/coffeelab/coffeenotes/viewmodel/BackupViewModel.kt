@@ -5,33 +5,20 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.withTransaction
-import com.coffeelab.coffeenotes.util.AppConstants
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.*
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import com.coffeelab.coffeenotes.util.BackupBuilder
-import com.coffeelab.coffeenotes.util.BackupGuard
 import com.coffeelab.coffeenotes.util.CloudBackupPrefs
-import com.coffeelab.coffeenotes.util.ImageUtils
 import com.coffeelab.coffeenotes.util.WebDavClient
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.*
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.*
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
-import java.util.zip.ZipOutputStream
 
 class BackupViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -39,14 +26,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
 
     /** 恢复逻辑已拆出（原类 706 行里有 480 行是这一个方法） */
     private val restorer by lazy { BackupRestorer(application) }
-    private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
-
     companion object {
-        // 备份格式常量统一由 BackupBuilder 持有。原先这里重复定义一份，
-        // 升级 BACKUP_VERSION 时漏改一处就会导致解包全失败。
-        const val MANIFEST_FILE = BackupBuilder.MANIFEST_FILE
-        const val DATA_FILE = BackupBuilder.DATA_FILE
-        const val BEAN_PHOTOS_DIR = BackupBuilder.BEAN_PHOTOS_DIR
+        // 备份格式常量统一由 BackupBuilder 持有，避免升级 BACKUP_VERSION 时漏改一处导致解包失败。
         const val BACKUP_VERSION = BackupBuilder.BACKUP_VERSION
     }
 

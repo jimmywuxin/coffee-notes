@@ -18,7 +18,7 @@ import java.time.YearMonth
  * 紧凑日期选择面板（替代 Material3 DatePicker——M3 DatePicker 在中文 locale 下
  * 周六/周日表头文字重叠渲染成「根」，1.4.0 仍未修复，故自绘）。
  *
- * 结构：年份/月份切换 + 一二三四五六日表头 + 6 行×7 列日表。
+ * 结构：年份/月份切换 + 一二三四五六日表头 + 按当月天数动态 4~6 行 × 7 列日表。
  */
 @Composable
 fun CompactDatePicker(
@@ -87,7 +87,7 @@ fun CompactDatePicker(
         }
         Spacer(Modifier.height(8.dp))
 
-        // ===== 日期网格（6 行 × 7 列，动态） =====
+        // ===== 日期网格（按当月天数动态 4~6 行 × 7 列） =====
         val rows = (totalCells + 6) / 7
         for (row in 0 until rows) {
             Row(modifier = Modifier.fillMaxWidth()) {

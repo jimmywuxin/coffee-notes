@@ -8,12 +8,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-
-// 日系柔和阴影色彩
-private val SoftShadowColor = Color(0x0A000000)   // 极淡黑，柔和阴影
-private val CardElevation = 2.dp                        // 卡片轻柔阴影
 
 // ============================================================
 // 浅色主题

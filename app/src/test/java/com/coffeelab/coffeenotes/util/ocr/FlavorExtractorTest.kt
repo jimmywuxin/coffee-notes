@@ -1,6 +1,5 @@
 package com.coffeelab.coffeenotes.util.ocr
 
-import com.coffeelab.coffeenotes.util.ocr.dictionary.CoffeeDictionary
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

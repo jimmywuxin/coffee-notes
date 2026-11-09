@@ -4,18 +4,13 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.coffeelab.coffeenotes.data.AppDatabase
-import com.coffeelab.coffeenotes.data.entity.BrewRecord
-import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import com.coffeelab.coffeenotes.util.AppConstants
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = CoffeeRepository(AppDatabase.getInstance(application))
-    val allBeans = repository.allBeans
-    val allRecords = repository.allRecords
 
     // ===== Search =====
     private val _searchQuery = MutableStateFlow("")

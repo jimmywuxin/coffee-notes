@@ -5,10 +5,8 @@ import android.graphics.Bitmap
 /**
  * 可插拔识别引擎接口
  * 
- * 支持多种实现：
- * - MiMoRecognition: 免费云端AI识别（小米 MiMo Omni）
- * - KeywordRecognition: 纯本地关键词匹配（ML Kit OCR + 规则）
- * - 未来可扩展其他免费模型
+ * 当前只有本地关键词匹配实现（ML Kit OCR + 规则）。
+ * 该接口主流程未调用：OCRProcessor 直接走 ML Kit，此处是预留扩展点。
  */
 interface RecognitionEngine {
     /**

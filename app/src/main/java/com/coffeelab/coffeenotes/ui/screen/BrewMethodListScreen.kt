@@ -1,10 +1,8 @@
 package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
@@ -27,9 +25,15 @@ import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.ui.component.rememberDragReorderState
 import com.coffeelab.coffeenotes.data.Converters
 import com.coffeelab.coffeenotes.data.entity.BrewMethod
-import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.viewmodel.BrewMethodViewModel
+
+/** 步骤摘要：durationSeconds 是累计秒数（步骤结束时刻），不是单段时长 */
+private fun stepSummary(stepsJson: String?): String =
+    Converters.parseSteps(stepsJson).withIndex().joinToString(" → ") { (i, step) ->
+        val water = step.waterAmount?.let { "${it}ml" } ?: "至总水量"
+        "${i + 1}: ${water}/${step.durationSeconds}s"
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,11 +60,6 @@ fun BrewMethodListScreen(
         }
     }
 
-    fun saveOrder() {
-        isReorderMode = false
-        viewModel.saveMethodOrder(mutableList.toList())
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -82,9 +81,6 @@ fun BrewMethodListScreen(
                         IconButton(onClick = { navController.navigate(Screen.BrewMethodEdit.createRoute()) }) {
                             Icon(Icons.Default.Add, contentDescription = "新建手法", tint = MaterialTheme.colorScheme.onPrimary)
                         }
-                    }
-                    if (isReorderMode) {
-                        // 松手即完成，不再需要完成按钮
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -213,13 +209,8 @@ private fun DraggableMethodItem(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(method.name, style = MaterialTheme.typography.titleMedium)
-                val parsedSteps = Converters.parseSteps(method.steps)
-                val stepSummary = parsedSteps.withIndex().joinToString(" → ") { (i, step) ->
-                    val water = step.waterAmount?.let { "${it}ml" } ?: "至总水量"
-                    "${i + 1}: ${water}/${step.durationSeconds}s"
-                }
                 Text(
-                    stepSummary,
+                    stepSummary(method.steps),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -246,13 +237,8 @@ private fun MethodCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(method.name, style = MaterialTheme.typography.titleMedium)
-                val parsedSteps = Converters.parseSteps(method.steps)
-                val stepSummary = parsedSteps.withIndex().joinToString(" → ") { (i, step) ->
-                    val water = step.waterAmount?.let { "${it}ml" } ?: "至总水量"
-                    "${i + 1}: ${water}/${step.durationSeconds}s"
-                }
                 Text(
-                    stepSummary,
+                    stepSummary(method.steps),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

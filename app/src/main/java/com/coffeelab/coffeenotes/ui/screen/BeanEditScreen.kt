@@ -2,79 +2,68 @@ package com.coffeelab.coffeenotes.ui.screen
 
 
 
-import android.graphics.Bitmap
 
 import android.net.Uri
-
-import android.os.Environment
-
 import androidx.activity.compose.rememberLauncherForActivityResult
-
 import androidx.activity.result.contract.ActivityResultContracts
-
-import androidx.compose.foundation.clickable
-
 import androidx.compose.foundation.layout.*
-
-import androidx.compose.foundation.lazy.LazyRow
-
-import androidx.compose.foundation.lazy.items
-
 import androidx.compose.foundation.rememberScrollState
-
 import androidx.compose.foundation.verticalScroll
-
 import androidx.compose.material.icons.Icons
-
 import androidx.compose.material.icons.filled.*
-
 import androidx.compose.material3.*
-
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-
-import androidx.compose.runtime.snapshots.SnapshotStateList
-
 import androidx.compose.ui.Alignment
-
 import androidx.compose.ui.Modifier
-
 import androidx.compose.ui.layout.ContentScale
-
 import androidx.compose.ui.platform.LocalContext
-
 import androidx.compose.ui.unit.dp
-
 import androidx.lifecycle.viewmodel.compose.viewModel
-
 import androidx.navigation.NavController
-
 import coil3.compose.AsyncImage
-
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
-
-import com.coffeelab.coffeenotes.data.entity.RoastDegree
-
-import com.coffeelab.coffeenotes.data.entity.ProcessMethod
-
-import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
-
-import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
-
-import com.coffeelab.coffeenotes.ui.navigation.Screen
-
 import com.coffeelab.coffeenotes.util.BitmapLoader
-
 import com.coffeelab.coffeenotes.util.DateUtils
 import com.coffeelab.coffeenotes.util.Format
-
 import com.coffeelab.coffeenotes.util.ImageUtils
-
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
-
 import kotlinx.coroutines.launch
-
 import java.io.File
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -899,6 +888,7 @@ fun BeanEditScreen(
                 placeholder = { Text("格式：2026/05/10") })
 
             // 养豆期/赏味期（基于烘焙度配置自动计算，可手动覆盖）
+            // 口径：两者都从烘焙日起算；赏味至 = 烘焙日 + 赏味天数，不叠加养豆天数
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
 

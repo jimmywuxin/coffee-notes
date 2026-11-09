@@ -83,12 +83,12 @@ object OCRProcessor {
             .groupBy { it.field }
             .mapValues { (_, list) ->
                 list.sortedByDescending { it.hitCount }
-                    .associate { normalize(it.ocrRaw) to it.userValue }
+                    .associate { OcrCorrectionRecorder.normalizeForCompare(it.ocrRaw) to it.userValue }
             }
 
         fun correct(field: String, value: String): String {
             if (value.isBlank()) return value
-            return index[field]?.get(normalize(value)) ?: value
+            return index[field]?.get(OcrCorrectionRecorder.normalizeForCompare(value)) ?: value
         }
 
         return result.copy(
@@ -102,6 +102,4 @@ object OCRProcessor {
         )
     }
 
-    private fun normalize(s: String): String =
-        s.trim().lowercase().replace(Regex("\\s+"), " ")
 }

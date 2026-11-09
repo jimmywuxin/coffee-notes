@@ -58,7 +58,6 @@ import com.coffeelab.coffeenotes.viewmodel.EquipmentViewModel
 import com.coffeelab.coffeenotes.viewmodel.GrinderViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 // Extraction suggestion data class
 private data class ExtractionSuggestion(

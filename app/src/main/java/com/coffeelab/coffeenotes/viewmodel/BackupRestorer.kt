@@ -18,9 +18,9 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipInputStream
+import com.coffeelab.coffeenotes.viewmodel.BackupViewModel.BackupState
 
 /** 状态类型仍归 [BackupViewModel]（UI 侧按 `BackupViewModel.BackupState` 消费），此处用别名引用 */
-import com.coffeelab.coffeenotes.viewmodel.BackupViewModel.BackupState
 
 /**
  * 备份恢复（从 BackupViewModel 拆出）。

@@ -10,6 +10,7 @@ import com.coffeelab.coffeenotes.data.entity.RoastDegree
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.coffeelab.coffeenotes.util.PeakFlavorCalculator
 
 data class RoastDegreeConfigItem(
     val degree: RoastDegree,
@@ -42,7 +43,7 @@ class RoastDegreeConfigViewModel(application: Application) : AndroidViewModel(ap
             RoastDegreeConfigItem(
                 degree = degree,
                 restDays = rest?.restDays ?: 0,
-                peakFlavorDays = peak?.peakFlavorDays ?: 14
+                peakFlavorDays = peak?.peakFlavorDays ?: PeakFlavorCalculator.DEFAULT_PEAK_FLAVOR_DAYS
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -69,8 +70,8 @@ class RoastDegreeConfigViewModel(application: Application) : AndroidViewModel(ap
     }
 
     // RestPeriodConfig / PeakFlavorConfig 的 id 是 autoGenerate，roastDegreeId 上没有 unique 索引，
-    // 直接 insert 会每次新增一行；而读取侧是 find{} 取 ORDER BY id ASC 的第一条（即最旧那行），
-    // 于是「编辑」永远不生效。必须先查再决定 insert / update。
+    // 直接 insert 会每次新增一行；旧实现读取侧用 find{} 取 ORDER BY id ASC 第一条（最旧那行），
+    // 于是「编辑」永远不生效。现在读取侧改用 lastOrNull，写入侧仍必须先查再决定 insert / update。
     fun updateRestDays(roastDegreeId: Long, restDays: Int) {
         viewModelScope.launch {
             val existing = repository.getRestPeriodConfigByRoastDegreeId(roastDegreeId)

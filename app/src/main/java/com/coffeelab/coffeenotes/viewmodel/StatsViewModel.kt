@@ -8,7 +8,6 @@ import com.coffeelab.coffeenotes.data.dao.*
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.util.*
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {

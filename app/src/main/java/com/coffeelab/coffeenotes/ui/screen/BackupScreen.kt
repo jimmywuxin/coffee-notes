@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
@@ -252,7 +251,7 @@ fun BackupScreen(
                                 Text("恢复到本地")
                             }
                         }
-                        // 自动备份周期（与设置页共用同一开关；闹钟到点自动上传云端）
+                        // 自动备份周期（与设置页共用同一开关；到点发本地通知提醒手动备份，不自动上传）
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
                                 "自动备份周期",

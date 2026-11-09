@@ -4,11 +4,9 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import kotlinx.coroutines.launch
@@ -30,15 +28,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.ui.component.rememberDragReorderState
-import com.coffeelab.coffeenotes.ui.component.DragReorderState
 import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.ui.component.BeanCard
-import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 
@@ -82,7 +77,7 @@ fun BeanListScreen(
     var beanImpressionTagsMap by remember { mutableStateOf<Map<Long, List<String>>>(emptyMap()) }
     // beanId -> 最近一次购买单价（元/克）
     var beanLatestUnitPriceMap by remember { mutableStateOf<Map<Long, Float>>(emptyMap()) }
-    // beanId -> 库存信息（余量 = 累计购入 - 累计消耗，仅未归档豆子）
+    // beanId -> 库存信息（余量 = 累计购入 + 库存调整 − 累计消耗，只统计重置库存之后的记录；仅未归档豆子）
     var beanInventoryMap by remember { mutableStateOf<Map<Long, BeanInventory>>(emptyMap()) }
 
     suspend fun reloadLatestUnitPrices() {

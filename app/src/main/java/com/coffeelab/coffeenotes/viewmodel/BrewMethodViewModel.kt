@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.BrewMethod
-import com.coffeelab.coffeenotes.data.entity.BrewMethodStep
 import com.coffeelab.coffeenotes.data.repository.CoffeeRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -22,8 +21,6 @@ class BrewMethodViewModel(application: Application) : AndroidViewModel(applicati
             repository.insertMethod(method)
         }
     }
-
-    suspend fun saveMethodSync(method: BrewMethod): Long = repository.insertMethod(method)
 
     fun updateMethod(method: BrewMethod) {
         viewModelScope.launch {

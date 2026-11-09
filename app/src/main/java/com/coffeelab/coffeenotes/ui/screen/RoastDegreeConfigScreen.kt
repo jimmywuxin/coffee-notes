@@ -1,7 +1,6 @@
 package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -15,15 +14,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.ui.component.rememberDragReorderState
-import com.coffeelab.coffeenotes.ui.component.DragReorderState
 import com.coffeelab.coffeenotes.ui.component.DraggableManagementItem
 import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.viewmodel.RoastDegreeConfigItem

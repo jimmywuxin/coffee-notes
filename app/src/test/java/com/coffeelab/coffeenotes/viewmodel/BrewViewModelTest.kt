@@ -18,14 +18,12 @@ class BrewViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var repository: CoffeeRepository
     private lateinit var db: AppDatabase
-    private lateinit var viewModel: BrewViewModel
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         db = mockk(relaxed = true)
         repository = spyk(CoffeeRepository(db))
-        viewModel = BrewViewModel(mockk(relaxed = true))
     }
 
     @After

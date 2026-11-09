@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.CoffeeBean
 import com.coffeelab.coffeenotes.data.entity.ImpressionTag
-import com.coffeelab.coffeenotes.data.entity.FlavorTag
 import com.coffeelab.coffeenotes.util.BitmapLoader
 import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
@@ -91,14 +90,13 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
     val allImpressionTags: StateFlow<List<ImpressionTag>> = repository.allImpressionTags
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // 赏味期即将结束的豆子（距离赏味期结束 <= 15天，即提前15天开始倒计时），按倒计时升序排列
-    // 计算逻辑见 PeakFlavorCalculator（纯函数，可独立测试）
+    // 赏味期即将结束的豆子（距结束 <= PeakFlavorCalculator.NEARING_THRESHOLD_DAYS 天开始倒计时），按倒计时升序排列
+    // 计算逻辑见 PeakFlavorCalculator（纯函数，可独立测试）；赏味期天数从烘焙日起算，不叠加养豆期
     val beansNearingPeakFlavorEnd: StateFlow<List<Pair<CoffeeBean, Int>>> = combine(
         repository.activeBeans,
         repository.allRoastDegrees,
-        repository.allPeakFlavorConfigs,
-        repository.allRestPeriodConfigs
-    ) { beans, roastDegrees, peakConfigs, _ ->
+        repository.allPeakFlavorConfigs
+    ) { beans, roastDegrees, peakConfigs ->
         PeakFlavorCalculator.filterNearingEnd(beans, roastDegrees, peakConfigs, System.currentTimeMillis())
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -186,8 +184,6 @@ class BeanViewModel(application: Application) : AndroidViewModel(application) {
         val maxOrder = repository.getMaxImpressionTagSortOrder() ?: 0
         return repository.insertImpressionTag(ImpressionTag(name = name, sortOrder = maxOrder + 1))
     }
-
-    fun searchBeans(query: String): Flow<List<CoffeeBean>> = repository.searchBeans(query)
 
     // 根据烘焙度ID查养豆期/赏味期配置
     suspend fun getRestPeriodConfigByRoastDegreeId(roastDegreeId: Long): RestPeriodConfig? =

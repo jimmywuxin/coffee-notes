@@ -26,18 +26,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.coffeelab.coffeenotes.data.entity.BrewRecord
-import com.coffeelab.coffeenotes.data.entity.RoastDegree
-import com.coffeelab.coffeenotes.data.entity.ProcessMethod
-import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
-import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import com.coffeelab.coffeenotes.data.entity.PurchaseRecord
 import com.coffeelab.coffeenotes.data.dao.BeanInventory
 import com.coffeelab.coffeenotes.ui.component.RecordCard
@@ -77,7 +71,7 @@ fun BeanDetailScreen(
         reloadBeanData()
         // 加载购买记录
         purchaseRecords = beanViewModel.getPurchaseRecordsForBeanOnce(beanId)
-        // 加载库存（累计购入 - 累计消耗）
+        // 加载库存（购入 + 调整 − 消耗，只统计重置库存之后的记录）
         inventory = beanViewModel.getInventoryForBean(beanId)
     }
     
@@ -371,7 +365,7 @@ fun BeanDetailScreen(
                 }
 
 
-                // 库存汇总卡（余量 = 累计购入 - 累计消耗）
+                // 库存汇总卡（余量 = 累计购入 + 库存调整 − 累计消耗，只统计重置库存之后的记录）
                 item {
                     val inv = inventory
                     // 只要该豆子有任何历史购买/冲煮/调整记录就显示整张卡（含「扣减」入口）。
@@ -823,26 +817,6 @@ fun BeanDetailScreen(
         )
     }
 }
-
-@Composable
-fun InfoRow(label: String, value: String) {
-    if (value.isNotEmpty()) {
-        Row(modifier = Modifier.padding(vertical = 2.dp)) {
-            Text(
-                text = "$label：",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.width(80.dp)
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-    }
-}
-
 
 @Composable
 fun InfoRowCompact(label: String, value: String, modifier: Modifier = Modifier) {

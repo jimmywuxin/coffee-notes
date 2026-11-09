@@ -1,7 +1,5 @@
 package com.coffeelab.coffeenotes.data.entity
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
 
 /**
  * 单个冲煮步骤

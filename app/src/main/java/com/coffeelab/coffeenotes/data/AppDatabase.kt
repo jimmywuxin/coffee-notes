@@ -9,9 +9,6 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.coffeelab.coffeenotes.data.dao.ImpressionTagDao
 import com.coffeelab.coffeenotes.data.dao.*
 import com.coffeelab.coffeenotes.data.entity.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Database(
     entities = [
@@ -89,7 +86,6 @@ abstract class AppDatabase : RoomDatabase() {
                 existingNames.add(cursor.getString(0))
             }
             cursor.close()
-            val now = System.currentTimeMillis()
             Equipment.DEFAULT_EQUIPMENT.forEachIndexed { index, name ->
                 if (name !in existingNames) {
                     db.execSQL("INSERT INTO equipment (name, sortOrder) VALUES (?, ?)", arrayOf(name, index))

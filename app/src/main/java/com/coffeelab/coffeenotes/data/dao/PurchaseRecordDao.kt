@@ -30,7 +30,7 @@ interface PurchaseRecordDao {
     @Query("SELECT * FROM purchase_records ORDER BY date DESC")
     suspend fun getAllOnce(): List<PurchaseRecord>
 
-    // 每个豆子最近一次购买记录（按 beanId 分组取 date 最大的一条）
+    // 每个豆子 date 最大的购买记录（相关子查询、无 GROUP BY；同 bean 同日多条会全部返回，由 Repository 侧 .associate 取末条）
     @Query("""
         SELECT * FROM purchase_records pr
         WHERE pr.date = (

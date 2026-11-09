@@ -5,11 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.coffeelab.coffeenotes.data.AppDatabase
 import com.coffeelab.coffeenotes.data.entity.PurchaseRecord
-import com.coffeelab.coffeenotes.data.entity.RoastDegree
-import com.coffeelab.coffeenotes.data.entity.RestPeriodConfig
-import com.coffeelab.coffeenotes.data.entity.PeakFlavorConfig
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 
 class PurchaseRecordViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = AppDatabase.getInstance(application).purchaseRecordDao()

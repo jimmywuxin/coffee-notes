@@ -2,7 +2,6 @@ package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,7 +20,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.ui.component.RecordCard
-import com.coffeelab.coffeenotes.ui.component.EmptyState
 import com.coffeelab.coffeenotes.ui.navigation.Screen
 import com.coffeelab.coffeenotes.util.DateUtils
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel

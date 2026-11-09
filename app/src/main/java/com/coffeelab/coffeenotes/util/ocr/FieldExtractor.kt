@@ -1,6 +1,5 @@
 package com.coffeelab.coffeenotes.util.ocr
 
-import android.graphics.Rect
 import com.coffeelab.coffeenotes.util.OCRResult
 import com.coffeelab.coffeenotes.util.ocr.dictionary.CoffeeDictionary
 import com.coffeelab.coffeenotes.util.ocr.OcrConfidence

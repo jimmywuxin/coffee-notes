@@ -22,8 +22,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val repository = CoffeeRepository(AppDatabase.getInstance(application))
 
+    // 防重门禁：只在本 ViewModel 内部使用，UI 未消费
     private val _clearing = MutableStateFlow(false)
-    val clearing: StateFlow<Boolean> = _clearing.asStateFlow()
 
     /** 清空完成后置 true，由界面消费一次后调 [onClearHandled] 复位 */
     private val _cleared = MutableStateFlow(false)

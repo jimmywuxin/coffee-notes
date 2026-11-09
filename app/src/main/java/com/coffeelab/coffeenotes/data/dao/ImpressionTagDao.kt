@@ -5,10 +5,6 @@ import com.coffeelab.coffeenotes.data.entity.ImpressionTag
 import com.coffeelab.coffeenotes.data.entity.BeanImpressionTag
 import kotlinx.coroutines.flow.Flow
 
-data class ImpressionTagWithJoin(
-    @Embedded val tag: ImpressionTag
-)
-
 @Dao
 interface ImpressionTagDao {
     // ===== Impression Tags (标签库) =====
