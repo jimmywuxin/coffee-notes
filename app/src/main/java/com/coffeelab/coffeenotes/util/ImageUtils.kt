@@ -146,6 +146,16 @@ object DateUtils {
         } catch (e: Exception) { null }
     }
 
+    /**
+     * 购买记录入库时间戳。新增且日期为「今天」时用完整时刻而非零点：
+     * 重置库存的 stockResetAt 是完整时刻，若购买记录存当天零点，`date >= stockResetAt`
+     * 会把当天重置后录入的购买过滤掉。编辑已有记录 / 回填历史日期仍按零点解析，
+     * 保持「重置前的购买不计入」口径。
+     */
+    fun resolvePurchaseDate(dateStr: String, isNew: Boolean, now: Long = System.currentTimeMillis()): Long {
+        return if (isNew && dateStr == formatDate(now)) now else (parseDate(dateStr) ?: now)
+    }
+
     // 获取某天所在周的周一（以周一为一周开始）
     fun getWeekStart(timestamp: Long): Long {
         val instant = Instant.ofEpochMilli(timestamp)

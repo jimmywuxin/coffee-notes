@@ -301,7 +301,7 @@ private fun PurchaseRecordDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val date = DateUtils.parseDate(dateStr) ?: System.currentTimeMillis()
+                    val date = DateUtils.resolvePurchaseDate(dateStr, isNew = record == null)
                     val weight = weightStr.toIntOrNull() ?: 0
                     val price = priceStr.toFloatOrNull() ?: 0f
                     val roastDate = if (roastDateStr.isNotBlank()) DateUtils.parseDate(roastDateStr) else null

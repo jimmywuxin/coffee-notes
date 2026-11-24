@@ -118,6 +118,6 @@ data class BeanInventory(
     /** 该豆子是否存在任何历史记录（不限时间）——用于「重置库存」后仍保留库存卡入口 */
     val hasAnyRecord: Boolean = false
 ) {
-    /** 余量 = 累计购入 + 库存调整（快捷扣减为负） − 累计消耗 */
-    val remaining: Double get() = totalPurchased.toDouble() + totalAdjusted - totalConsumed
+    /** 余量 = 累计购入 + 库存调整（扣减为负、补录为正） − 累计消耗；下限 0（豆商多给时按实际扣减不显示负数） */
+    val remaining: Double get() = (totalPurchased.toDouble() + totalAdjusted - totalConsumed).coerceAtLeast(0.0)
 }

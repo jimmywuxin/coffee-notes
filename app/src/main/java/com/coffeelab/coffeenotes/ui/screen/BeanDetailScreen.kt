@@ -389,7 +389,7 @@ fun BeanDetailScreen(
                                             onClick = { showAdjustStockDialog = true },
                                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                                         ) {
-                                            Text("扣减", style = MaterialTheme.typography.labelSmall)
+                                            Text("调整库存", style = MaterialTheme.typography.labelSmall)
                                         }
                                         TextButton(
                                             onClick = { showResetStockDialog = true },
@@ -616,27 +616,47 @@ fun BeanDetailScreen(
         }
     }
 
-    // Adjust Stock (快捷扣减) Dialog
+    // Adjust Stock (库存调整：扣减 / 增加) Dialog
     if (showAdjustStockDialog && bean != null) {
+        var isDecrease by remember { mutableStateOf(true) }
         var amountText by remember { mutableStateOf("") }
         var noteText by remember { mutableStateOf("") }
         val inv = inventory
         val maxGrams = (inv?.remaining ?: 0.0).coerceAtLeast(0.0)
+        val amount = amountText.toDoubleOrNull() ?: 0.0
+        // 扣减写入量不超过余量：豆商多给时按实际质量扣减，记录库存最多归零，不留负值欠账
+        val effectiveAmount = if (isDecrease) minOf(amount, maxGrams) else amount
         AlertDialog(
             onDismissRequest = { showAdjustStockDialog = false },
-            title = { Text("扣减库存") },
+            title = { Text("调整库存") },
             text = {
                 Column {
                     Text(
-                        "记录一次未记冲煮参数的豆子消耗（如随手一杯、分装、送人）。\n当前余量：${maxGrams.toInt()}g",
+                        if (isDecrease)
+                            "记录一次未记冲煮参数的豆子消耗（如随手一杯、分装、送人）。\n当前余量：${Format.num(maxGrams)}g，最多扣减 ${Format.num(maxGrams)}g。"
+                        else
+                            "记录一次库存补录（如豆商多给、找回陈豆）。\n当前余量：${Format.num(maxGrams)}g。",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = isDecrease,
+                            onClick = { isDecrease = true },
+                            label = { Text("扣减") }
+                        )
+                        FilterChip(
+                            selected = !isDecrease,
+                            onClick = { isDecrease = false },
+                            label = { Text("增加") }
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
                         value = amountText,
                         onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' }.take(6) },
-                        label = { Text("扣减克重") },
+                        label = { Text(if (isDecrease) "扣减克重" else "增加克重") },
                         placeholder = { Text("如 15") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -655,22 +675,34 @@ fun BeanDetailScreen(
             },
             confirmButton = {
                 TextButton(
-                    enabled = amountText.toDoubleOrNull()?.let { it > 0 } == true,
+                    enabled = effectiveAmount > 0,
                     onClick = {
-                        val amount = amountText.toDoubleOrNull() ?: 0.0
-                        if (amount <= 0) return@TextButton
+                        if (effectiveAmount <= 0) return@TextButton
+                        val delta = if (isDecrease) -effectiveAmount else effectiveAmount
+                        val clamped = isDecrease && amount > maxGrams
                         showAdjustStockDialog = false
                         coroutineScope.launch {
                             beanViewModel.addStockAdjustment(
                                 beanId = bean.id,
-                                changeGrams = -amount,
+                                changeGrams = delta,
                                 note = noteText.trim()
                             )
                             inventory = beanViewModel.getInventoryForBean(beanId)
-                            snackbarHostState.showSnackbar("已扣减 ${amount.toInt()}g")
+                            snackbarHostState.showSnackbar(
+                                when {
+                                    clamped -> "余量仅 ${Format.num(maxGrams)}g，已扣减至 0"
+                                    isDecrease -> "已扣减 ${Format.num(effectiveAmount)}g"
+                                    else -> "已增加 ${Format.num(effectiveAmount)}g"
+                                }
+                            )
                         }
                     }
-                ) { Text("扣减", color = MaterialTheme.colorScheme.error) }
+                ) {
+                    Text(
+                        if (isDecrease) "扣减" else "增加",
+                        color = if (isDecrease) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    )
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showAdjustStockDialog = false }) { Text("取消") }
