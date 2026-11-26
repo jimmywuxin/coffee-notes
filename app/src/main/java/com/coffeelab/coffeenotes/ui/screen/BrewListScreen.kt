@@ -2,7 +2,10 @@ package com.coffeelab.coffeenotes.ui.screen
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -21,9 +24,11 @@ import androidx.navigation.NavController
 import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import com.coffeelab.coffeenotes.ui.component.RecordCard
 import com.coffeelab.coffeenotes.ui.navigation.Screen
-import com.coffeelab.coffeenotes.util.DateUtils
 import com.coffeelab.coffeenotes.viewmodel.BeanViewModel
 import com.coffeelab.coffeenotes.viewmodel.BrewViewModel
+
+private const val FILTER_ALL = -1L
+private const val FILTER_NO_EQUIPMENT = 0L // 器具 id 从 1 起，0 = 未设置
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -64,24 +69,54 @@ fun BrewListScreen(
     // 预构建 id→bean 映射，避免每条记录线性查找 beans（O(n×m) → O(n)）
     val beansById = remember(beans) { beans.associateBy { it.id } }
 
-    // Week range filter (only for all records view, hidden when searching)
-    var selectedWeekRange by remember { mutableStateOf("全部") }
+    // 豆种（按豆名，不显示烘焙商）/ 器具 / 星级筛选（仅全部记录视图，文字搜索时不叠加）
+    // null = 全部
+    var selectedBeanId by remember { mutableStateOf<Long?>(null) }
+    var selectedEquipmentId by remember { mutableLongStateOf(FILTER_ALL) }
     var selectedRatingFilter by remember { mutableStateOf("全部") }
-    val weekRanges = listOf("全部", "本周", "上周", "更早")
     val ratingFilters = listOf("全部", "三星以上", "四星以上", "五星")
 
-    val filteredRecords = remember(selectedWeekRange, selectedRatingFilter, records) {
+    // 豆名优先取档案，档案已删则用记录里的快照
+    val beanNamesById = remember(records, beansById) {
+        records.associate { record ->
+            record.beanId to (beansById[record.beanId]?.name?.takeIf { it.isNotBlank() }
+                ?: record.beanName.ifEmpty { "未知豆子" })
+        }
+    }
+    val beanOptions = remember(records) {
+        buildList<Long?> { add(null); addAll(records.map { it.beanId }.distinct()) }
+    }
+    val equipmentOptions = remember(records) {
+        records.associate { record ->
+            val id = if (record.equipmentName.isNullOrBlank()) FILTER_NO_EQUIPMENT else record.equipmentId ?: FILTER_NO_EQUIPMENT
+            id to (record.equipmentName?.takeIf { it.isNotBlank() } ?: "未设置")
+        }.toList()
+    }
+    val equipmentFilterOptions = remember(equipmentOptions) {
+        buildList<Pair<Long, String>> { add(FILTER_ALL to "全部"); addAll(equipmentOptions) }
+    }
+
+    val filteredRecords = remember(records, selectedBeanId, selectedEquipmentId, selectedRatingFilter) {
         if (beanId > 0 || isSearching) {
             records
         } else {
-            var result = DateUtils.filterByWeekRange(records, selectedWeekRange)
-            result = when (selectedRatingFilter) {
+            var result = records
+            if (selectedBeanId != null) result = result.filter { it.beanId == selectedBeanId }
+            if (selectedEquipmentId != FILTER_ALL) {
+                result = result.filter { record ->
+                    if (selectedEquipmentId == FILTER_NO_EQUIPMENT) {
+                        record.equipmentName.isNullOrBlank()
+                    } else {
+                        record.equipmentId == selectedEquipmentId
+                    }
+                }
+            }
+            when (selectedRatingFilter) {
                 "三星以上" -> result.filter { it.overallRating >= 3 }
                 "四星以上" -> result.filter { it.overallRating >= 4 }
                 "五星" -> result.filter { it.overallRating >= 5 }
                 else -> result
             }
-            result
         }
     }
 
@@ -239,75 +274,38 @@ fun BrewListScreen(
                 )
             }
 
-            // Filter dropdowns (only for all records view, not bean-specific and not when searching)
+            // 筛选下拉（仅全部记录视图，单豆子视图和文字搜索时不显示）
             if (beanId <= 0 && rawRecords.isNotEmpty() && !isSearching) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    var weekExpanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = weekExpanded,
-                        onExpandedChange = { weekExpanded = it },
-                        modifier = Modifier.width(140.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = selectedWeekRange,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("时间段") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = weekExpanded) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = weekExpanded,
-                            onDismissRequest = { weekExpanded = false }
-                        ) {
-                            weekRanges.forEach { range ->
-                                DropdownMenuItem(
-                                    text = { Text(range) },
-                                    onClick = {
-                                        selectedWeekRange = range
-                                        visibleCount = PAGE_SIZE
-                                        weekExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    var ratingExpanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(
-                        expanded = ratingExpanded,
-                        onExpandedChange = { ratingExpanded = it },
-                        modifier = Modifier.width(140.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = selectedRatingFilter,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("星级") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = ratingExpanded) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = ratingExpanded,
-                            onDismissRequest = { ratingExpanded = false }
-                        ) {
-                            ratingFilters.forEach { filter ->
-                                DropdownMenuItem(
-                                    text = { Text(filter) },
-                                    onClick = {
-                                        selectedRatingFilter = filter
-                                        ratingExpanded = false
-                                        visibleCount = PAGE_SIZE
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    FilterDropdown(
+                        label = "豆种",
+                        selected = selectedBeanId,
+                        options = beanOptions,
+                        labelOf = { id -> if (id == null) "全部" else beanNamesById[id] ?: "未知豆子" },
+                        onSelect = { selectedBeanId = it; visibleCount = PAGE_SIZE },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterDropdown(
+                        label = "器具",
+                        selected = selectedEquipmentId,
+                        options = equipmentFilterOptions.map { it.first },
+                        labelOf = { id -> equipmentFilterOptions.find { it.first == id }?.second ?: "全部" },
+                        onSelect = { selectedEquipmentId = it; visibleCount = PAGE_SIZE },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterDropdown(
+                        label = "星级",
+                        selected = selectedRatingFilter,
+                        options = ratingFilters,
+                        labelOf = { it },
+                        onSelect = { selectedRatingFilter = it; visibleCount = PAGE_SIZE },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
@@ -390,5 +388,59 @@ fun BrewListScreen(
                 TextButton(onClick = { showDeleteDialog = false }) { Text("取消") }
             }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> FilterDropdown(
+    label: String,
+    selected: T,
+    options: List<T>,
+    labelOf: (T) -> String,
+    onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier) {
+        OutlinedTextField(
+            value = labelOf(selected),
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodySmall,
+            label = { Text(label) },
+            trailingIcon = {
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                    contentDescription = null
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+        // 透明点击层：readOnly 的 TextField 会吞掉点击
+        Box(Modifier.matchParentSize().clickable { expanded = true })
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.widthIn(min = 200.dp)
+        ) {
+            // 限高 + 滚动：选项多时不会盖住下面的记录和筛选栏
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 256.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(labelOf(option)) },
+                        onClick = {
+                            onSelect(option)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
     }
 }

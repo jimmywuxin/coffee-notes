@@ -3,7 +3,6 @@ package com.coffeelab.coffeenotes.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
-import com.coffeelab.coffeenotes.data.entity.BrewRecord
 import java.io.File
 import java.io.FileOutputStream
 import java.time.Instant
@@ -180,18 +179,4 @@ object DateUtils {
         }
     }
 
-    fun filterByWeekRange(records: List<BrewRecord>, range: String): List<BrewRecord> {
-        val now = System.currentTimeMillis()
-        val thisWeekStart = getWeekStart(now)
-        val lastWeekStart = thisWeekStart - 7 * AppConstants.MILLIS_PER_DAY
-        val twoWeeksAgoStart = lastWeekStart - 7 * AppConstants.MILLIS_PER_DAY
-
-        return when (range) {
-            "本周" -> records.filter { it.dateTime >= thisWeekStart }
-            "上周" -> records.filter { it.dateTime >= lastWeekStart && it.dateTime < thisWeekStart }
-            "两周前" -> records.filter { it.dateTime >= twoWeeksAgoStart && it.dateTime < lastWeekStart }
-            "更早" -> records.filter { it.dateTime < twoWeeksAgoStart }
-            else -> records // "全部"
-        }
-    }
 }

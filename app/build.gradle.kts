@@ -13,8 +13,8 @@ android {
         applicationId = "com.coffeelab.coffeenotes"
         minSdk = 30
         targetSdk = 35
-        versionCode = 104
-        versionName = "2.11.2"
+        versionCode = 105
+        versionName = "2.12.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
