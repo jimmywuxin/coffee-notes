@@ -69,7 +69,7 @@ fun BrewListScreen(
     // 预构建 id→bean 映射，避免每条记录线性查找 beans（O(n×m) → O(n)）
     val beansById = remember(beans) { beans.associateBy { it.id } }
 
-    // 豆种（按豆名，不显示烘焙商）/ 器具 / 星级筛选（仅全部记录视图，文字搜索时不叠加）
+    // 豆名 / 器具 / 星级筛选（仅全部记录视图，文字搜索时不叠加）
     // null = 全部
     var selectedBeanId by remember { mutableStateOf<Long?>(null) }
     var selectedEquipmentId by remember { mutableLongStateOf(FILTER_ALL) }
@@ -283,7 +283,7 @@ fun BrewListScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterDropdown(
-                        label = "豆种",
+                        label = "豆名",
                         selected = selectedBeanId,
                         options = beanOptions,
                         labelOf = { id -> if (id == null) "全部" else beanNamesById[id] ?: "未知豆子" },
